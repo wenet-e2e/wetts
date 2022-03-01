@@ -19,14 +19,14 @@ And we are going to provide reference solution of:
 
 We plan to support a variaty of open source TTS datasets, include but not limited to:
 
-* [csmsc](https://www.data-baker.com/open_source.html), Chinese Standard Mandarin Speech Copus open sourced by Data Baker
+* [BZNSYP](https://www.data-baker.com/data/index/TNtts/), Chinese Standard Mandarin Speech Copus open sourced by Data Baker.
+* [AISHELL-3](https://openslr.org/93/), a large-scale and high-fidelity multi-speaker Mandarin speech corpus.
 * [Opencpop](https://wenet.org.cn/opencpop/), Mandarin singing voice synthesis (SVS) corpus
 
 ## Runtime
 
 We plan to support a variaty of hardwares and platforms, including:
 
-* Web browser
 * x86
 * Android
 * Raspberry Pi
