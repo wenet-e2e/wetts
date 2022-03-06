@@ -2,6 +2,12 @@
 
 Production First and Production Ready End-to-End Text-to-Speech Toolkit
 
+## Install
+
+``` sh
+conda create -n aligner -c conda-forge montreal-forced-aligner
+```
+
 ## Roadmap
 
 We mainly focus on production and on-device TTS, and we plan to use:
