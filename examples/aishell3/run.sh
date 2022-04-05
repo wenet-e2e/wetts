@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 # Copyright 2022 Binbin Zhang(binbzha@qq.com)
 
-stage=0 # start from -1 if you need to download data
-stop_stage=5
+stage=1 # start from -1 if you need to download data
+stop_stage=1
 
 data_url=https://openslr.magicdatatech.com/resources/93/data_aishell3.tgz
 data_dir=/mnt/mnt-data-1/binbin.zhang/data
+
+config=conf/default.yaml
 data=data
+dump=dump
 dir=exp
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
@@ -14,11 +17,12 @@ if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
   local/download_data.sh $data_url $data_dir
 fi
 
+
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
   mkdir -p $data/train $data/test $data/dict
   # Prepare alignment lab for MFA tools
   local/prepare_align_lab.py $data_dir/data_aishell3/train $data/train
-  python tools/generate_mfa_pinyin_lexicon.py --with-tone --with-r \
+  python tools/gen_mfa_pinyin_lexicon.py --with-tone --with-r \
       $data/dict/lexicon.txt $data/dict/phones.txt
   # MFA alignment
   conda_base=$(conda info --base)
@@ -30,3 +34,20 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
   conda deactivate
 fi
 
+
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+  mkdir -p $dump/train
+  # Generate phone alignment information from textgrid, including
+  # phone, duration, speaker
+  python tools/gen_alignment_from_textgrid.py \
+      --inputdir=$data/train/TextGrid \
+      --outputdir=$dump/train \
+      --config=$config
+  # speaker to id map
+  cat $dump/train/utt2spk | awk '{print $2}' | sort | uniq | \
+      awk '{print $1, NR-1}' > $dump/spk2id
+  # phone to id map
+  (echo "<eos> 0"; echo "<unk> 1") > $dump/phn2id
+  cat $dump/train/utt2phn | awk '{for (i=2;i<NF;i++) print $i}' | sort | \
+      uniq | awk '{print $1, NR+1}' >> $dump/phn2id
+fi
