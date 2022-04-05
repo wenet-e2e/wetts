@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Copyright (c) 2021 PaddlePaddle Authors. All Rights Reserved.
 #               2022 Binbin Zhang(binbzha@qq.com)
 #
