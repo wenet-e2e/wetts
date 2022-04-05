@@ -50,4 +50,16 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
   (echo "<eos> 0"; echo "<unk> 1") > $dump/phn2id
   cat $dump/train/utt2phn | awk '{for (i=2;i<NF;i++) print $i}' | sort | \
       uniq | awk '{print $1, NR+1}' >> $dump/phn2id
+
+  # Prepare training shards
+  cp data/train/wav.scp $dump/train
+  python tools/make_shard_list.py --num_utts_per_shard 1000 --shuffle \
+      --num_threads 16 \
+      $dump/train/wav.scp \
+      $dump/train/utt2dur \
+      $dump/train/utt2phn \
+      $dump/train/utt2spk \
+      $dump/train/shards \
+      $dump/train/data.list
 fi
+
