@@ -1,0 +1,8 @@
+jsonlines==3.0.0
+librosa
+praatio
+pyworld
+pyyaml>=5.1
+scipy
+tqdm
+yacs
