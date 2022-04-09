@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import io
 import json
 import logging
 import random
@@ -22,9 +21,7 @@ from urllib.parse import urlparse
 
 import librosa
 import numpy as np
-import torch
 import torchaudio
-import torchaudio.compliance.kaldi as kaldi
 from yacs.config import CfgNode
 
 from wetts.dataset.feats import Energy, LogMelFBank, Pitch
