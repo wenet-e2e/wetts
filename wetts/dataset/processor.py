@@ -114,12 +114,12 @@ def tar_file_and_group(data):
 def merge_silence(data):
     """ merge silences
         Args:
-            data: Iterable[{key, wav, speaker, duration, phones}]
+            data: Iterable[{key, wav, speaker, durations, phones}]
         Returns:
-            Iterable[{key, wav, speaker, duration, phones}]
+            Iterable[{key, wav, speaker, durations, phones}]
     """
     for sample in data:
-        cur_phn, cur_dur = sample['phones'], sample['duration']
+        cur_phn, cur_dur = sample['phones'], sample['durations']
         new_phn = []
         new_dur = []
 
@@ -134,7 +134,7 @@ def merge_silence(data):
                 new_dur.append(cur_dur[i])
 
         assert len(new_phn) == len(new_dur)
-        sample['duration'] = new_dur
+        sample['durations'] = new_dur
         sample['phones'] = new_phn
         yield sample
 
@@ -142,9 +142,9 @@ def merge_silence(data):
 def compute_feats(data, config):
     """ Compute mel, f0, energy feature
         Args:
-            data: Iterable[{key, wav, speaker, duration, phones}]
+            data: Iterable[{key, wav, speaker, durations, phones}]
         Returns:
-            Iterable[{key, wav, speaker, duration, phones, mel, f0, energy}]
+            Iterable[{key, wav, speaker, durations, phones, mel, f0, energy}]
     """
     cut_sil = config.get('cut_sil', True)
     config = CfgNode(config)
@@ -169,7 +169,7 @@ def compute_feats(data, config):
         key = sample['key']
         wav = sample['wav'].numpy()[0]  # First channel
         phones = sample['phones']
-        durations = sample['duration']
+        durations = sample['durations']
         assert len(wav.shape) == 1, f'{key} is not a mono-channel audio.'
         assert np.abs(wav).max(
         ) <= 1.0, f"{key} is seems to be different that 16 bit PCM."
@@ -214,7 +214,7 @@ def compute_feats(data, config):
         # extract energy
         energy = energy_extractor.get_energy(wav, duration=np.array(durations))
         assert energy.shape[0] == len(durations)
-        sample['duration'] = durations
+        sample['durations'] = durations
         sample['mel'] = logmel
         sample['f0'] = f0
         sample['energy'] = energy

@@ -17,8 +17,9 @@ import os
 import yaml
 
 import numpy as np
-from sklearn.preprocessing import StandardScaler
+from torch.utils.data import DataLoader
 from tqdm import tqdm
+from sklearn.preprocessing import StandardScaler
 
 from wetts.dataset.dataset import CmvnDataset
 
@@ -26,6 +27,10 @@ from wetts.dataset.dataset import CmvnDataset
 def get_args():
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('--total', type=int, default=1e5, help='total record')
+    parser.add_argument('--num_workers',
+                        type=int,
+                        default=1,
+                        help='num worker to read the data')
     parser.add_argument('config', help='config file')
     parser.add_argument('input_list', help='input data list')
     parser.add_argument('output_dir', help='output dir')
@@ -42,8 +47,12 @@ def main():
     f0_scaler = StandardScaler()
     energy_scaler = StandardScaler()
 
+    data_loader = DataLoader(dataset,
+                             batch_size=None,
+                             num_workers=args.num_workers)
+
     with tqdm(total=args.total) as progress:
-        for i, x in enumerate(dataset):
+        for i, x in enumerate(data_loader):
             mel_scaler.partial_fit(x['mel'])
             f0_scaler.partial_fit(x['f0'])
             energy_scaler.partial_fit(x['energy'])

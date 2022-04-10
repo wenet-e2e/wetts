@@ -64,7 +64,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
       $dump/train/data.list
 
   total=$(cat $dump/train/utt2dur | wc -l)
-  python wetts/bin/compute_cmvn.py --total $total \
+  python wetts/bin/compute_cmvn.py --total $total --num_workers 32 \
       $config $dump/train/data.list $dump/train
 fi
 
