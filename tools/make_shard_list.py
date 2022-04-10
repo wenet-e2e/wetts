@@ -44,7 +44,7 @@ def write_tar_file(data_list, tar_file, index=0, total=1):
             ts = time.time()
 
             json_file = key + '.json'
-            obj = {'duration': dur, 'phones': phones, 'speaker': speaker}
+            obj = {'durations': dur, 'phones': phones, 'speaker': speaker}
             json_data = json.dumps(obj, ensure_ascii=False).encode('utf8')
             json_io = io.BytesIO(json_data)
             json_info = tarfile.TarInfo(json_file)
