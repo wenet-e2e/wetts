@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Copyright 2022 Binbin Zhang(binbzha@qq.com)
+. path.sh
 
 stage=1 # start from -1 if you need to download data
 stop_stage=1
@@ -61,5 +62,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
       $dump/train/utt2spk \
       $dump/train/shards \
       $dump/train/data.list
+
+  total=$(cat $dump/train/utt2dur | wc -l)
+  python wetts/bin/compute_cmvn.py --total $total \
+      $config $dump/train/data.list $dump/train
 fi
 
