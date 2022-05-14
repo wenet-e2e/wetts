@@ -21,7 +21,9 @@ from urllib.parse import urlparse
 
 import librosa
 import numpy as np
+import torch
 import torchaudio
+from torch.nn.utils.rnn import pad_sequence
 from yacs.config import CfgNode
 
 from wetts.dataset.feats import Energy, LogMelFBank, Pitch
@@ -221,15 +223,29 @@ def compute_feats(data, config):
         yield sample
 
 
+def apply_spk2id(data, spk2id):
+    for sample in data:
+        assert 'speaker' in sample
+        sample['speaker'] = spk2id[sample['speaker']]
+        yield sample
+
+
+def apply_phn2id(data, phn2id):
+    for sample in data:
+        assert 'phones' in sample
+        sample['phones'] = [phn2id[x] for x in sample['phones']]
+        yield sample
+
+
 def shuffle(data, shuffle_size=1500):
     """ Local shuffle the data
 
         Args:
-            data: Iterable[{key, wav, speaker, sample_rate}]
+            data: Iterable[{}]
             shuffle_size: buffer size for shuffle
 
         Returns:
-            Iterable[{key, wav, speaker, sample_rate}]
+            Iterable[{}]
     """
     buf = []
     for sample in data:
@@ -243,3 +259,89 @@ def shuffle(data, shuffle_size=1500):
     random.shuffle(buf)
     for x in buf:
         yield x
+
+
+def apply_cmvn(data, mel_stats, f0_stats, energy_stats):
+    """ Apply CMVN on data
+    """
+    for sample in data:
+        assert 'mel' in sample
+        assert 'f0' in sample
+        assert 'energy' in sample
+        sample['mel'] = (sample['mel'] - mel_stats[0]) * mel_stats[1]
+        sample['f0'] = (sample['f0'] - f0_stats[0]) * f0_stats[1]
+        sample['energy'] = (sample['energy'] -
+                            energy_stats[0]) * energy_stats[1]
+        yield sample
+
+
+def batch(data, batch_size=2):
+    """ Static batch the data by `batch_size`
+        Args:
+            data: Iterable[{}]
+            batch_size: batch size
+        Returns:
+            Iterable[List[{}]]
+    """
+    buf = []
+    for sample in data:
+        buf.append(sample)
+        if len(buf) >= batch_size:
+            yield buf
+            buf = []
+    if len(buf) > 0:
+        yield buf
+
+
+def padding(data):
+    """ Padding the data
+        Args:
+            data: Iterable[List[{key, wav, speaker, durations, phones, mel, f0,
+                           energy}]]
+        Returns:
+            Iterable[Tuple(keys, speaker, durations, phones, mel, f0, energy,
+                           phones_length, mel_length)]
+    """
+    for sample in data:
+        assert isinstance(sample, list)
+        phones_length = torch.tensor([len(x['phones']) for x in sample],
+                                     dtype=torch.int32)
+        order = torch.argsort(phones_length, descending=True)
+
+        sorted_keys = [sample[i]['key'] for i in order]
+        sorted_speaker = torch.tensor([sample[i]['speaker'] for i in order],
+                                      dtype=torch.int32)
+        sorted_durations = [
+            torch.tensor(sample[i]['durations'], dtype=torch.int32)
+            for i in order
+        ]
+        sorted_phones = [
+            torch.tensor(sample[i]['phones'], dtype=torch.int32) for i in order
+        ]
+        sorted_mel = [torch.from_numpy(sample[i]['mel']) for i in order]
+        sorted_f0 = [torch.from_numpy(sample[i]['f0']) for i in order]
+        sorted_energy = [torch.from_numpy(sample[i]['energy']) for i in order]
+        sorted_phones_length = torch.tensor(
+            [len(sample[i]['phones']) for i in order], dtype=torch.int32)
+        sorted_mel_length = torch.tensor(
+            [sample[i]['mel'].shape[0] for i in order], dtype=torch.int32)
+
+        padded_durations = pad_sequence(sorted_durations,
+                                        batch_first=True,
+                                        padding_value=0)
+        padded_phones = pad_sequence(sorted_phones,
+                                     batch_first=True,
+                                     padding_value=-1)
+        padded_mel = pad_sequence(sorted_mel,
+                                  batch_first=True,
+                                  padding_value=0.0)
+        padded_f0 = pad_sequence(sorted_f0,
+                                 batch_first=True,
+                                 padding_value=0.0)
+        padded_energy = pad_sequence(sorted_energy,
+                                     batch_first=True,
+                                     padding_value=0.0)
+
+        yield (sorted_keys, sorted_speaker, padded_durations, padded_phones,
+               padded_mel, padded_f0, padded_energy, sorted_phones_length,
+               sorted_mel_length)

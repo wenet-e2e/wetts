@@ -12,18 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 import random
 
+import numpy as np
 import torch
 import torch.distributed as dist
 from torch.utils.data import IterableDataset
 
 import wetts.dataset.processor as processor
-from wetts.utils.file_utils import read_lists
+from wetts.utils.file_utils import read_key2id, read_lists
 
 
 class Processor(IterableDataset):
-
     def __init__(self, source, f, *args, **kw):
         assert callable(f)
         self.source = source
@@ -48,7 +49,6 @@ class Processor(IterableDataset):
 
 
 class DistributedSampler:
-
     def __init__(self, shuffle=True, partition=True):
         self.epoch = -1
         self.update()
@@ -97,7 +97,6 @@ class DistributedSampler:
 
 
 class DataList(IterableDataset):
-
     def __init__(self, lists, shuffle=True, partition=True):
         self.lists = lists
         self.sampler = DistributedSampler(shuffle, partition)
@@ -122,4 +121,35 @@ def CmvnDataset(data_list_file, conf):
     dataset = Processor(dataset, processor.url_opener)
     dataset = Processor(dataset, processor.tar_file_and_group)
     dataset = Processor(dataset, processor.compute_feats, conf)
+    return dataset
+
+
+def Dataset(data_list_file, spk2id_file, phn2id_file, cmvn_dir, conf):
+    lists = read_lists(data_list_file)
+    shuffle = conf.get('shuffle', False)
+    # Global shuffle
+    dataset = DataList(lists, shuffle=shuffle)
+    dataset = Processor(dataset, processor.url_opener)
+    dataset = Processor(dataset, processor.tar_file_and_group)
+    # Local shuffle
+    if shuffle:
+        shuffle_conf = conf.get('shuffle_conf', {})
+        dataset = Processor(dataset, processor.shuffle, **shuffle_conf)
+    # Apply speaker/phone mapping
+    spk2id = read_key2id(spk2id_file)
+    phn2id = read_key2id(phn2id_file)
+    dataset = Processor(dataset, processor.apply_spk2id, spk2id)
+    dataset = Processor(dataset, processor.apply_phn2id, phn2id)
+
+    dataset = Processor(dataset, processor.compute_feats, conf)
+    # CMVN
+    mel_stats = np.loadtxt(os.path.join(cmvn_dir, 'mel_cmvn.txt'))
+    f0_stats = np.loadtxt(os.path.join(cmvn_dir, 'f0_cmvn.txt'))
+    energy_stats = np.loadtxt(os.path.join(cmvn_dir, 'energy_cmvn.txt'))
+    dataset = Processor(dataset, processor.apply_cmvn, mel_stats, f0_stats,
+                        energy_stats)
+
+    batch_conf = conf.get('batch_conf', {})
+    dataset = Processor(dataset, processor.batch, **batch_conf)
+    dataset = Processor(dataset, processor.padding)
     return dataset

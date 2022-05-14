@@ -2,8 +2,8 @@
 # Copyright 2022 Binbin Zhang(binbzha@qq.com)
 . path.sh
 
-stage=1 # start from -1 if you need to download data
-stop_stage=1
+stage=0 # start from -1 if you need to download data
+stop_stage=0
 
 data_url=https://openslr.magicdatatech.com/resources/93/data_aishell3.tgz
 data_dir=/mnt/mnt-data-1/binbin.zhang/data
@@ -63,8 +63,18 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
       $dump/train/shards \
       $dump/train/data.list
 
+  # Compute mel, f0, energy CMVN
   total=$(cat $dump/train/utt2dur | wc -l)
   python wetts/bin/compute_cmvn.py --total $total --num_workers 32 \
       $config $dump/train/data.list $dump/train
 fi
 
+
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+  python wetts/bin/train.py --num_workers 32 \
+      --config $config \
+      --train_list $dump/train/data.list \
+      --cmvn_dir $dump/train \
+      --spk2id_file $dump/spk2id \
+      --phn2id_file $dump/phn2id
+fi
