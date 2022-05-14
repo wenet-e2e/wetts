@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import argparse
-import os
 import yaml
 
 from torch.utils.data import DataLoader
