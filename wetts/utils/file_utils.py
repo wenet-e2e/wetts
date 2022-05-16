@@ -20,3 +20,19 @@ def read_lists(list_file):
         for line in fin:
             lists.append(line.strip())
     return lists
+
+
+def read_scp(scp_file):
+    lists = []
+    with open(scp_file, 'r', encoding='utf8') as fin:
+        for line in fin:
+            arr = line.strip().split()
+            assert len(arr) == 2
+            lists.append(arr)
+    return lists
+
+
+def read_key2id(scp_file):
+    lists = read_scp(scp_file)
+    key2id = {x[0]: int(x[1]) for x in lists}
+    return key2id
