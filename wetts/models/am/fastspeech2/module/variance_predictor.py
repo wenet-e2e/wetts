@@ -16,7 +16,6 @@
 
 import collections
 
-import torch
 from torch import nn
 
 

@@ -70,8 +70,8 @@ class VarianceAdaptor(nn.Module):
 
         Args:
             x: Input phoneme sequence.
-            x_mask: Mask tensor for x. If x_mask[i,j] is True, x will be masked
-            in self-attention.
+            x_mask: Mask tensor for x. If x_mask[i,j] is True, x will be set to
+            zero in variance predictor.
             duration_target: Ground truth duration.
             pitch_target: Ground truth pitch.
             energy_target: Ground truth energy.
