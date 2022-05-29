@@ -14,7 +14,6 @@
 # Modified from FastSpeech2(https://github.com/ming024/FastSpeech2)
 
 import torch
-from torch import nn
 
 
 def get_sinusoid_encoding_table(max_seq_len, input_dim, padding_idx=None):
@@ -42,12 +41,12 @@ def get_sinusoid_encoding_table(max_seq_len, input_dim, padding_idx=None):
 def get_mask_from_lengths(lengths, max_len=None):
     """Generate mask array from length.
 
-    Args: 
+    Args:
         lengths:
             A tensor of shape (b), where b is the batch size.
-    
-    Return: 
-        A mask tensor of shape (b,max_seq_len), where max_seq_len is the length 
+
+    Return:
+        A mask tensor of shape (b,max_seq_len), where max_seq_len is the length
         of the longest sequence. Positions of padded elements will be set to True.
     """
     batch_size = lengths.shape[0]
@@ -61,7 +60,7 @@ def get_mask_from_lengths(lengths, max_len=None):
     return mask
 
 
-def duration_to_log_duration(durations:torch.Tensor)->torch.Tensor:
+def duration_to_log_duration(durations: torch.Tensor) -> torch.Tensor:
     """Converting linear domain durations to log domain durations.
 
     Args:
@@ -71,9 +70,9 @@ def duration_to_log_duration(durations:torch.Tensor)->torch.Tensor:
         torch.Tensor: Log domain durations.
     """
     return torch.log(durations)
-    
 
-def log_duration_to_duration(log_durations:torch.Tensor)->torch.Tensor:
+
+def log_duration_to_duration(log_durations: torch.Tensor) -> torch.Tensor:
     """Converting log domain duration to linear domain duration.
 
     Args:

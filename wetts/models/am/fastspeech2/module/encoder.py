@@ -53,11 +53,12 @@ class FastSpeech2Encoder(nn.Module):
 
         Args:
             x: A tensor of shape (b,t',d)
-            padding_mask: A BoolTensor of shape (b,t'). If padding_mask[i,j] is True,
-            x[i,j,:] will be masked in self-attention.
-            token_type: An IntTensor of shape (b,t). Assume the output of the final FFT block
-            is final_FFT_output and the final output of encoder is enc_output. When 
-            token_type[i,j] is 0, final_FFT_output[i,j,:] will be removed from enc_output.
+            padding_mask: A BoolTensor of shape (b,t'). If padding_mask[i,j] is
+            True, x[i,j,:] will be masked in self-attention.
+            token_type: An IntTensor of shape (b,t). Assume the output of the
+            final FFT block is final_FFT_output and the final output of encoder
+            is enc_output. When token_type[i,j] is 0, final_FFT_output[i,j,:]
+            will be removed from enc_output.
         Returns:
             encoder output, the length of encoder output, encoder attention
         """
@@ -83,11 +84,12 @@ class FastSpeech2Encoder(nn.Module):
 
         Args:
             x: A tensor of shape (b,t',d)
-            padding_mask: A BoolTensor of shape (b,t'). If padding_mask[i,j] is True,
-            x[i,j,:] will be masked in self-attention.
-            token_type: An IntTensor of shape (b,t). Assume the output of the final FFT block
-            is final_FFT_output and the final output of encoder is enc_output. When 
-            token_type[i,j] is 0, final_FFT_output[i,j,:] will be removed from enc_output.
+            padding_mask: A BoolTensor of shape (b,t'). If padding_mask[i,j] is
+            True, x[i,j,:] will be masked in self-attention.
+            token_type: An IntTensor of shape (b,t). Assume the output of the
+            final FFT block is final_FFT_output and the final output of encoder
+            is enc_output. When token_type[i,j] is 0, final_FFT_output[i,j,:]
+            will be removed from enc_output.
         Returns:
             encoder output, the length of encoder output, encoder attention
         """

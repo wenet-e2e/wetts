@@ -16,7 +16,6 @@
 
 import torch
 from torch import nn
-import torch.nn.functional as F
 
 
 class ConvNorm(nn.Module):
@@ -77,7 +76,7 @@ class Postnet(nn.Module):
                          w_init_gain='linear'), nn.BatchNorm1d(mel_dim),
                 nn.Dropout(dropout)))
 
-    def forward(self, x: torch.Tensor)->torch.Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward function for postnet.
 
         Args:
@@ -86,9 +85,9 @@ class Postnet(nn.Module):
         Returns:
             torch.Tensor: output mel.
         """
-        x = x.permute(0,2,1)
+        x = x.permute(0, 2, 1)
         for i in range(len(self.convolutions) - 1):
             x = self.convolutions[i](x)
         x = self.convolutions[-1](x)
 
-        return x.permute(0,2,1)
+        return x.permute(0, 2, 1)

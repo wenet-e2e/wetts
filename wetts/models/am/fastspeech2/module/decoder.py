@@ -45,8 +45,8 @@ class FastSpeech2Decoder(nn.Module):
 
         Args:
             x: A tensor of shape (b,t',d)
-            padding_mask: A BoolTensor of shape (b,t'). If padding_mask[i,j] is True,
-            x[i,j,:] will be masked in self-attention.
+            padding_mask: A BoolTensor of shape (b,t'). If padding_mask[i,j] is
+            True, x[i,j,:] will be masked in self-attention.
         Returns:
             decoder output, decoder attention
         """

@@ -15,7 +15,6 @@
 
 import torch
 from torch import nn
-import math
 
 from wetts.models.am.fastspeech2.module import variance_predictor
 from wetts.models.am.fastspeech2.module import length_regulator
