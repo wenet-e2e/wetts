@@ -18,7 +18,6 @@ from torch import nn
 
 from wetts.models.am.fastspeech2.module import variance_predictor
 from wetts.models.am.fastspeech2.module import length_regulator
-from wetts.models.am.fastspeech2 import utils
 
 
 class VarianceAdaptor(nn.Module):
@@ -118,8 +117,8 @@ class VarianceAdaptor(nn.Module):
             d_control: Duration manipulation factor.
         """
         log_duration_prediction = self.duration_predictor(x, x_mask)
-        predicted_duration = utils.log_duration_to_duration(
-            log_duration_prediction) * d_control
+        predicted_duration = torch.round(
+            torch.exp(log_duration_prediction)) * d_control
 
         pitch_prediction = self.pitch_predictor(x, x_mask)
         pitch_prediction_embedding = self.get_pitch_embedding(

@@ -47,7 +47,8 @@ def get_mask_from_lengths(lengths, max_len=None):
 
     Return:
         A mask tensor of shape (b,max_seq_len), where max_seq_len is the length
-        of the longest sequence. Positions of padded elements will be set to True.
+        of the longest sequence. Positions of padded elements will be set to
+        True.
     """
     batch_size = lengths.shape[0]
     if max_len is None:
@@ -58,27 +59,3 @@ def get_mask_from_lengths(lengths, max_len=None):
     mask = ids >= lengths.unsqueeze(1).expand(-1, max_len)
 
     return mask
-
-
-def duration_to_log_duration(durations: torch.Tensor) -> torch.Tensor:
-    """Converting linear domain durations to log domain durations.
-
-    Args:
-        durations (torch.Tensor): Durations in linear domain.
-
-    Returns:
-        torch.Tensor: Log domain durations.
-    """
-    return torch.log(durations)
-
-
-def log_duration_to_duration(log_durations: torch.Tensor) -> torch.Tensor:
-    """Converting log domain duration to linear domain duration.
-
-    Args:
-        log_durations (torch.Tensor): Durations in log domain.
-
-    Returns:
-        torch.Tensor: Linear domain durations.
-    """
-    return torch.round(torch.exp(log_durations))
