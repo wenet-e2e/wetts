@@ -13,12 +13,10 @@
 # limitations under the License.
 # Modified from FastSpeech2(https://github.com/ming024/FastSpeech2)
 
-import torch
 from torch import nn
 
 from wetts.models.am.fastspeech2.module import fft
 from wetts.models.am.fastspeech2.module import length_regulator
-from wetts.models.am.fastspeech2 import utils
 
 
 class FastSpeech2Encoder(nn.Module):
@@ -27,15 +25,11 @@ class FastSpeech2Encoder(nn.Module):
     """
 
     def __init__(self, enc_hidden_dim, n_enc_layer, n_enc_head,
-                 n_enc_conv_filter, enc_conv_kernel_size, enc_dropout, n_vocab,
-                 padding_idx):
+                 n_enc_conv_filter, enc_conv_kernel_size, enc_dropout):
         super().__init__()
 
         self.enc_hidden_dim = enc_hidden_dim
 
-        self.src_word_emb = nn.Embedding(n_vocab,
-                                         enc_hidden_dim,
-                                         padding_idx=padding_idx)
         # Length regulator are used here to remove tokens of type 0, which
         # are prosodic structure labels in mandarin.
         self.length_regulator = length_regulator.LengthRegulator()
@@ -63,21 +57,15 @@ class FastSpeech2Encoder(nn.Module):
             encoder output, the length of encoder output, encoder attention
         """
         enc_slf_attn_list = []
-        batch_size, max_seq_len = x.shape[0], x.shape[1]
+        max_seq_len = x.shape[1]
         slf_attn_mask = padding_mask.unsqueeze(1).expand(-1, max_seq_len, -1)
-
-        enc_output = self.src_word_emb(x) + utils.get_sinusoid_encoding_table(
-            max_seq_len,
-            self.enc_hidden_dim)[:max_seq_len, :].unsqueeze(0).expand(
-                batch_size, -1, -1).to(x.device)
-
         for enc_layer in self.layer_stack:
-            enc_output, enc_slf_attn = enc_layer(enc_output,
-                                                 mask=padding_mask,
-                                                 slf_attn_mask=slf_attn_mask)
+            x, enc_slf_attn = enc_layer(x,
+                                        mask=padding_mask,
+                                        slf_attn_mask=slf_attn_mask)
             enc_slf_attn_list += [enc_slf_attn]
-        enc_output, seq_len = self.length_regulator(enc_output, token_type)
-        return enc_output, seq_len, enc_slf_attn_list
+        x, seq_len = self.length_regulator(x, token_type)
+        return x, seq_len, enc_slf_attn_list
 
     def inference(self, x, padding_mask, token_type):
         """

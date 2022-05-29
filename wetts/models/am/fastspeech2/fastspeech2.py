@@ -19,10 +19,11 @@ from typing import List, Tuple
 import torch
 from torch import nn
 
+from wetts.utils import mask
+from wetts.models.am.fastspeech2 import utils
 from wetts.models.am.fastspeech2.module import encoder
 from wetts.models.am.fastspeech2.module import variance_adapter
 from wetts.models.am.fastspeech2.module import decoder
-from wetts.models.am.fastspeech2 import utils
 from wetts.models.am.fastspeech2.module import postnet
 
 
@@ -54,7 +55,7 @@ class FastSpeech2(nn.Module):
                  dec_conv_kernel_size: int, dec_dropout: float, mel_dim: int,
                  n_speaker: int, postnet_kernel_size: int,
                  postnet_hidden_dim: int, n_postnet_conv_layers: int,
-                 postnet_dropout: float) -> None:
+                 postnet_dropout: float, max_pos_enc_len: int) -> None:
         """Initializing FastSpeech2.
 
         Args:
@@ -93,15 +94,24 @@ class FastSpeech2(nn.Module):
             mel_dim (int): Dimension of mel.
             n_speaker (int): Number of speakers. If n_speaker > 1, initialize a
             multi-speaker FastSpeech2.
+            max_pos_enc_len (int): Maximum length of positional
+            encodings.
         """
         super().__init__()
         if n_speaker > 1:
             self.speaker_embedding = nn.Embedding(n_speaker, enc_hidden_dim)
         else:
             self.speaker_embedding = None
-        self.encoder = encoder.FastSpeech2Encoder(
-            enc_hidden_dim, n_enc_layer, n_enc_head, n_enc_conv_filter,
-            enc_conv_kernel_size, enc_dropout, n_vocab, padding_idx)
+        self.pos_enc = nn.Parameter(utils.get_sinusoid_encoding_table(
+            max_pos_enc_len, enc_hidden_dim), requires_grad=False)
+        self.src_word_emb = nn.Embedding(n_vocab,
+                                         enc_hidden_dim,
+                                         padding_idx=padding_idx)
+        self.encoder = encoder.FastSpeech2Encoder(enc_hidden_dim, n_enc_layer,
+                                                  n_enc_head,
+                                                  n_enc_conv_filter,
+                                                  enc_conv_kernel_size,
+                                                  enc_dropout)
         self.variance_adapter = variance_adapter.VarianceAdaptor(
             enc_hidden_dim, n_va_conv_filter, va_conv_kernel_size, va_dropout,
             pitch_min, pitch_max, pitch_mean, pitch_sigma, energy_min,
@@ -188,17 +198,20 @@ class FastSpeech2(nn.Module):
         """
         # If x_padding_mask[i,j] is True, x[i,j,:] will be masked in encoder
         # self-attention.
-        x_padding_mask = utils.get_mask_from_lengths(x_length)
-
+        x = self.src_word_emb(x)
+        x += self.pos_enc[:x.shape[1], :]
+        x_padding_mask = mask.get_mask_from_lengths(x_length)
         enc_output, enc_output_seq_len, _ = self.encoder(
             x, x_padding_mask, x_token_type)
-        enc_output_mask = utils.get_mask_from_lengths(enc_output_seq_len)
+        enc_output_mask = mask.get_mask_from_lengths(enc_output_seq_len)
         enc_output = self._get_speaker_embedding(enc_output, speaker)
         (variance_adapter_output, mel_len, pitch_prediction, energy_prediction,
          log_duration_prediction) = self.variance_adapter(
              enc_output, enc_output_mask, duration_target, pitch_target,
              energy_target)
-        mel_mask = utils.get_mask_from_lengths(mel_len)
+        variance_adapter_output += self.pos_enc[:variance_adapter_output.
+                                                shape[1], :]
+        mel_mask = mask.get_mask_from_lengths(mel_len)
         dec_output, _ = self.decoder(variance_adapter_output, mel_mask)
         mel_prediction = self.linear(dec_output)
         postnet_mel_prediction = self.postnet(mel_prediction) + mel_prediction
@@ -237,20 +250,18 @@ class FastSpeech2(nn.Module):
         """
         # If x_padding_mask[i,j] is True, x[i,j,:] will be masked in encoder
         # self-attention.
-        x_padding_mask = utils.get_mask_from_lengths(x_length)
-
+        x = self.src_word_emb(x)
+        x += self.pos_enc[:x.shape[1], :]
+        x_padding_mask = mask.get_mask_from_lengths(x_length)
         enc_output, enc_output_seq_len, _ = self.encoder.inference(
             x, x_padding_mask, x_token_type)
-        enc_output_mask = utils.get_mask_from_lengths(enc_output_seq_len)
-
+        enc_output_mask = mask.get_mask_from_lengths(enc_output_seq_len)
         enc_output = self._get_speaker_embedding(enc_output, speaker)
-
         variance_adapter_output, mel_len = self.variance_adapter.inference(
             enc_output, enc_output_mask, p_control, e_control, d_control)
-        # If mel_mask[i,j] is True, variance_adapter_output[i,j,:] will be
-        # masked in decoder self-attention.
-
-        mel_mask = utils.get_mask_from_lengths(mel_len)
+        variance_adapter_output += self.pos_enc[:variance_adapter_output.
+                                                shape[1], :]
+        mel_mask = mask.get_mask_from_lengths(mel_len)
         dec_output, _ = self.decoder.inference(variance_adapter_output,
                                                mel_mask)
         mel_prediction = self.linear(dec_output)

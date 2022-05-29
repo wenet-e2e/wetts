@@ -14,11 +14,9 @@
 # Modified from PaddleSpeech(https://github.com/PaddlePaddle/PaddleSpeech)
 # and FastSpeech2(https://github.com/ming024/FastSpeech2)
 
-import torch
 from torch import nn
 
 from wetts.models.am.fastspeech2.module import fft
-from wetts.models.am.fastspeech2 import utils
 
 
 class FastSpeech2Decoder(nn.Module):
@@ -51,21 +49,14 @@ class FastSpeech2Decoder(nn.Module):
             decoder output, decoder attention
         """
         dec_slf_attn_list = []
-        batch_size, max_seq_len = x.shape[0], x.shape[1]
-        # -- Prepare masks
+        max_seq_len = x.shape[1]
         slf_attn_mask = padding_mask.unsqueeze(1).expand(-1, max_seq_len, -1)
-
-        dec_output = x + utils.get_sinusoid_encoding_table(
-            max_seq_len,
-            self.dec_hidden_dim)[:max_seq_len, :].unsqueeze(0).expand(
-                batch_size, -1, -1).to(x.device)
-
         for dec_layer in self.layer_stack:
-            dec_output, dec_slf_attn = dec_layer(dec_output,
-                                                 mask=padding_mask,
-                                                 slf_attn_mask=slf_attn_mask)
+            x, dec_slf_attn = dec_layer(x,
+                                        mask=padding_mask,
+                                        slf_attn_mask=slf_attn_mask)
             dec_slf_attn_list += [dec_slf_attn]
-        return dec_output, dec_slf_attn_list
+        return x, dec_slf_attn_list
 
     def inference(self, x, padding_mask):
         return self.forward(x, padding_mask)
