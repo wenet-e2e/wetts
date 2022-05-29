@@ -31,9 +31,9 @@ class FastSpeech2(nn.Module):
     This is an implementation of FastSpeech2 described in `FastSpeech 2: Fast
     and High-Quality End-to-End Text to Speech`_.
     Phoneme level pitch and energy predictor are used in Variance Adapter. Pitch
-    and energy are quantized and are converted into corresponding embeddings. 
+    and energy are quantized and are converted into corresponding embeddings.
     For mandarian, explicit prosody control is implemented by inserting prosodic
-    structure labels into input phoneme sequences. Embeddings of prosodic 
+    structure labels into input phoneme sequences. Embeddings of prosodic
     structure labels are removed after encoder.
 
     .. _`FastSpeech 2: Fast and High-Quality End-to-End Text to Speech`:
@@ -68,7 +68,7 @@ class FastSpeech2(nn.Module):
             enc_dropout (float): Dropout of encoder.
             n_vocab (int): Vocabulary size of input sequences.
             padding_idx (int): Index of padding elements in vocabulary.
-            n_va_conv_filter (int): Number of convolution filters for each 
+            n_va_conv_filter (int): Number of convolution filters for each
             variance predictor in variance adapter.
             va_conv_kernel_size (int): Kernel size for all convolution layers
             in variance adapter.
@@ -120,7 +120,7 @@ class FastSpeech2(nn.Module):
                                speaker: torch.Tensor) -> torch.Tensor:
         """Getting speaker embedding according to speak ID.
 
-        If this is a multi-speaker FastSpeech2 and speaker IDs are given, 
+        If this is a multi-speaker FastSpeech2 and speaker IDs are given,
         speaker embeddings will be added to enc_output.
 
         Args:
@@ -128,7 +128,7 @@ class FastSpeech2(nn.Module):
             speaker (torch.Tensor): Speaker ID.
 
         Raises:
-            ValueError: Raised when speaker ID is given to a single-speaker 
+            ValueError: Raised when speaker ID is given to a single-speaker
             FastSpeech2 or no speaker ID is given to a multi-speaker
             FastSpeech2.
 
@@ -161,16 +161,16 @@ class FastSpeech2(nn.Module):
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """Forward function of FastSpeech2 used for training.
 
-        This function should not be used for inference. Teacher-forcing is 
+        This function should not be used for inference. Teacher-forcing is
         applied to predict mel.
 
         Args:
             x (torch.Tensor): Input phoneme sequences.
-            x_length (torch.Tensor): A Tensor of shape (b), each element is the 
+            x_length (torch.Tensor): A Tensor of shape (b), each element is the
             length of x.
             x_token_type (torch.IntTensor): An IntTensor of shape (b,t'). Assume
-            the output of the final FFT block is final_FFT_output and the final 
-            output of encoder is enc_output. When token_type[i,j] is 0, 
+            the output of the final FFT block is final_FFT_output and the final
+            output of encoder is enc_output. When token_type[i,j] is 0,
             final_FFT_output[i,j,:] will be remove from enc_output.
             duration_target (torch.Tensor): shape (b,t). Ground truth duration
             for each phoneme.
@@ -182,11 +182,12 @@ class FastSpeech2(nn.Module):
             training sample. Defaults to None.
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]: 
+            Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
             predicted mel, predicted pitch, predicted energy, predicted duration
             in log domain.
         """
-        # If x_padding_mask[i,j] is True, x[i,j,:] will be masked in encoder self-attention.
+        # If x_padding_mask[i,j] is True, x[i,j,:] will be masked in encoder
+        # self-attention.
         x_padding_mask = utils.get_mask_from_lengths(x_length)
 
         enc_output, enc_output_seq_len, _ = self.encoder(
@@ -246,8 +247,8 @@ class FastSpeech2(nn.Module):
 
         variance_adapter_output, mel_len = self.variance_adapter.inference(
             enc_output, enc_output_mask, p_control, e_control, d_control)
-        # If mel_mask[i,j] is True, x[i,j,:] will be masked in decoder
-        # self-attention.
+        # If mel_mask[i,j] is True, variance_adapter_output[i,j,:] will be
+        # masked in decoder self-attention.
 
         mel_mask = utils.get_mask_from_lengths(mel_len)
         dec_output, _ = self.decoder.inference(variance_adapter_output,
