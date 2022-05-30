@@ -1,4 +1,4 @@
-# Copyright (c) 2022 Horizon Robtics. (authors: Jie Chen)
+# Copyright (c) 2022 Tsinghua University(Jie Chen)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# Modified from PaddleSpeech(https://github.com/PaddlePaddle/PaddleSpeech)
-# and FastSpeech2(https://github.com/ming024/FastSpeech2)
+# Modified from FastSpeech2(https://github.com/ming024/FastSpeech2)
 
 from typing import List, Tuple
 
@@ -39,8 +38,6 @@ class FastSpeech2(nn.Module):
 
     .. _`FastSpeech 2: Fast and High-Quality End-to-End Text to Speech`:
         https://arxiv.org/abs/2006.04558
-    .. _`FastPitch: Parallel Text-to-speech with Pitch Prediction`:
-        https://arxiv.org/abs/2006.06873
     """
 
     def __init__(self, enc_hidden_dim: int, n_enc_layer: int, n_enc_head: int,

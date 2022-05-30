@@ -1,4 +1,4 @@
-# Copyright (c) 2022 Horizon Robtics. (authors: Jie Chen)
+# Copyright (c) 2022 Tsinghua University(Jie Chen)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -11,8 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# Modified from FastSpeech2(https://github.com/ming024/FastSpeech2) and
-# Tacotron2(https://github.com/NVIDIA/tacotron2)
+# Modified from Tacotron2(https://github.com/NVIDIA/tacotron2)
 
 import torch
 from torch import nn
