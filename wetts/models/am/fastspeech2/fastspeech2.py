@@ -19,11 +19,11 @@ import torch
 from torch import nn
 
 from wetts.utils import mask
-from wetts.models.am.fastspeech2 import utils
 from wetts.models.am.fastspeech2.module import encoder
 from wetts.models.am.fastspeech2.module import variance_adapter
 from wetts.models.am.fastspeech2.module import decoder
 from wetts.models.am.fastspeech2.module import postnet
+from wetts.models.am.fastspeech2.module import positional_encodings
 
 
 class FastSpeech2(nn.Module):
@@ -91,16 +91,15 @@ class FastSpeech2(nn.Module):
             mel_dim (int): Dimension of mel.
             n_speaker (int): Number of speakers. If n_speaker > 1, initialize a
             multi-speaker FastSpeech2.
-            max_pos_enc_len (int): Maximum length of positional
-            encodings.
+            max_pos_enc_len (int): Maximum length of positional encodings.
         """
         super().__init__()
         if n_speaker > 1:
             self.speaker_embedding = nn.Embedding(n_speaker, enc_hidden_dim)
         else:
             self.speaker_embedding = None
-        self.pos_enc = nn.Parameter(utils.get_sinusoid_encoding_table(
-            max_pos_enc_len, enc_hidden_dim), requires_grad=False)
+        self.pos_enc = positional_encodings.PositionalEncodings(
+            max_pos_enc_len, enc_hidden_dim)
         self.src_word_emb = nn.Embedding(n_vocab,
                                          enc_hidden_dim,
                                          padding_idx=padding_idx)
@@ -196,7 +195,7 @@ class FastSpeech2(nn.Module):
         # If x_padding_mask[i,j] is True, x[i,j,:] will be masked in encoder
         # self-attention.
         x = self.src_word_emb(x)
-        x += self.pos_enc[:x.shape[1], :]
+        x = self.pos_enc(x)
         x_padding_mask = mask.get_mask_from_lengths(x_length)
         enc_output, enc_output_seq_len, _ = self.encoder(
             x, x_padding_mask, x_token_type)
@@ -206,8 +205,7 @@ class FastSpeech2(nn.Module):
          log_duration_prediction) = self.variance_adapter(
              enc_output, enc_output_mask, duration_target, pitch_target,
              energy_target)
-        variance_adapter_output += self.pos_enc[:variance_adapter_output.
-                                                shape[1], :]
+        variance_adapter_output = self.pos_enc(variance_adapter_output)
         mel_mask = mask.get_mask_from_lengths(mel_len)
         dec_output, _ = self.decoder(variance_adapter_output, mel_mask)
         mel_prediction = self.linear(dec_output)
@@ -248,7 +246,7 @@ class FastSpeech2(nn.Module):
         # If x_padding_mask[i,j] is True, x[i,j,:] will be masked in encoder
         # self-attention.
         x = self.src_word_emb(x)
-        x += self.pos_enc[:x.shape[1], :]
+        x = self.pos_enc(x)
         x_padding_mask = mask.get_mask_from_lengths(x_length)
         enc_output, enc_output_seq_len, _ = self.encoder.inference(
             x, x_padding_mask, x_token_type)
@@ -256,8 +254,7 @@ class FastSpeech2(nn.Module):
         enc_output = self._get_speaker_embedding(enc_output, speaker)
         variance_adapter_output, mel_len = self.variance_adapter.inference(
             enc_output, enc_output_mask, p_control, e_control, d_control)
-        variance_adapter_output += self.pos_enc[:variance_adapter_output.
-                                                shape[1], :]
+        variance_adapter_output = self.pos_enc(variance_adapter_output)
         mel_mask = mask.get_mask_from_lengths(mel_len)
         dec_output, _ = self.decoder.inference(variance_adapter_output,
                                                mel_mask)

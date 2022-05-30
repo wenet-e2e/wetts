@@ -1,4 +1,4 @@
-# Copyright (c) 2022 Tsinghua University(Jie Chen).
+# Copyright (c) 2022 Tsinghua University(Jie Chen)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,35 @@
 # Modified from FastSpeech2(https://github.com/ming024/FastSpeech2)
 
 import torch
+from torch import nn
+
+
+class PositionalEncodings(nn.Module):
+
+    def __init__(self, max_pos_enc_len: int, input_dim: int) -> None:
+        """Module for positional encodings.
+
+        Args:
+            max_pos_enc_len (int): Maximum length of positional encodings.
+            input_dim (int): Input feature dimension.
+        """
+        super().__init__()
+
+        self.pos_enc = nn.Parameter(get_sinusoid_encoding_table(
+            max_pos_enc_len, input_dim), requires_grad=False)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Adding positional encodings to input.
+
+        Args:
+            x (torch.Tensor): Input feature of shape (b,l,d), where b is the
+            batch size, l is the maximum length of input feature and d is input
+            feature dimension.
+
+        Returns:
+            torch.Tensor: Input with positional encodings added.
+        """
+        return x + self.pos_enc[:x.shape[1]]
 
 
 def get_sinusoid_encoding_table(max_seq_len, input_dim, padding_idx=None):
