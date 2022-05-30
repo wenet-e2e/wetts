@@ -56,6 +56,3 @@ class FastSpeech2Decoder(nn.Module):
                                         slf_attn_mask=slf_attn_mask)
             dec_slf_attn_list += [dec_slf_attn]
         return x, dec_slf_attn_list
-
-    def inference(self, x, padding_mask):
-        return self.forward(x, padding_mask)
