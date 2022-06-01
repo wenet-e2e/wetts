@@ -20,7 +20,7 @@ from torch import nn
 
 from wetts.utils import mask
 from wetts.models.am.fastspeech2.module import encoder
-from wetts.models.am.fastspeech2.module import variance_adapter
+from wetts.models.am.fastspeech2.module import variance_adaptor
 from wetts.models.am.fastspeech2.module import decoder
 from wetts.models.am.fastspeech2.module import postnet
 from wetts.models.am.fastspeech2.module import positional_encodings
@@ -110,7 +110,7 @@ class FastSpeech2(nn.Module):
                                                   n_enc_conv_filter,
                                                   enc_conv_kernel_size,
                                                   enc_dropout)
-        self.variance_adapter = variance_adapter.VarianceAdaptor(
+        self.variance_adapter = variance_adaptor.VarianceAdaptor(
             enc_hidden_dim, n_va_conv_filter, va_conv_kernel_size, va_dropout,
             pitch_min, pitch_max, pitch_mean, pitch_sigma, energy_min,
             energy_max, energy_mean, energy_sigma, n_pitch_bin, n_energy_bin)
