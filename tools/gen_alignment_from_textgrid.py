@@ -13,19 +13,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import argparse
-import os
-from pathlib import Path
+import pathlib
 
-import librosa
 import numpy as np
-import yaml
 from praatio import textgrid
-from tqdm import tqdm
-from yacs.config import CfgNode
+
+SILENCE_TOKEN = set(['sp', 'sil'])
 
 
-def readtg(tg_path, sample_rate=24000, n_shift=300):
+# in MFA1.x, there are blank labels("") in the end, and maybe "sp" before it
+# in MFA2.x, there are  blank labels("") in the begin and the end,
+# while no "sp" and "sil" anymore, we replace it with "sil"
+def readtg(tg_path):
     alignment = textgrid.openTextgrid(tg_path, includeEmptyIntervals=True)
     phones = []
     ends = []
@@ -33,10 +34,7 @@ def readtg(tg_path, sample_rate=24000, n_shift=300):
         phone = interval.label
         phones.append(phone)
         ends.append(interval.end)
-    frame_pos = librosa.time_to_frames(ends,
-                                       sr=sample_rate,
-                                       hop_length=n_shift)
-    durations = np.diff(frame_pos, prepend=0)
+    durations = np.diff(np.array(ends), prepend=0)
     assert len(durations) == len(phones)
     # merge  "" and sp in the end
     if phones[-1] == "" and len(phones) > 1 and phones[-2] == "sp":
@@ -59,72 +57,104 @@ def readtg(tg_path, sample_rate=24000, n_shift=300):
     return phones, durations.tolist()
 
 
-# assume that the directory structure of inputdir is inputdir/speaker/*.TextGrid
-# in MFA1.x, there are blank labels("") in the end, and maybe "sp" before it
-# in MFA2.x, there are  blank labels("") in the begin and the end,
-# while no "sp" and "sil" anymore, we replace it with "sil"
-def gen_alignment_from_textgrid(inputdir,
-                                outputdir,
-                                sample_rate=24000,
-                                n_shift=300):
-    # key: utt_id, value: (speaker, phn_durs)
-    durations_dict = {}
-    list_dir = os.listdir(inputdir)
-    speakers = [dir for dir in list_dir if os.path.isdir(inputdir / dir)]
-    for speaker in tqdm(speakers):
-        subdir = inputdir / speaker
-        for file in os.listdir(subdir):
-            if file.endswith(".TextGrid"):
-                tg_path = subdir / file
-                name = file.split(".")[0]
-                phones, durations = readtg(tg_path,
-                                           sample_rate=sample_rate,
-                                           n_shift=n_shift)
-                durations = [str(x) for x in durations]
-                durations_dict[name] = (speaker, phones, durations)
-
-    utt2spk = os.path.join(outputdir, 'utt2spk')
-    utt2dur = os.path.join(outputdir, 'utt2dur')
-    utt2phn = os.path.join(outputdir, 'utt2phn')
-    with open(utt2spk, 'w', encoding='utf8') as fout_utt2spk, \
-         open(utt2dur, 'w', encoding='utf8') as fout_utt2dur, \
-         open(utt2phn, 'w', encoding='utf8') as fout_utt2phn:
-        for name in sorted(durations_dict.keys()):
-            speaker, phones, durations = durations_dict[name]
-            fout_utt2spk.write('{} {}\n'.format(name, speaker))
-            fout_utt2dur.write('{} {}\n'.format(name, ' '.join(durations)))
-            fout_utt2phn.write('{} {}\n'.format(name, ' '.join(phones)))
+def merge(seq1, seq2, special_tokens):
+    new_seq = []
+    i, j = 0, 0
+    while i < len(seq1) and j < len(seq2):
+        if seq1[i] == seq2[j]:
+            new_seq.append(seq1[i])
+            i += 1
+            j += 1
+        else:
+            if seq1[i] in special_tokens:
+                # we meet a special token in seq1
+                # just insert it into new_seq
+                # and move i to skip it
+                new_seq.append(seq1[i])
+                i += 1
+            elif seq2[j] in SILENCE_TOKEN:
+                # we meet a sp or sil in seq2
+                # insert it into new_seq and
+                # skip it
+                new_seq.append(seq2[j])
+                j += 1
+            else:
+                # we have found out an inconsistent sample
+                raise ValueError(
+                    '{} and {} are inconsistent at pos {} and {}'.format(
+                        seq1, seq2, i, j))
+    while i < len(seq1):
+        new_seq.append(seq1[i])
+        i += 1
+    while j < len(seq2):
+        new_seq.append(seq2[j])
+        j += 1
+    return new_seq
 
 
-def main():
-    # parse config and args
+def get_args():
     parser = argparse.ArgumentParser(
         description="Preprocess audio and then extract features.")
-    parser.add_argument("--inputdir",
-                        default=None,
+    parser.add_argument("wav", type=str, help="Path to wav.txt.")
+    parser.add_argument("speaker", type=str, help="Path to speaker.txt.")
+    parser.add_argument("text", type=str, help="Path to text.txt.")
+    parser.add_argument("special_tokens",
                         type=str,
-                        help="directory to alignment files.")
-    parser.add_argument("--outputdir",
+                        help='Path to sepcial_token.txt.')
+    parser.add_argument("text_grid",
                         type=str,
-                        required=True,
-                        help="output dir.")
-    parser.add_argument("--sample-rate", type=int, help="the sample of wavs.")
+                        help='Path to directory containing TextGrid.')
+    parser.add_argument('aligned_wav',
+                        type=str,
+                        help='Path to file saving path of aligned wav.')
+    parser.add_argument('aligned_speaker',
+                        type=str,
+                        help='Path to file saving speaker of aligned wav.')
     parser.add_argument(
-        "--n-shift",
-        type=int,
-        help="the n_shift of time_to_freames, also called hop_length.")
-    parser.add_argument("--config",
-                        type=str,
-                        help="config file with fs and n_shift.")
+        "duration",
+        type=str,
+        help='Path to duration.txt for saving exported durations.')
+    parser.add_argument(
+        "aligned_text",
+        type=str,
+        help=('Path to aligned_text.txt for saving phoneme sequences, ',
+              'which are merged from text.txt and TextGrid.'))
+    return parser.parse_args()
 
-    args = parser.parse_args()
-    with open(args.config) as f:
-        config = CfgNode(yaml.safe_load(f))
 
-    inputdir = Path(args.inputdir).expanduser()
-    outputdir = Path(args.outputdir).expanduser()
-    gen_alignment_from_textgrid(inputdir, outputdir, config.fs, config.n_shift)
+def main(args):
+    text_grid_dir = pathlib.Path(args.text_grid)
+    with open(args.special_tokens) as fin:
+        special_tokens = set([x.strip() for x in fin])
+    with open(args.wav) as fwav, open(args.speaker) as fspeaker, open(
+            args.text) as ftext:
+        aligned_text = []
+        durations = []
+        aligned_wav = []
+        aligned_speaker = []
+        for wav_path, speaker, text in zip(fwav, fspeaker, ftext):
+            wav_path, speaker, text = (pathlib.Path(wav_path.strip()),
+                                       speaker.strip(), text.strip().split())
+            text_grid_path = text_grid_dir / speaker / '{}.TextGrid'.format(
+                wav_path.stem)
+            # only wav having alignment will be saved
+            if text_grid_path.exists():
+                aligned_wav.append(str(wav_path))
+                aligned_speaker.append(speaker)
+                tg_phones, duration = readtg(text_grid_path)
+                aligned_text.append(merge(text, tg_phones, special_tokens))
+                durations.append(['{:.2f}'.format(x) for x in duration])
+            else:
+                print('Missing alignment: {}'.format(str(text_grid_path)))
+    with open(args.aligned_wav, 'w') as fout:
+        fout.writelines([x + '\n' for x in aligned_wav])
+    with open(args.aligned_speaker, 'w') as fout:
+        fout.writelines([x + '\n' for x in aligned_speaker])
+    with open(args.duration, 'w') as fout:
+        fout.writelines([' '.join(x) + '\n' for x in durations])
+    with open(args.aligned_text, 'w') as fout:
+        fout.writelines([' '.join(x) + '\n' for x in aligned_text])
 
 
 if __name__ == "__main__":
-    main()
+    main(get_args())

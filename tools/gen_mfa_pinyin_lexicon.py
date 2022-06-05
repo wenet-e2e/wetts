@@ -198,7 +198,8 @@ if __name__ == "__main__":
 
     with open(args.lexicon, 'wt') as f:
         for k, v in lexicon.items():
-            f.write(f"{k} {v}\n")
+            # remove extra whitespaces
+            f.write(re.sub(' {2,}', ' ', f"{k} {v}\n"))
 
     with open(args.phones, 'wt') as f:
         for s in symbols:
