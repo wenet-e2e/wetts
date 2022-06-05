@@ -19,6 +19,7 @@ from scipy.interpolate import interp1d
 
 
 class LogMelFBank():
+
     def __init__(self,
                  sr=24000,
                  n_fft=2048,
@@ -27,8 +28,7 @@ class LogMelFBank():
                  window="hann",
                  n_mels=80,
                  fmin=80,
-                 fmax=7600,
-                 eps=1e-10):
+                 fmax=7600):
         self.sr = sr
         # stft
         self.n_fft = n_fft
@@ -72,69 +72,64 @@ class LogMelFBank():
         mel = np.dot(self.mel_filter, S)
         return mel
 
-    # We use different definition for log-spec between TTS and ASR
-    #   TTS: log_10(abs(stft))
-    #   ASR: log_e(power(stft))
-
-    def get_log_mel_fbank(self, wav, base='10'):
+    def get_log_mel_fbank(self, wav):
         mel = self._mel_spectrogram(wav)
         mel = np.clip(mel, a_min=1e-10, a_max=float("inf"))
-        if base == '10':
-            mel = np.log10(mel.T)
-        elif base == 'e':
-            mel = np.log(mel.T)
+        mel = np.log(mel.T)
         # (num_frames, n_mels)
         return mel
 
 
 class Pitch():
-    def __init__(self, sr=24000, hop_length=300, f0min=80, f0max=7600):
+
+    def __init__(self, sr=24000, hop_length=300, pitch_min=80, pitch_max=7600):
 
         self.sr = sr
         self.hop_length = hop_length
-        self.f0min = f0min
-        self.f0max = f0max
+        self.pitch_min = pitch_min
+        self.pitch_max = pitch_max
 
-    def _convert_to_continuous_f0(self, f0: np.array) -> np.array:
-        if (f0 == 0).all():
+    def _convert_to_continuous_pitch(self, pitch: np.array) -> np.array:
+        if (pitch == 0).all():
             print("All frames seems to be unvoiced.")
-            return f0
+            return pitch
 
-        # padding start and end of f0 sequence
-        start_f0 = f0[f0 != 0][0]
-        end_f0 = f0[f0 != 0][-1]
-        start_idx = np.where(f0 == start_f0)[0][0]
-        end_idx = np.where(f0 == end_f0)[0][-1]
-        f0[:start_idx] = start_f0
-        f0[end_idx:] = end_f0
+        # padding start and end of pitch sequence
+        start_pitch = pitch[pitch != 0][0]
+        end_pitch = pitch[pitch != 0][-1]
+        start_idx = np.where(pitch == start_pitch)[0][0]
+        end_idx = np.where(pitch == end_pitch)[0][-1]
+        pitch[:start_idx] = start_pitch
+        pitch[end_idx:] = end_pitch
 
         # get non-zero frame index
-        nonzero_idxs = np.where(f0 != 0)[0]
+        nonzero_idxs = np.where(pitch != 0)[0]
 
         # perform linear interpolation
-        interp_fn = interp1d(nonzero_idxs, f0[nonzero_idxs])
-        f0 = interp_fn(np.arange(0, f0.shape[0]))
+        interp_fn = interp1d(nonzero_idxs, pitch[nonzero_idxs])
+        pitch = interp_fn(np.arange(0, pitch.shape[0]))
 
-        return f0
+        return pitch
 
-    def _calculate_f0(self,
-                      input: np.array,
-                      use_continuous_f0=True,
-                      use_log_f0=True) -> np.array:
+    def _calculate_pitch(self,
+                         input: np.array,
+                         use_continuous_pitch=True,
+                         use_log_pitch=False) -> np.array:
         input = input.astype(np.float)
         frame_period = 1000 * self.hop_length / self.sr
-        f0, timeaxis = pyworld.dio(input,
-                                   fs=self.sr,
-                                   f0_floor=self.f0min,
-                                   f0_ceil=self.f0max,
-                                   frame_period=frame_period)
-        f0 = pyworld.stonemask(input, f0, timeaxis, self.sr)
-        if use_continuous_f0:
-            f0 = self._convert_to_continuous_f0(f0)
-        if use_log_f0:
-            nonzero_idxs = np.where(f0 != 0)[0]
-            f0[nonzero_idxs] = np.log(f0[nonzero_idxs])
-        return f0.reshape(-1)
+
+        pitch, timeaxis = pyworld.dio(input,
+                                      fs=self.sr,
+                                      f0_floor=self.pitch_min,
+                                      f0_ceil=self.pitch_max,
+                                      frame_period=frame_period)
+        pitch = pyworld.stonemask(input, pitch, timeaxis, self.sr)
+        if use_continuous_pitch:
+            pitch = self._convert_to_continuous_pitch(pitch)
+        if use_log_pitch:
+            nonzero_idxs = np.where(pitch != 0)[0]
+            pitch[nonzero_idxs] = np.log(pitch[nonzero_idxs])
+        return pitch.reshape(-1)
 
     def _average_by_duration(self, input: np.array, d: np.array) -> np.array:
         d_cumsum = np.pad(d.cumsum(0), (1, 0), 'constant')
@@ -145,24 +140,26 @@ class Pitch():
             arr[mask] = 0
             avg_arr = np.mean(arr, axis=0) if len(arr) != 0 else np.array(0)
             arr_list.append(avg_arr)
-        # shape (T,1)
-        arr_list = np.expand_dims(np.array(arr_list), 0).T
+
+        # shape : (T)
+        arr_list = np.array(arr_list)
 
         return arr_list
 
     def get_pitch(self,
                   wav,
-                  use_continuous_f0=True,
-                  use_log_f0=True,
-                  use_token_averaged_f0=True,
+                  use_continuous_pitch=True,
+                  use_log_pitch=False,
+                  use_token_averaged_pitch=True,
                   duration=None):
-        f0 = self._calculate_f0(wav, use_continuous_f0, use_log_f0)
-        if use_token_averaged_f0 and duration is not None:
-            f0 = self._average_by_duration(f0, duration)
-        return f0
+        pitch = self._calculate_pitch(wav, use_continuous_pitch, use_log_pitch)
+        if use_token_averaged_pitch and duration is not None:
+            pitch = self._average_by_duration(pitch, duration)
+        return pitch
 
 
 class Energy():
+
     def __init__(self,
                  sr=24000,
                  n_fft=2048,
@@ -207,8 +204,8 @@ class Energy():
             arr = input[start:end]
             avg_arr = np.mean(arr, axis=0) if len(arr) != 0 else np.array(0)
             arr_list.append(avg_arr)
-        # shape (T,1)
-        arr_list = np.expand_dims(np.array(arr_list), 0).T
+        # shape (T)
+        arr_list = np.array(arr_list)
         return arr_list
 
     def get_energy(self, wav, use_token_averaged_energy=True, duration=None):
