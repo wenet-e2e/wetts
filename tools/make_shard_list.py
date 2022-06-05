@@ -46,7 +46,7 @@ def write_tar_file(data_list, tar_file, index=0, total=1):
             obj = {
                 'speaker': speaker,
                 'text': text,
-                'duration': [x for x in map(lambda x: float(x), duration)],
+                'duration': [float(x) for x in duration],
             }
             json_data = json.dumps(obj, ensure_ascii=False).encode('utf8')
             json_io = io.BytesIO(json_data)

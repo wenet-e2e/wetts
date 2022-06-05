@@ -116,8 +116,7 @@ def generate_token_types(data, special_tokens: Set) -> Iterable:
     for sample in data:
         assert 'text' in sample
         sample['token_types'] = [
-            x for x in map(lambda x: 0
-                           if x in special_tokens else 1, sample['text'])
+            0 if x in special_tokens else 1 for x in sample['text']
         ]
         yield sample
 
@@ -266,8 +265,8 @@ def FastSpeech2TrainingDataset(data_list_file, spk2id_file, phn2id_file,
     mel_stats = np.loadtxt(cmvn_dir / 'mel_cmvn.txt')
     pitch_stats = np.loadtxt(cmvn_dir / 'pitch_cmvn.txt')
     energy_stats = np.loadtxt(cmvn_dir / 'energy_cmvn.txt')
-    dataset = utils.Processor(dataset, apply_cmvn, mel_stats,
-                              pitch_stats, energy_stats)
+    dataset = utils.Processor(dataset, apply_cmvn, mel_stats, pitch_stats,
+                              energy_stats)
     dataset = utils.Processor(dataset, processor.batch, conf.batch_size)
     dataset = utils.Processor(dataset, padding)
     return dataset, mel_stats, pitch_stats, energy_stats, phn2id
