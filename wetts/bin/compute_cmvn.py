@@ -14,14 +14,14 @@
 
 import argparse
 import os
-import yaml
+from yacs import config
 
 import numpy as np
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
-from wetts.dataset.dataset import CmvnDataset
+from wetts.models.am.fastspeech2.module.dataset import CmvnDataset
 
 
 def get_args():
@@ -41,11 +41,13 @@ def get_args():
 def main():
     args = get_args()
     with open(args.config, 'r') as fin:
-        configs = yaml.load(fin, Loader=yaml.FullLoader)
-    dataset = CmvnDataset(args.input_list, configs)
+        conf = config.load_cfg(fin)
+    dataset = CmvnDataset(args.input_list, conf)
     mel_scaler = StandardScaler()
-    f0_scaler = StandardScaler()
+    pitch_scaler = StandardScaler()
+    pitch_minmax = MinMaxScaler()
     energy_scaler = StandardScaler()
+    energy_minmax = MinMaxScaler()
 
     data_loader = DataLoader(dataset,
                              batch_size=None,
@@ -53,19 +55,28 @@ def main():
 
     with tqdm(total=args.total) as progress:
         for i, x in enumerate(data_loader):
-            mel_scaler.partial_fit(x['mel'])
-            f0_scaler.partial_fit(x['f0'])
-            energy_scaler.partial_fit(x['energy'])
+            mel, pitch, energy = x['mel'], x['pitch'].reshape(
+                -1, 1), x['energy'].reshape(-1, 1)
+            mel_scaler.partial_fit(mel)
+            pitch_scaler.partial_fit(pitch)
+            energy_scaler.partial_fit(energy)
+            pitch_minmax.partial_fit(pitch)
+            energy_minmax.partial_fit(energy)
             progress.update()
 
     mel_stats = np.stack([mel_scaler.mean_, mel_scaler.scale_], axis=0)
     np.savetxt(os.path.join(args.output_dir, 'mel_cmvn.txt'),
                mel_stats.astype(np.float32))
-    f0_stats = np.stack([f0_scaler.mean_, f0_scaler.scale_], axis=0)
-    np.savetxt(os.path.join(args.output_dir, 'f0_cmvn.txt'),
-               f0_stats.astype(np.float32))
-    energy_stats = np.stack([energy_scaler.mean_, energy_scaler.scale_],
-                            axis=0)
+    pitch_stats = np.stack([
+        pitch_scaler.mean_, pitch_scaler.scale_, pitch_minmax.data_min_,
+        pitch_minmax.data_max_
+    ], axis=0)
+    np.savetxt(os.path.join(args.output_dir, 'pitch_cmvn.txt'),
+               pitch_stats.astype(np.float32))
+    energy_stats = np.stack([
+        energy_scaler.mean_, energy_scaler.scale_, energy_minmax.data_min_,
+        energy_minmax.data_max_
+    ], axis=0)
     np.savetxt(os.path.join(args.output_dir, 'energy_cmvn.txt'),
                energy_stats.astype(np.float32))
 
