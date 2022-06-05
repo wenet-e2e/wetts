@@ -23,28 +23,31 @@ import random
 import tarfile
 import time
 import multiprocessing
+import pathlib
 
-AUDIO_FORMAT_SETS = set(['flac', 'mp3', 'm4a', 'ogg', 'opus', 'wav', 'wma'])
+from wetts.utils import constants
 
 
 def write_tar_file(data_list, tar_file, index=0, total=1):
     logging.info('Processing {} {}/{}'.format(tar_file, index, total))
     read_time = 0.0
-    save_time = 0.0
     write_time = 0.0
     with tarfile.open(tar_file, 'w') as tar:
         for item in data_list:
-            key, wav, dur, phones, speaker = item
-            suffix = wav.split('.')[-1]
-            assert suffix in AUDIO_FORMAT_SETS
+            wav, speaker, text, duration = item
+            wav = pathlib.Path(wav)
+            assert wav.suffix[1:] in constants.AUDIO_FORMAT_SETS
             ts = time.time()
             with open(wav, 'rb') as fin:
                 data = fin.read()
             read_time += (time.time() - ts)
             ts = time.time()
-
-            json_file = key + '.json'
-            obj = {'durations': dur, 'phones': phones, 'speaker': speaker}
+            json_file = wav.stem + '.json'
+            obj = {
+                'speaker': speaker,
+                'text': text,
+                'duration': [float(x) for x in duration],
+            }
             json_data = json.dumps(obj, ensure_ascii=False).encode('utf8')
             json_io = io.BytesIO(json_data)
             json_info = tarfile.TarInfo(json_file)
@@ -52,15 +55,13 @@ def write_tar_file(data_list, tar_file, index=0, total=1):
             json_info.mtime = int(time.time())
             tar.addfile(json_info, json_io)
 
-            wav_file = key + '.' + suffix
             wav_io = io.BytesIO(data)
-            wav_info = tarfile.TarInfo(wav_file)
+            wav_info = tarfile.TarInfo(wav.name)
             wav_info.size = len(data)
             wav_info.mtime = int(time.time())
             tar.addfile(wav_info, wav_io)
             write_time += (time.time() - ts)
-        logging.info('read {} save {} write {}'.format(read_time, save_time,
-                                                       write_time))
+        logging.info('read {} write {}'.format(read_time, write_time))
 
 
 def get_args():
@@ -80,10 +81,10 @@ def get_args():
     parser.add_argument('--shuffle',
                         action='store_true',
                         help='whether to shuffle data')
-    parser.add_argument('wav_file', help='wav file')
-    parser.add_argument('utt2dur_file', help='duration file')
-    parser.add_argument('utt2phn_file', help='phone file')
-    parser.add_argument('utt2spk_file', help='speaker file')
+    parser.add_argument('wav', help='Path to wav.txt.')
+    parser.add_argument('speaker', help='Path to speaker.txt.')
+    parser.add_argument('text', help='Path to text.txt.')
+    parser.add_argument('duration', help='Path to duration.txt.')
     parser.add_argument('shards_dir', help='output shards dir')
     parser.add_argument('shards_list', help='output shards list file')
     args = parser.parse_args()
@@ -95,59 +96,22 @@ def main():
     random.seed(args.seed)
     logging.basicConfig(level=logging.INFO,
                         format='%(asctime)s %(levelname)s %(message)s')
-
-    wav_table = {}
-    with open(args.wav_file, 'r', encoding='utf8') as fin:
-        for line in fin:
-            arr = line.strip().split()
-            key = arr[0]
-            assert len(arr) == 2
-            wav_table[key] = arr[1]
-
-    dur_table = {}
-    with open(args.utt2dur_file, 'r', encoding='utf8') as fin:
-        for line in fin:
-            arr = line.strip().split()
-            key = arr[0]
-            dur = [int(x) for x in arr[1:]]
-            assert len(arr) >= 2
-            dur_table[key] = dur
-
-    phone_table = {}
-    with open(args.utt2phn_file, 'r', encoding='utf8') as fin:
-        for line in fin:
-            arr = line.strip().split()
-            key = arr[0]
-            assert len(arr) >= 2
-            phone_table[key] = arr[1:]
-
-    speaker_table = {}
-    with open(args.utt2spk_file, 'r', encoding='utf8') as fin:
-        for line in fin:
-            arr = line.strip().split(maxsplit=1)
-            key = arr[0]
-            assert len(arr) == 2
-            speaker_table[key] = arr[1]
-
     data = []
-    for key, wav in wav_table.items():
-        if key not in dur_table or key not in phone_table:
-            continue
-        assert key in speaker_table
-        data.append(
-            (key, wav, dur_table[key], phone_table[key], speaker_table[key]))
-
+    with open(args.wav) as fwav, open(args.speaker) as fspeaker, open(
+            args.text) as ftext, open(args.duration) as fduration:
+        for wav, speaker, text, duration in zip(fwav, fspeaker, ftext,
+                                                fduration):
+            data.append((wav.strip(), speaker.strip(), text.strip().split(),
+                         duration.strip().split()))
     if args.shuffle:
         random.shuffle(data)
 
     num = args.num_utts_per_shard
     chunks = [data[i:i + num] for i in range(0, len(data), num)]
     os.makedirs(args.shards_dir, exist_ok=True)
-
     # Using thread pool to speedup
     pool = multiprocessing.Pool(processes=args.num_threads)
     shards_list = []
-    tasks_list = []
     num_chunks = len(chunks)
     for i, chunk in enumerate(chunks):
         tar_file = os.path.join(args.shards_dir,
