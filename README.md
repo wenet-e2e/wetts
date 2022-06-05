@@ -38,3 +38,8 @@ We plan to support a variaty of hardwares and platforms, including:
 * Raspberry Pi
 * Other on-device platforms
 
+## Acknowledgement
+
+1. We borrow some code from [FastSpeech2](https://github.com/ming024/FastSpeech2) for FastSpeech2 implentation.
+2. We refer [PaddleSpeech](https://github.com/PaddlePaddle/PaddleSpeech) for feature extraction,
+   `pinyin` lexicon preparation for alignment, and the length regulator in `FastSpeech2`.
