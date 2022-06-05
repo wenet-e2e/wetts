@@ -19,25 +19,16 @@ import tarfile
 from subprocess import PIPE, Popen
 from urllib.parse import urlparse
 
-import librosa
-import numpy as np
-import torch
 import torchaudio
-from torch.nn.utils.rnn import pad_sequence
-from yacs.config import CfgNode
 
-from wetts.dataset.feats import Energy, LogMelFBank, Pitch
-
-AUDIO_FORMAT_SETS = set(['flac', 'mp3', 'm4a', 'ogg', 'opus', 'wav', 'wma'])
+from wetts.utils import constants
 
 
 def url_opener(data):
     """ Give url or local file, return file descriptor
         Inplace operation.
-
         Args:
             data(Iterable[str]): url or local file list
-
         Returns:
             Iterable[{src, stream}]
     """
@@ -64,10 +55,8 @@ def url_opener(data):
 def tar_file_and_group(data):
     """ Expand a stream of open tar files into a stream of tar file contents.
         And groups the file with same prefix
-
         Args:
             data: Iterable[{src, stream}]
-
         Returns:
             Iterable[{key, wav, txt, sample_rate}]
     """
@@ -94,7 +83,7 @@ def tar_file_and_group(data):
                         json_obj = json.load(file_obj)
                         for k, v in json_obj.items():
                             example[k] = v
-                    elif postfix in AUDIO_FORMAT_SETS:
+                    elif postfix in constants.AUDIO_FORMAT_SETS:
                         waveform, sample_rate = torchaudio.load(file_obj)
                         example['wav'] = waveform
                         example['sample_rate'] = sample_rate
@@ -113,116 +102,6 @@ def tar_file_and_group(data):
         sample['stream'].close()
 
 
-def merge_silence(data):
-    """ merge silences
-        Args:
-            data: Iterable[{key, wav, speaker, durations, phones}]
-        Returns:
-            Iterable[{key, wav, speaker, durations, phones}]
-    """
-    for sample in data:
-        cur_phn, cur_dur = sample['phones'], sample['durations']
-        new_phn = []
-        new_dur = []
-
-        # merge sp and sil
-        for i, p in enumerate(cur_phn):
-            if i > 0 and 'sil' == p and cur_phn[i - 1] in {"sil", "sp"}:
-                print(sample)
-                new_dur[-1] += cur_dur[i]
-                new_phn[-1] = 'sil'
-            else:
-                new_phn.append(p)
-                new_dur.append(cur_dur[i])
-
-        assert len(new_phn) == len(new_dur)
-        sample['durations'] = new_dur
-        sample['phones'] = new_phn
-        yield sample
-
-
-def compute_feats(data, config):
-    """ Compute mel, f0, energy feature
-        Args:
-            data: Iterable[{key, wav, speaker, durations, phones}]
-        Returns:
-            Iterable[{key, wav, speaker, durations, phones, mel, f0, energy}]
-    """
-    cut_sil = config.get('cut_sil', True)
-    config = CfgNode(config)
-    mel_extractor = LogMelFBank(sr=config.fs,
-                                n_fft=config.n_fft,
-                                hop_length=config.n_shift,
-                                win_length=config.win_length,
-                                window=config.window,
-                                n_mels=config.n_mels,
-                                fmin=config.fmin,
-                                fmax=config.fmax)
-    pitch_extractor = Pitch(sr=config.fs,
-                            hop_length=config.n_shift,
-                            f0min=config.f0min,
-                            f0max=config.f0max)
-    energy_extractor = Energy(sr=config.fs,
-                              n_fft=config.n_fft,
-                              hop_length=config.n_shift,
-                              win_length=config.win_length,
-                              window=config.window)
-    for sample in data:
-        key = sample['key']
-        wav = sample['wav'].numpy()[0]  # First channel
-        phones = sample['phones']
-        durations = sample['durations']
-        assert len(wav.shape) == 1, f'{key} is not a mono-channel audio.'
-        assert np.abs(wav).max(
-        ) <= 1.0, f"{key} is seems to be different that 16 bit PCM."
-
-        d_cumsum = np.pad(np.array(durations).cumsum(0), (1, 0), 'constant')
-        # little imprecise than use *.TextGrid directly
-        times = librosa.frames_to_time(d_cumsum,
-                                       sr=config.fs,
-                                       hop_length=config.n_shift)
-        if cut_sil:
-            start = 0
-            end = d_cumsum[-1]
-            if phones[0] == "sil" and len(durations) > 1:
-                start = times[1]
-                durations = durations[1:]
-                phones = phones[1:]
-            if phones[-1] == 'sil' and len(durations) > 1:
-                end = times[-2]
-                durations = durations[:-1]
-                phones = phones[:-1]
-            start, end = librosa.time_to_samples([start, end], sr=config.fs)
-            wav = wav[start:end]
-
-        # extract mel feats
-        logmel = mel_extractor.get_log_mel_fbank(wav)
-        num_frames = logmel.shape[0]
-        diff = num_frames - sum(durations)
-        if diff != 0:
-            if diff > 0:
-                durations[-1] += diff
-            elif durations[-1] + diff > 0:
-                durations[-1] += diff
-            elif durations[0] + diff > 0:
-                durations[0] += diff
-            else:
-                print('Ignore utterance {}'.format(key))
-                continue
-        assert sum(durations) == num_frames
-        # extract f0
-        f0 = pitch_extractor.get_pitch(wav, duration=np.array(durations))
-        assert f0.shape[0] == len(durations)
-        # extract energy
-        energy = energy_extractor.get_energy(wav, duration=np.array(durations))
-        assert energy.shape[0] == len(durations)
-        sample['durations'] = durations
-        sample['mel'] = logmel
-        sample['f0'] = f0
-        sample['energy'] = energy
-        yield sample
-
-
 def apply_spk2id(data, spk2id):
     for sample in data:
         assert 'speaker' in sample
@@ -232,18 +111,16 @@ def apply_spk2id(data, spk2id):
 
 def apply_phn2id(data, phn2id):
     for sample in data:
-        assert 'phones' in sample
-        sample['phones'] = [phn2id[x] for x in sample['phones']]
+        assert 'text' in sample
+        sample['text'] = [phn2id[x] for x in sample['text']]
         yield sample
 
 
 def shuffle(data, shuffle_size=1500):
     """ Local shuffle the data
-
         Args:
             data: Iterable[{}]
             shuffle_size: buffer size for shuffle
-
         Returns:
             Iterable[{}]
     """
@@ -259,20 +136,6 @@ def shuffle(data, shuffle_size=1500):
     random.shuffle(buf)
     for x in buf:
         yield x
-
-
-def apply_cmvn(data, mel_stats, f0_stats, energy_stats):
-    """ Apply CMVN on data
-    """
-    for sample in data:
-        assert 'mel' in sample
-        assert 'f0' in sample
-        assert 'energy' in sample
-        sample['mel'] = (sample['mel'] - mel_stats[0]) * mel_stats[1]
-        sample['f0'] = (sample['f0'] - f0_stats[0]) * f0_stats[1]
-        sample['energy'] = (sample['energy'] -
-                            energy_stats[0]) * energy_stats[1]
-        yield sample
 
 
 def batch(data, batch_size=2):
@@ -293,55 +156,24 @@ def batch(data, batch_size=2):
         yield buf
 
 
-def padding(data):
-    """ Padding the data
+def resample(data, resample_rate=16000):
+    """ Resample data.
+        Inplace operation.
         Args:
-            data: Iterable[List[{key, wav, speaker, durations, phones, mel, f0,
-                           energy}]]
+            data: Iterable[{key, wav, label, sample_rate}]
+            resample_rate: target resample rate
         Returns:
-            Iterable[Tuple(keys, speaker, durations, phones, mel, f0, energy,
-                           phones_length, mel_length)]
+            Iterable[{key, wav, label, sample_rate}]
     """
     for sample in data:
-        assert isinstance(sample, list)
-        phones_length = torch.tensor([len(x['phones']) for x in sample],
-                                     dtype=torch.int32)
-        order = torch.argsort(phones_length, descending=True)
-
-        sorted_keys = [sample[i]['key'] for i in order]
-        sorted_speaker = torch.tensor([sample[i]['speaker'] for i in order],
-                                      dtype=torch.int32)
-        sorted_durations = [
-            torch.tensor(sample[i]['durations'], dtype=torch.int32)
-            for i in order
-        ]
-        sorted_phones = [
-            torch.tensor(sample[i]['phones'], dtype=torch.int32) for i in order
-        ]
-        sorted_mel = [torch.from_numpy(sample[i]['mel']) for i in order]
-        sorted_f0 = [torch.from_numpy(sample[i]['f0']) for i in order]
-        sorted_energy = [torch.from_numpy(sample[i]['energy']) for i in order]
-        sorted_phones_length = torch.tensor(
-            [len(sample[i]['phones']) for i in order], dtype=torch.int32)
-        sorted_mel_length = torch.tensor(
-            [sample[i]['mel'].shape[0] for i in order], dtype=torch.int32)
-
-        padded_durations = pad_sequence(sorted_durations,
-                                        batch_first=True,
-                                        padding_value=0)
-        padded_phones = pad_sequence(sorted_phones,
-                                     batch_first=True,
-                                     padding_value=-1)
-        padded_mel = pad_sequence(sorted_mel,
-                                  batch_first=True,
-                                  padding_value=0.0)
-        padded_f0 = pad_sequence(sorted_f0,
-                                 batch_first=True,
-                                 padding_value=0.0)
-        padded_energy = pad_sequence(sorted_energy,
-                                     batch_first=True,
-                                     padding_value=0.0)
-
-        yield (sorted_keys, sorted_speaker, padded_durations, padded_phones,
-               padded_mel, padded_f0, padded_energy, sorted_phones_length,
-               sorted_mel_length)
+        assert 'sample_rate' in sample
+        assert 'wav' in sample
+        sample_rate = sample['sample_rate']
+        waveform = sample['wav']
+        if sample_rate != resample_rate:
+            sample['sample_rate'] = resample_rate
+            # clamp here to force resampled audio in range [-1,1]
+            sample['wav'] = torchaudio.transforms.Resample(
+                orig_freq=sample_rate,
+                new_freq=resample_rate)(waveform).clamp(min=-1, max=1)
+        yield sample
