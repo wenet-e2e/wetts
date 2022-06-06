@@ -125,11 +125,12 @@ fi
 
 
 if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
-  python wetts/bin/train.py --num_workers 32 \
+  python wetts/bin/train.py fastspeech2 --num_workers 32 \
       --config $config \
-      --train_list $outputdir/train/data.list \
+      --train_data_list $outputdir/train/data.list \
+      --val_data_list $outputdir/val/data.list \
       --cmvn_dir $outputdir/train \
       --spk2id_file $outputdir/spk2id \
       --phn2id_file $outputdir/phn2id \
-      --special_token_file $outputdir/special_token.txt
+      --special_tokens_file $outputdir/special_token.txt
 fi
