@@ -36,3 +36,8 @@ def read_key2id(scp_file):
     lists = read_scp(scp_file)
     key2id = {x[0]: int(x[1]) for x in lists}
     return key2id
+
+
+def read_lexicon(lexicon_file):
+    lines = read_lists(lexicon_file)
+    return dict({x[0]: x[1:] for x in lines.split()})

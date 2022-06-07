@@ -22,10 +22,10 @@ import librosa
 
 from wetts.utils import constants
 from wetts.dataset import utils, processor, feats
-from wetts.utils.file_utils import read_key2id, read_lists
+from wetts.utils.file_utils import read_key2id, read_lists, read_lexicon
 
 
-def padding(data):
+def padding_training_samples(data):
     """ Padding the data
         Args:
             data: Iterable[List[{key, wav, speaker, duration, text, mel,
@@ -85,6 +85,33 @@ def padding(data):
         yield (sorted_keys, sorted_speaker, padded_duration, padded_text,
                padded_mel, padded_pitch, padded_energy, sorted_text_length,
                sorted_mel_length, padded_token_types)
+
+
+def padding_inference_samples(data):
+    for sample in data:
+        assert isinstance(sample, list)
+        text_length = torch.tensor([len(x['text']) for x in sample],
+                                   dtype=torch.int32)
+        order = torch.argsort(text_length, descending=True)
+        sorted_speaker = torch.tensor([sample[i]['speaker'] for i in order],
+                                      dtype=torch.int32)
+        sorted_text = [
+            torch.tensor(sample[i]['text'], dtype=torch.int32) for i in order
+        ]
+        sorted_text_length = torch.tensor(
+            [len(sample[i]['text']) for i in order], dtype=torch.int32)
+        sorted_token_types = [
+            torch.tensor(sample[i]['token_types'], dtype=torch.int32)
+            for i in order
+        ]
+        padded_text = pad_sequence(sorted_text,
+                                   batch_first=True,
+                                   padding_value=0)
+        padded_token_types = pad_sequence(sorted_token_types,
+                                          batch_first=True,
+                                          padding_value=0)
+
+        yield padded_text, sorted_text_length, padded_token_types, sorted_speaker
 
 
 def apply_cmvn(data, mel_stats, pitch_stats, energy_stats):
@@ -230,6 +257,21 @@ def merge_silence(data):
         yield sample
 
 
+def apply_lexicon(data, lexicon, special_tokens):
+    for sample in data:
+        assert 'text' in sample
+        new_text = []
+        for token in sample['text']:
+            if token in lexicon:
+                new_text.extend(lexicon[token])
+            elif token in special_tokens:
+                new_text.append(token)
+            else:
+                raise ValueError('Token {} not in lexicon or special tokens!')
+        sample['text'] = new_text
+        yield sample
+
+
 def CmvnDataset(data_list_file, conf):
     lists = read_lists(data_list_file)
     dataset = utils.DataList(lists, shuffle=False)
@@ -246,11 +288,7 @@ def FastSpeech2TrainingDataset(data_list_file, spk2id_file, phn2id_file,
     lists = read_lists(data_list_file)
     spk2id = read_key2id(spk2id_file)
     phn2id = read_key2id(phn2id_file)
-    special_tokens = set()
-    with open(special_tokens_file) as fin:
-        for token in fin:
-            token = token.strip()
-            special_tokens.add(token)
+    special_tokens = set(read_lists(special_tokens_file))
 
     dataset = utils.DataList(lists, shuffle=conf.shuffle)
     dataset = utils.Processor(dataset, processor.url_opener)
@@ -268,5 +306,35 @@ def FastSpeech2TrainingDataset(data_list_file, spk2id_file, phn2id_file,
     dataset = utils.Processor(dataset, apply_cmvn, mel_stats, pitch_stats,
                               energy_stats)
     dataset = utils.Processor(dataset, processor.batch, conf.batch_size)
-    dataset = utils.Processor(dataset, padding)
+    dataset = utils.Processor(dataset, padding_training_samples)
+    return dataset, mel_stats, pitch_stats, energy_stats, phn2id
+
+
+def FastSpeech2InferenceDataset(text_file, speaker_file, special_token_file,
+                                lexicon_file, phn2id_file, spk2id_file,
+                                cmvn_dir, batch_size):
+    cmvn_dir = pathlib.Path(cmvn_dir)
+    text = read_lists(text_file)
+    speaker = read_lists(speaker_file)
+    spk2id = read_key2id(spk2id_file)
+    phn2id = read_key2id(phn2id_file)
+    special_tokens = set(read_lists(special_token_file))
+    lexicon = read_lexicon(lexicon_file)
+    list = [{'text': t.split(), 'speaker': s} for t, s in zip(text, speaker)]
+
+    dataset = utils.DataList(list, shuffle=False)
+    dataset = utils.Processor(dataset,
+                              processor.apply_lexicon,
+                              lexicon=lexicon,
+                              special_tokens=special_tokens)
+    dataset = utils.Processor(dataset, generate_token_types, special_tokens)
+    dataset = utils.Processor(dataset, processor.apply_spk2id, spk2id)
+    dataset = utils.Processor(dataset, processor.apply_phn2id, phn2id)
+
+    mel_stats = np.loadtxt(cmvn_dir / 'mel_cmvn.txt')
+    pitch_stats = np.loadtxt(cmvn_dir / 'pitch_cmvn.txt')
+    energy_stats = np.loadtxt(cmvn_dir / 'energy_cmvn.txt')
+
+    dataset = utils.Processor(dataset, processor.batch, batch_size)
+    dataset = utils.Processor(dataset, padding_inference_samples)
     return dataset, mel_stats, pitch_stats, energy_stats, phn2id
