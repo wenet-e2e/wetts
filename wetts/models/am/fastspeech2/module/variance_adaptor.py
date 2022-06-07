@@ -176,7 +176,8 @@ class VarianceAdaptor(nn.Module):
         else:
             output, mel_len = self.length_regulator(
                 x + pitch_embedding + energy_embedding,
-                torch.round(torch.exp(log_duration_prediction)) * d_control)
+                torch.round(torch.exp(log_duration_prediction) -
+                            1).clamp(min=0) * d_control)
 
         return (
             output,

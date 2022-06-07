@@ -23,12 +23,13 @@ class FastSpeech2Loss(nn.Module):
         self.masked_mse_loss = MaskedLoss(nn.MSELoss)
         self.masked_l1_loss = MaskedLoss(nn.L1Loss)
 
-    def forward(self, duration_target, duration_prediction, pitch_target,
+    def forward(self, duration_target, log_duration_prediction, pitch_target,
                 pitch_prediction, energy_target, energy_prediction,
                 variance_mask, mel_target, mel_prediction,
                 postnet_mel_prediction, mel_mask):
 
-        return (self.masked_mse_loss(duration_prediction, duration_target,
+        return (self.masked_mse_loss(log_duration_prediction,
+                                     torch.log(duration_target + 1),
                                      variance_mask),
                 self.masked_mse_loss(pitch_prediction, pitch_target,
                                      variance_mask),
