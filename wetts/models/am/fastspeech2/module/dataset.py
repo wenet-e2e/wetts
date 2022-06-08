@@ -111,7 +111,8 @@ def padding_inference_samples(data):
                                           batch_first=True,
                                           padding_value=0)
 
-        yield padded_text, sorted_text_length, padded_token_types, sorted_speaker
+        yield (padded_text, sorted_text_length, padded_token_types,
+               sorted_speaker)
 
 
 def apply_cmvn(data, mel_stats, pitch_stats, energy_stats):
@@ -259,7 +260,8 @@ def merge_silence(data):
 
 def apply_lexicon(data, lexicon, special_tokens):
     for sample in data:
-        assert 'text' in sample
+        assert 'src' in sample
+        sample = sample['src']
         new_text = []
         for token in sample['text']:
             if token in lexicon:
@@ -320,11 +322,14 @@ def FastSpeech2InferenceDataset(text_file, speaker_file, special_token_file,
     phn2id = read_key2id(phn2id_file)
     special_tokens = set(read_lists(special_token_file))
     lexicon = read_lexicon(lexicon_file)
-    list = [{'text': t.split(), 'speaker': s} for t, s in zip(text, speaker)]
+    data_list = [{
+        'text': t.split(),
+        'speaker': s
+    } for t, s in zip(text, speaker)]
 
-    dataset = utils.DataList(list, shuffle=False)
+    dataset = utils.DataList(data_list, shuffle=False)
     dataset = utils.Processor(dataset,
-                              processor.apply_lexicon,
+                              apply_lexicon,
                               lexicon=lexicon,
                               special_tokens=special_tokens)
     dataset = utils.Processor(dataset, generate_token_types, special_tokens)
