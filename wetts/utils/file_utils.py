@@ -40,4 +40,8 @@ def read_key2id(scp_file):
 
 def read_lexicon(lexicon_file):
     lines = read_lists(lexicon_file)
-    return dict({x[0]: x[1:] for x in lines.split()})
+    lexicon = {}
+    for line in lines:
+        tokens = line.split()
+        lexicon[tokens[0]] = tokens[1:]
+    return lexicon
