@@ -215,7 +215,7 @@ class FastSpeech2(nn.Module):
         enc_output = self._get_speaker_embedding(enc_output, speaker)
 
         (variance_adapter_output, mel_len, pitch_prediction,
-         energy_prediction, duration_prediction) = self.variance_adapter(
+         energy_prediction, log_duration_prediction) = self.variance_adapter(
              enc_output, enc_output_mask, duration_target, pitch_target,
              energy_target, p_control, e_control, d_control)
 
@@ -226,5 +226,5 @@ class FastSpeech2(nn.Module):
         postnet_mel_prediction = self.postnet(mel_prediction) + mel_prediction
 
         return (mel_prediction, postnet_mel_prediction, mel_mask,
-                pitch_prediction, energy_prediction, duration_prediction,
+                pitch_prediction, energy_prediction, log_duration_prediction,
                 enc_output_mask)
