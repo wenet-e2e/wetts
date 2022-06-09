@@ -118,7 +118,6 @@ def main(args):
             text, text_length, token_types, speakers = x
             text = text.cuda()
             text_length = text_length.cuda()
-            mel_length = mel_length.cuda()
             token_types = token_types.cuda()
             speakers = speakers.cuda()
 
@@ -130,7 +129,7 @@ def main(args):
                          d_control=args.d_control,
                          e_control=args.e_control,
                          speaker=speakers)
-            for mel, l in zip(postnet_mel_prediction, ~mel_mask.sum(dim=1)):
+            for mel, l in zip(postnet_mel_prediction, (~mel_mask).sum(dim=1)):
                 output.append(mel[:l].cpu().numpy() * mel_sigma + mel_mean)
         for i, mel in enumerate(output):
             np.save(export_dir / '{}.npy'.format(i), mel)
