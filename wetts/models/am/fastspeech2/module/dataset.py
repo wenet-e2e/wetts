@@ -93,6 +93,7 @@ def padding_inference_samples(data):
         text_length = torch.tensor([len(x['text']) for x in sample],
                                    dtype=torch.int32)
         order = torch.argsort(text_length, descending=True)
+        sorted_keys = [sample[i]['key'] for i in order]
         sorted_speaker = torch.tensor([sample[i]['speaker'] for i in order],
                                       dtype=torch.int32)
         sorted_text = [
@@ -111,8 +112,8 @@ def padding_inference_samples(data):
                                           batch_first=True,
                                           padding_value=0)
 
-        yield (padded_text, sorted_text_length, padded_token_types,
-               sorted_speaker)
+        yield (sorted_keys, padded_text, sorted_text_length,
+               padded_token_types, sorted_speaker)
 
 
 def apply_cmvn(data, mel_stats, pitch_stats, energy_stats):
@@ -324,8 +325,9 @@ def FastSpeech2InferenceDataset(text_file, speaker_file, special_token_file,
     lexicon = read_lexicon(lexicon_file)
     data_list = [{
         'text': t.split(),
-        'speaker': s
-    } for t, s in zip(text, speaker)]
+        'speaker': s,
+        'key': i
+    } for i, (t, s) in enumerate(zip(text, speaker))]
 
     dataset = utils.DataList(data_list, shuffle=False)
     dataset = utils.Processor(dataset,
