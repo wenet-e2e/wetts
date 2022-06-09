@@ -3,7 +3,7 @@
 . path.sh
 
 stage=0 # start from -1 if you need to download data
-stop_stage=7
+stop_stage=8
 
 dataset_url=https://openslr.magicdatatech.com/resources/93/data_aishell3.tgz
 dataset_dir=~/AISHELL-3
@@ -133,4 +133,23 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
       --spk2id_file $outputdir/spk2id \
       --phn2id_file $outputdir/phn2id \
       --special_tokens_file $outputdir/special_token.txt
+fi
+
+if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+  CKPT_PATH=
+  TEXT_FILE=
+  SPEAKER_FILE=
+  EXPORT_DIR=
+  python wetts/bin/inference.py fastspeech2 --num_workers 2 \
+      --batch_size 64 \
+      --config $config \
+      --text_file $TEXT_FILE \
+      --speaker_file $SPEAKER_FILE \
+      --lexicon_file $outputdir/lexicon.txt \
+      --cmvn_dir $outputdir/train \
+      --spk2id_file $outputdir/spk2id \
+      --phn2id_file $outputdir/phn2id \
+      --special_token_file $outputdir/special_token.txt \
+      --export_dir $EXPORT_DIR \
+      --ckpt $CKPT_PATH
 fi
