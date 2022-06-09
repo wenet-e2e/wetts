@@ -17,8 +17,9 @@ import sys
 
 def main():
     if sys.argv[1] == 'fastspeech2':
-        from wetts.models.am.fastspeech2 import inference
-        inference.main(inference.get_args(sys.argv[2:]))
+        from wetts.bin import fastspeech2_inference
+        fastspeech2_inference.main(fastspeech2_inference.get_args(
+            sys.argv[2:]))
     else:
         raise ValueError("Wrong model name!")
 
