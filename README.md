@@ -5,7 +5,13 @@ Production First and Production Ready End-to-End Text-to-Speech Toolkit
 ## Install
 
 ``` sh
+# MFA conda env
 conda create -n aligner -c conda-forge montreal-forced-aligner
+# wetts conda env
+conda create -n wetts python=3.8
+conda activate wetts
+pip install -r requirements.txt
+conda install pytorch=1.10.0 torchaudio=0.10.0 cudatoolkit=11.1 -c pytorch -c conda-forge
 ```
 
 ## Roadmap
