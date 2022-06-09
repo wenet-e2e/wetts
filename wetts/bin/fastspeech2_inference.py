@@ -21,7 +21,7 @@ from yacs import config
 import numpy as np
 
 from wetts.models.am.fastspeech2.fastspeech2 import FastSpeech2
-from wetts.models.am.fastspeech2.train import load_ckpt
+from wetts.bin.fastspeech2_train import load_ckpt
 from wetts.models.am.fastspeech2.module.dataset import (
     FastSpeech2InferenceDataset)
 

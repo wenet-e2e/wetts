@@ -17,8 +17,8 @@ import sys
 
 def main():
     if sys.argv[1] == 'fastspeech2':
-        from wetts.models.am.fastspeech2 import train
-        train.main(train.get_args(sys.argv[2:]))
+        from wetts.bin import fastspeech2_train
+        fastspeech2_train.main(fastspeech2_train.get_args(sys.argv[2:]))
     else:
         raise ValueError("Wrong model name!")
 
