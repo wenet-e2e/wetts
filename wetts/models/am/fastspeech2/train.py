@@ -82,11 +82,12 @@ def train(epoch, model, data_loader, loss_fn, optimizer, lr_scheduler,
                                   energy_target=energy,
                                   speaker=speakers)
         mel_mask = mel_mask.unsqueeze(2)
-        (duration_loss, pitch_loss,
-         energy_loss, mel_loss, postnet_mel_loss) = loss_fn(
-             torch.log(durations), log_duration_prediction, pitch,
-             pitch_prediction, energy, energy_prediction, enc_output_mask, mel,
-             mel_prediction, postnet_mel_prediction, mel_mask)
+        (duration_loss, pitch_loss, energy_loss, mel_loss,
+         postnet_mel_loss) = loss_fn(durations, log_duration_prediction, pitch,
+                                     pitch_prediction, energy,
+                                     energy_prediction, enc_output_mask, mel,
+                                     mel_prediction, postnet_mel_prediction,
+                                     mel_mask)
         total_loss = (duration_loss + pitch_loss + energy_loss + mel_loss +
                       postnet_mel_loss)
         total_loss.backward()
@@ -140,11 +141,12 @@ def eval(epoch, model, data_loader, loss_fn, summary_writer):
                                       energy_target=energy,
                                       speaker=speakers)
             mel_mask = mel_mask.unsqueeze(2)
-            (duration_loss, pitch_loss,
-             energy_loss, mel_loss, postnet_mel_loss) = loss_fn(
-                 durations, log_duration_prediction, pitch,
-                 pitch_prediction, energy, energy_prediction, enc_output_mask,
-                 mel, mel_prediction, postnet_mel_prediction, mel_mask)
+            (duration_loss, pitch_loss, energy_loss, mel_loss,
+             postnet_mel_loss) = loss_fn(durations, log_duration_prediction,
+                                         pitch, pitch_prediction, energy,
+                                         energy_prediction, enc_output_mask,
+                                         mel, mel_prediction,
+                                         postnet_mel_prediction, mel_mask)
             total_loss = (duration_loss + pitch_loss + energy_loss + mel_loss +
                           postnet_mel_loss)
             summary_writer.add_scalar('eval duration loss',
