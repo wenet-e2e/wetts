@@ -4,14 +4,25 @@ Production First and Production Ready End-to-End Text-to-Speech Toolkit
 
 ## Install
 
+We suggest installing WeTTS with Anaconda or Miniconda.
+Clone this repo:
+```sh
+git clone https://github.com/wenet-e2e/wetts.git
+```
+For CUDA 10.2, run:
 ``` sh
-# MFA conda env
-conda create -n aligner -c conda-forge montreal-forced-aligner
-# wetts conda env
-conda create -n wetts python=3.8
+conda create -n wetts python=3.8 montreal-forced-aligner pytorch=1.11 \
+torchaudio cudatoolkit=10.2 -c pytorch -c conda-forge
+```
+For CUDA 11.3, run:
+``` sh
+conda create -n wetts python=3.8 montreal-forced-aligner pytorch=1.11 \
+torchaudio cudatoolkit=11.3 -c pytorch -c conda-forge
+```
+Installing other dependencies using:
+```sh
 conda activate wetts
-pip install -r requirements.txt
-conda install pytorch=1.10.0 torchaudio=0.10.0 cudatoolkit=11.1 -c pytorch -c conda-forge
+python -m pip install -r requirements.txt
 ```
 
 ## Roadmap
