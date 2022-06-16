@@ -61,7 +61,7 @@ def train(epoch, model, data_loader, loss_fn, optimizer, lr_scheduler,
     global train_step
     model.train()
     for (keys, speakers, durations, text, mel, pitch, energy, text_length,
-         mel_length, token_types) in data_loader:
+         mel_length, token_types, _) in data_loader:
         optimizer.zero_grad()
         speakers = speakers.cuda()
         durations = durations.cuda()
@@ -72,8 +72,8 @@ def train(epoch, model, data_loader, loss_fn, optimizer, lr_scheduler,
         text_length = text_length.cuda()
         mel_length = mel_length.cuda()
         token_types = token_types.cuda()
-        (mel_prediction, postnet_mel_prediction, mel_mask, pitch_prediction,
-         energy_prediction, log_duration_prediction,
+        (mel_prediction, postnet_mel_prediction, mel_mask, mel_len,
+         pitch_prediction, energy_prediction, log_duration_prediction,
          enc_output_mask) = model(text,
                                   text_length,
                                   token_types,
@@ -121,7 +121,7 @@ def eval(epoch, model, data_loader, loss_fn, summary_writer):
     model.eval()
     with torch.no_grad():
         for (keys, speakers, durations, text, mel, pitch, energy, text_length,
-             mel_length, token_types) in data_loader:
+             mel_length, token_types, _) in data_loader:
             speakers = speakers.cuda()
             durations = durations.cuda()
             text = text.cuda()
@@ -131,7 +131,7 @@ def eval(epoch, model, data_loader, loss_fn, summary_writer):
             text_length = text_length.cuda()
             mel_length = mel_length.cuda()
             token_types = token_types.cuda()
-            (mel_prediction, postnet_mel_prediction, mel_mask,
+            (mel_prediction, postnet_mel_prediction, mel_mask, mel_len,
              pitch_prediction, energy_prediction, log_duration_prediction,
              enc_output_mask) = model(text,
                                       text_length,
