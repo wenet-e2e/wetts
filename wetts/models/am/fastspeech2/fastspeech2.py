@@ -225,6 +225,6 @@ class FastSpeech2(nn.Module):
         mel_prediction = self.linear(dec_output)
         postnet_mel_prediction = self.postnet(mel_prediction) + mel_prediction
 
-        return (mel_prediction, postnet_mel_prediction, mel_mask,
+        return (mel_prediction, postnet_mel_prediction, mel_mask, mel_len,
                 pitch_prediction, energy_prediction, log_duration_prediction,
                 enc_output_mask)
