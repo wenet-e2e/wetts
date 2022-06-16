@@ -19,6 +19,7 @@ import torch
 from torch.utils.data import DataLoader
 from yacs import config
 import numpy as np
+import jsonlines
 
 from wetts.models.am.fastspeech2.fastspeech2 import FastSpeech2
 from wetts.bin.fastspeech2_train import load_ckpt
@@ -121,7 +122,7 @@ def main(args):
             token_types = token_types.cuda()
             speakers = speakers.cuda()
 
-            (_, postnet_mel_prediction, mel_mask,
+            (_, postnet_mel_prediction, _, mel_len,
              *_) = model(text,
                          text_length,
                          token_types,
@@ -129,12 +130,16 @@ def main(args):
                          d_control=args.d_control,
                          e_control=args.e_control,
                          speaker=speakers)
-            for key, mel, l in zip(keys, postnet_mel_prediction,
-                                   (~mel_mask).sum(dim=1)):
+            for key, mel, l in zip(keys, postnet_mel_prediction, mel_len):
                 output.append(
-                    (key, mel[:l].cpu().numpy() * mel_sigma + mel_mean))
-        for i, mel in output:
-            np.save(export_dir / '{}.npy'.format(i), mel)
+                    (key, mel[:int(l)].cpu().numpy() * mel_sigma + mel_mean))
+        # save mel and absolute path of mel
+        with jsonlines.open(export_dir / 'fastspeech2_mel_prediction.jsonl',
+                            'w') as f:
+            for i, mel in output:
+                export_name = (export_dir / '{}.npy'.format(i)).resolve()
+                np.save(export_name, mel)
+                f.write({'mel_prediction_filepath': str(export_name)})
 
 
 if __name__ == '__main__':

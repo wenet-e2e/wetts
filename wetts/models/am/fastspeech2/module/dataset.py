@@ -29,10 +29,10 @@ def padding_training_samples(data):
     """ Padding the data
         Args:
             data: Iterable[List[{key, wav, speaker, duration, text, mel,
-                            pitch, energy, token_types}]]
+                            pitch, energy, token_types, wav}]]
         Returns:
             Iterable[Tuple(keys, speaker, duration, text, mel, pitch, energy,
-                           text_length, mel_length, token_types)]
+                           text_length, mel_length, token_types, sorted_wav)]
     """
     for sample in data:
         assert isinstance(sample, list)
@@ -62,6 +62,7 @@ def padding_training_samples(data):
             torch.tensor(sample[i]['token_types'], dtype=torch.int32)
             for i in order
         ]
+        sorted_wav = [sample[i]['wav'] for i in order]
 
         padded_duration = pad_sequence(sorted_duration,
                                        batch_first=True,
@@ -84,7 +85,7 @@ def padding_training_samples(data):
 
         yield (sorted_keys, sorted_speaker, padded_duration, padded_text,
                padded_mel, padded_pitch, padded_energy, sorted_text_length,
-               sorted_mel_length, padded_token_types)
+               sorted_mel_length, padded_token_types, sorted_wav)
 
 
 def padding_inference_samples(data):
@@ -202,6 +203,7 @@ def compute_feats(data, config):
         duration = librosa.time_to_frames(
             duration, sr=config.sr, hop_length=config.hop_length).clip(min=1)
 
+        sample['wav'] = torch.from_numpy(wav)
         # extract mel feats
         logmel = mel_extractor.get_log_mel_fbank(wav)
         num_frames = logmel.shape[0]
