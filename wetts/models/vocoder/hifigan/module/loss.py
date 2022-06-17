@@ -71,23 +71,31 @@ class HiFiGANMelLoss(nn.Module):
                            n_fft=n_fft,
                            n_mels=num_mels,
                            fmin=fmin,
-                           fmax=fmax)), requires_grad=False)
-        self.hann_window = nn.Parameter(torch.hann_window(win_length))
+                           fmax=None)), requires_grad=False)
+        self.hann_window = nn.Parameter(torch.hann_window(win_length),
+                                        requires_grad=False)
         self.l1_loss = nn.L1Loss()
 
     def forward(self, y_prediction, y):
         return self.l1_loss(self._get_mel(y_prediction), self._get_mel(y)) * 45
 
     def _get_mel(self, x):
+        x = nn.functional.pad(x.unsqueeze(1),
+                              (int((self.n_fft - self.hop_length) / 2),
+                               int((self.n_fft - self.hop_length) / 2)),
+                              mode='reflect').squeeze(1)
         spec = torch.view_as_real(
             torch.stft(x,
                        n_fft=self.n_fft,
                        hop_length=self.hop_length,
                        win_length=self.win_length,
                        window=self.hann_window,
-                       center=True,
-                       return_complex=True))
+                       center=False,
+                       pad_mode='reflect',
+                       return_complex=True,
+                       normalized=False,
+                       onesided=True))
         spec = torch.sqrt(spec.pow(2).sum(-1) + (1e-9))
         spec = torch.matmul(self.mel_basis, spec)
-        spec = torch.log(torch.clamp(x, min=1e-5))
+        spec = torch.log(torch.clamp(spec, min=1e-5))
         return spec
