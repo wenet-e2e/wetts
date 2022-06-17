@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Copyright (c) 2022 Binbin Zhang(binbzha@qq.com)
+# Copyright (c) 2022 Binbin Zhang(binbzha@qq.com), Jie Chen
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import torch
 
 def read_lists(list_file):
     lists = []
@@ -45,3 +46,8 @@ def read_lexicon(lexicon_file):
         tokens = line.split()
         lexicon[tokens[0]] = tokens[1:]
     return lexicon
+
+
+def load_ckpt(path):
+    with open(path, 'rb') as fin:
+        return torch.load(fin, map_location='cpu')
