@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Copyright 2022 Binbin Zhang(binbzha@qq.com)
+# Copyright 2022 Binbin Zhang(binbzha@qq.com), Jie Chen
 . path.sh
 
 stage=0 # start from -1 if you need to download data
 stop_stage=7
 
 dataset_url=https://openslr.magicdatatech.com/resources/93/data_aishell3.tgz
-dataset_dir=~/AISHELL-3
+dataset_dir=~/AISHELL-3             # path to dataset directory
 
 fastspeech2_outputdir=fastspeech2
 fastspeech2_config=conf/fastspeech2.yaml
@@ -60,7 +60,7 @@ fi
 
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-  python tools/gen_alignment_from_textgrid.py 
+  python tools/gen_alignment_from_textgrid.py
     $fastspeech2_outputdir/wav.txt \
     $fastspeech2_outputdir/speaker.txt $fastspeech2_outputdir/text.txt \
     $fastspeech2_outputdir/special_token.txt $fastspeech2_outputdir/TextGrid \
@@ -210,7 +210,7 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
       --special_tokens_file $fastspeech2_outputdir/special_token.txt \
       --cmvn_dir $fastspeech2_outputdir/train \
       --fastspeech2_ckpt $FASTSPEECH2_CKPT_PATH \
-      --hifigan_ckpt $HIFIGAN_CKPT_PATH \ # path to hifigan generator
+      --hifigan_ckpt $HIFIGAN_CKPT_PATH \
       --finetune_epoch $FINETUNE_EPOCH \
       --export_dir $hifigan_outputdir/finetune
 fi
