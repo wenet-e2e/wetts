@@ -177,3 +177,28 @@ def resample(data, resample_rate=16000):
                 orig_freq=sample_rate,
                 new_freq=resample_rate)(waveform).clamp(min=-1, max=1)
         yield sample
+
+
+def parse_raw(data):
+    """Parsing raw json strings to features.
+
+        Args:
+            data: Iterable[str], str is a json line which contains one sample
+        Returns:
+            Iterable[{key, wav, text, speaker, duration}]
+    """
+    for sample in data:
+        assert 'src' in sample
+        obj = json.loads(sample['src'])
+        assert 'key' in obj
+        assert 'wav_path' in obj
+        assert 'speaker' in obj
+        assert 'text' in obj
+        assert 'duration' in obj
+
+        sample['key'] = obj['key']
+        sample['wav'], sample['sample_rate'] = torchaudio.load(obj['wav_path'])
+        sample['text'] = obj['text']
+        sample['speaker'] = obj['speaker']
+        sample['duration'] = [float(x) for x in obj['duration']]
+        yield sample
