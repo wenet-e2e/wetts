@@ -60,7 +60,7 @@ fi
 
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-  python tools/gen_alignment_from_textgrid.py
+  python tools/gen_alignment_from_textgrid.py \
     $fastspeech2_outputdir/wav.txt \
     $fastspeech2_outputdir/speaker.txt $fastspeech2_outputdir/text.txt \
     $fastspeech2_outputdir/special_token.txt $fastspeech2_outputdir/TextGrid \
