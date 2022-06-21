@@ -13,93 +13,9 @@
 # limitations under the License.
 
 import json
-import logging
 import random
-import tarfile
-from subprocess import PIPE, Popen
-from urllib.parse import urlparse
 
 import torchaudio
-
-from wetts.utils import constants
-
-
-def url_opener(data):
-    """ Give url or local file, return file descriptor
-        Inplace operation.
-        Args:
-            data(Iterable[str]): url or local file list
-        Returns:
-            Iterable[{src, stream}]
-    """
-    for sample in data:
-        assert 'src' in sample
-        url = sample['src']
-        try:
-            pr = urlparse(url)
-            # local file
-            if pr.scheme == '' or pr.scheme == 'file':
-                stream = open(url, 'rb')
-            # network file, such as HTTP(HDFS/OSS/S3)/HTTPS/SCP
-            else:
-                cmd = f'curl -s -L {url}'
-                process = Popen(cmd, shell=True, stdout=PIPE)
-                sample.update(process=process)
-                stream = process.stdout
-            sample.update(stream=stream)
-            yield sample
-        except Exception as ex:
-            logging.warning('Failed to open {}'.format(url))
-
-
-def tar_file_and_group(data):
-    """ Expand a stream of open tar files into a stream of tar file contents.
-        And groups the file with same prefix
-        Args:
-            data: Iterable[{src, stream}]
-        Returns:
-            Iterable[{key, wav, txt, sample_rate}]
-    """
-    for sample in data:
-        assert 'stream' in sample
-        stream = tarfile.open(fileobj=sample['stream'], mode="r|*")
-        prev_prefix = None
-        example = {}
-        valid = True
-        for tarinfo in stream:
-            name = tarinfo.name
-            pos = name.rfind('.')
-            assert pos > 0
-            prefix, postfix = name[:pos], name[pos + 1:]
-            if prev_prefix is not None and prefix != prev_prefix:
-                example['key'] = prev_prefix
-                if valid:
-                    yield example
-                example = {}
-                valid = True
-            with stream.extractfile(tarinfo) as file_obj:
-                try:
-                    if postfix == 'json':
-                        json_obj = json.load(file_obj)
-                        for k, v in json_obj.items():
-                            example[k] = v
-                    elif postfix in constants.AUDIO_FORMAT_SETS:
-                        waveform, sample_rate = torchaudio.load(file_obj)
-                        example['wav'] = waveform
-                        example['sample_rate'] = sample_rate
-                    else:
-                        example[postfix] = file_obj.read()
-                except Exception as ex:
-                    valid = False
-                    logging.warning('error to parse {}'.format(name))
-            prev_prefix = prefix
-        if prev_prefix is not None:
-            example['key'] = prev_prefix
-            yield example
-        stream.close()
-        if 'process' in sample:
-            sample['process'].communicate()
-        sample['stream'].close()
 
 
 def apply_spk2id(data, spk2id):
