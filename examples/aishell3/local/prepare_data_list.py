@@ -26,12 +26,20 @@ def get_args():
                         help='Path to AISHELL-3 dataset')
     parser.add_argument('wav', type=str, help='Path to export paths of wavs.')
     parser.add_argument('speaker', type=str, help='Path to export speakers.')
-    parser.add_argument('text', types=str, help='Path to export text of wavs.')
+    parser.add_argument('text', type=str, help='Path to export text of wavs.')
     return parser.parse_args()
 
 
 def save_scp_files(wav_scp_path: os.PathLike, speaker_scp_path: os.PathLike,
                    text_scp_path: os.PathLike, content: Iterable[str]):
+    wav_scp_path = pathlib.Path(wav_scp_path)
+    speaker_scp_path = pathlib.Path(speaker_scp_path)
+    text_scp_path = pathlib.Path(text_scp_path)
+
+    wav_scp_path.parent.mkdir(parents=True, exist_ok=True)
+    speaker_scp_path.parent.mkdir(parents=True, exist_ok=True)
+    text_scp_path.parent.mkdir(parents=True, exist_ok=True)
+
     with open(wav_scp_path, 'w') as wav_scp_file:
         wav_scp_file.writelines([str(line[0]) + '\n' for line in content])
     with open(speaker_scp_path, 'w') as speaker_scp_file:
