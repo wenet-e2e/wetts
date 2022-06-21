@@ -56,9 +56,10 @@ def get_args(argv=None):
                         help='phn2id file')
     parser.add_argument('--spk2id_file',
                         type=str,
-                        default='',
-                        help='spk2id file, this file must be provided for '
-                        'multi-speaker FastSpeech2.')
+                        required=True,
+                        help='path to spk2id file, this file must be provided '
+                        'for both multi-speaker FastSpeech2 and single-speaker '
+                        'FastSpeech2')
     parser.add_argument('--special_tokens_file',
                         required=True,
                         type=str,
@@ -90,7 +91,7 @@ def train(epoch, model, data_loader, loss_fn, optimizer, lr_scheduler,
     for (keys, speakers, durations, text, mel, pitch, energy, text_length,
          mel_length, token_types, _) in data_loader:
         optimizer.zero_grad()
-        speakers = speakers.cuda() if speakers is not None else None
+        speakers = speakers.cuda()
         durations = durations.cuda()
         text = text.cuda()
         mel = mel.cuda()
@@ -149,7 +150,7 @@ def eval(epoch, model, data_loader, loss_fn, summary_writer):
     with torch.no_grad():
         for (keys, speakers, durations, text, mel, pitch, energy, text_length,
              mel_length, token_types, _) in data_loader:
-            speakers = speakers.cuda() if speakers is not None else None
+            speakers = speakers.cuda()
             durations = durations.cuda()
             text = text.cuda()
             mel = mel.cuda()
@@ -253,10 +254,7 @@ def main(args):
     val_data_loader = DataLoader(val_dataset,
                                  batch_size=None,
                                  num_workers=args.num_workers)
-    if spk2id is None:
-        n_speakers = 1
-    else:
-        n_speakers = len(spk2id)
+
     model = FastSpeech2(
         conf.model.d_model, conf.model.n_enc_layer, conf.model.n_enc_head,
         conf.model.n_enc_conv_filter, conf.model.enc_conv_kernel_size,
@@ -266,11 +264,11 @@ def main(args):
         energy_min, energy_max, energy_mean, energy_sigma,
         conf.model.n_pitch_bin, conf.model.n_energy_bin,
         conf.model.n_dec_layer, conf.model.n_dec_head,
-        conf.model.n_dec_conv_filter, conf.model.dec_conv_kernel_size,
-        conf.model.dec_dropout, conf.n_mels, n_speakers,
-        conf.model.postnet_kernel_size, conf.model.postnet_hidden_dim,
-        conf.model.n_postnet_conv_layers, conf.model.postnet_dropout,
-        conf.model.max_pos_enc_len)
+        conf.model.n_dec_conv_filter,
+        conf.model.dec_conv_kernel_size, conf.model.dec_dropout, conf.n_mels,
+        len(spk2id), conf.model.postnet_kernel_size,
+        conf.model.postnet_hidden_dim, conf.model.n_postnet_conv_layers,
+        conf.model.postnet_dropout, conf.model.max_pos_enc_len)
     model = model.cuda()
 
     loss_fn = loss.FastSpeech2Loss()

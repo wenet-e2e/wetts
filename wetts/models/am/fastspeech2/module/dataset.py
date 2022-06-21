@@ -39,14 +39,9 @@ def padding_training_samples(data):
         text_length = torch.tensor([len(x['text']) for x in sample],
                                    dtype=torch.int32)
         order = torch.argsort(text_length, descending=True)
-
         sorted_keys = [sample[i]['key'] for i in order]
-        # if this is a multi-speaker dataset
-        if 'speaker' in sample[0]:
-            sorted_speaker = torch.tensor(
-                [sample[i]['speaker'] for i in order], dtype=torch.int32)
-        else:
-            sorted_speaker = None
+        sorted_speaker = torch.tensor([sample[i]['speaker'] for i in order],
+                                      dtype=torch.int32)
         sorted_duration = [
             torch.tensor(sample[i]['duration'], dtype=torch.int32)
             for i in order
@@ -99,11 +94,8 @@ def padding_inference_samples(data):
                                    dtype=torch.int32)
         order = torch.argsort(text_length, descending=True)
         sorted_keys = [sample[i]['key'] for i in order]
-        if 'speaker' in sample[0]:
-            sorted_speaker = torch.tensor([sample[i]['speaker'] for i in order],
-                                          dtype=torch.int32)
-        else:
-            sorted_speaker = None
+        sorted_speaker = torch.tensor([sample[i]['speaker'] for i in order],
+                                      dtype=torch.int32)
         sorted_text = [
             torch.tensor(sample[i]['text'], dtype=torch.int32) for i in order
         ]
@@ -299,7 +291,7 @@ def FastSpeech2TrainingDataset(data_list_file, batch_size, spk2id_file,
                                conf):
     cmvn_dir = pathlib.Path(cmvn_dir)
     lists = read_lists(data_list_file)
-    spk2id = read_key2id(spk2id_file) if spk2id_file else None
+    spk2id = read_key2id(spk2id_file)
     phn2id = read_key2id(phn2id_file)
     special_tokens = set(read_lists(special_tokens_file))
 
@@ -309,8 +301,7 @@ def FastSpeech2TrainingDataset(data_list_file, batch_size, spk2id_file,
     dataset = utils.Processor(dataset, processor.shuffle, conf.shuffle)
     dataset = utils.Processor(dataset, compute_feats, conf)
     dataset = utils.Processor(dataset, generate_token_types, special_tokens)
-    if spk2id is not None:
-        dataset = utils.Processor(dataset, processor.apply_spk2id, spk2id)
+    dataset = utils.Processor(dataset, processor.apply_spk2id, spk2id)
     dataset = utils.Processor(dataset, processor.apply_phn2id, phn2id)
 
     mel_stats = np.loadtxt(cmvn_dir / 'mel_cmvn.txt')
@@ -328,28 +319,16 @@ def FastSpeech2InferenceDataset(text_file, speaker_file, special_token_file,
                                 cmvn_dir, batch_size):
     cmvn_dir = pathlib.Path(cmvn_dir)
     text = read_lists(text_file)
-    if speaker_file:
-        speaker = read_lists(speaker_file)
-    else:
-        speaker = None
-    if spk2id_file:
-        spk2id = read_key2id(spk2id_file)
-    else:
-        spk2id = None
+    speaker = read_lists(speaker_file)
+    spk2id = read_key2id(spk2id_file)
     phn2id = read_key2id(phn2id_file)
     special_tokens = set(read_lists(special_token_file))
     lexicon = read_lexicon(lexicon_file)
-    if speaker is not None:
-        data_list = [{
-            'text': t.split(),
-            'speaker': s,
-            'key': i
-        } for i, (t, s) in enumerate(zip(text, speaker))]
-    else:
-        data_list = [{
-            'text': t.split(),
-            'key': i
-        } for i, t in enumerate(text)]
+    data_list = [{
+        'text': t.split(),
+        'speaker': s,
+        'key': i
+    } for i, (t, s) in enumerate(zip(text, speaker))]
 
     dataset = utils.DataList(data_list, shuffle=False)
     dataset = utils.Processor(dataset,
@@ -357,8 +336,7 @@ def FastSpeech2InferenceDataset(text_file, speaker_file, special_token_file,
                               lexicon=lexicon,
                               special_tokens=special_tokens)
     dataset = utils.Processor(dataset, generate_token_types, special_tokens)
-    if spk2id is not None:
-        dataset = utils.Processor(dataset, processor.apply_spk2id, spk2id)
+    dataset = utils.Processor(dataset, processor.apply_spk2id, spk2id)
     dataset = utils.Processor(dataset, processor.apply_phn2id, phn2id)
 
     mel_stats = np.loadtxt(cmvn_dir / 'mel_cmvn.txt')

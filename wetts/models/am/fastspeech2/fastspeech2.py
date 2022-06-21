@@ -96,10 +96,7 @@ class FastSpeech2(nn.Module):
             max_pos_enc_len (int): Maximum length of positional encodings.
         """
         super().__init__()
-        if n_speaker > 1:
-            self.speaker_embedding = nn.Embedding(n_speaker, enc_hidden_dim)
-        else:
-            self.speaker_embedding = None
+        self.speaker_embedding = nn.Embedding(n_speaker, enc_hidden_dim)
         self.pos_enc = positional_encodings.PositionalEncodings(
             max_pos_enc_len, enc_hidden_dim)
         self.src_word_emb = nn.Embedding(n_vocab,
@@ -123,39 +120,6 @@ class FastSpeech2(nn.Module):
         self.postnet = postnet.Postnet(mel_dim, postnet_kernel_size,
                                        postnet_hidden_dim,
                                        n_postnet_conv_layers, postnet_dropout)
-
-    def _get_speaker_embedding(self, enc_output: torch.Tensor,
-                               speaker: torch.Tensor) -> torch.Tensor:
-        """Getting speaker embedding according to speak ID.
-
-        If this is a multi-speaker FastSpeech2 and speaker IDs are given,
-        speaker embeddings will be added to enc_output.
-
-        Args:
-            enc_output (torch.Tensor): Output from encoder of FastSpeech2.
-            speaker (torch.Tensor): Speaker ID.
-
-        Raises:
-            ValueError: Raised when speaker ID is given to a single-speaker
-            FastSpeech2 or no speaker ID is given to a multi-speaker
-            FastSpeech2.
-
-        Returns:
-            torch.Tensor: Encoder output with speaker embedding added.
-        """
-        if self.speaker_embedding is not None:
-            if speaker is None:
-                raise ValueError(
-                    ("Speaker ID is not given when using multi-speaker "
-                     "Fastspeech2."))
-            else:
-                enc_output += self.speaker_embedding(speaker).unsqueeze(1)
-        else:
-            if speaker is not None:
-                raise ValueError(
-                    "Speaker ID is given when using single-speaker Fastspeech2."
-                )
-        return enc_output
 
     def forward(
         self,
@@ -212,10 +176,10 @@ class FastSpeech2(nn.Module):
         enc_output, enc_output_seq_len, _ = self.encoder(
             x, x_padding_mask, x_token_type)
         enc_output_mask = mask.get_mask_from_lengths(enc_output_seq_len)
-        enc_output = self._get_speaker_embedding(enc_output, speaker)
+        enc_output += self.speaker_embedding(speaker).unsqueeze(1)
 
-        (variance_adapter_output, mel_len, pitch_prediction,
-         energy_prediction, log_duration_prediction) = self.variance_adapter(
+        (variance_adapter_output, mel_len, pitch_prediction, energy_prediction,
+         log_duration_prediction) = self.variance_adapter(
              enc_output, enc_output_mask, duration_target, pitch_target,
              energy_target, p_control, e_control, d_control)
 

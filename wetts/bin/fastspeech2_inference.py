@@ -43,18 +43,19 @@ def get_args(argv=None):
     parser.add_argument(
         '--speaker_file',
         type=str,
-        default='',
-        help='speaker for each utterance, should not be provided for '
-        'single-speaker model')
+        required=True,
+        help='speaker for each utterance, should be provided for both'
+        'single-speaker FastSpeech2 and multi-speaker FastSpeech2')
     parser.add_argument('--lexicon_file', required=True, help='lexicon file')
     parser.add_argument('--cmvn_dir',
                         required=True,
                         help='mel/energy/pitch cmvn dir')
     parser.add_argument('--spk2id_file',
                         type=str,
-                        default='',
-                        help='speaker to id file, should not be provided for '
-                        'single-speaker model')
+                        required=True,
+                        help='path to spk2id file, this file must be provided '
+                        'for both multi-speaker FastSpeech2 and single-speaker '
+                        'FastSpeech2')
     parser.add_argument('--phn2id_file',
                         required=True,
                         help='phone to id file')
@@ -97,10 +98,7 @@ def main(args):
     data_loader = DataLoader(dataset,
                              batch_size=None,
                              num_workers=args.num_workers)
-    if spk2id is None:
-        n_speakers = 1
-    else:
-        n_speakers = len(spk2id)
+
     model = FastSpeech2(
         conf.model.d_model, conf.model.n_enc_layer, conf.model.n_enc_head,
         conf.model.n_enc_conv_filter, conf.model.enc_conv_kernel_size,
@@ -110,11 +108,11 @@ def main(args):
         energy_min, energy_max, energy_mean, energy_sigma,
         conf.model.n_pitch_bin, conf.model.n_energy_bin,
         conf.model.n_dec_layer, conf.model.n_dec_head,
-        conf.model.n_dec_conv_filter, conf.model.dec_conv_kernel_size,
-        conf.model.dec_dropout, conf.n_mels, n_speakers,
-        conf.model.postnet_kernel_size, conf.model.postnet_hidden_dim,
-        conf.model.n_postnet_conv_layers, conf.model.postnet_dropout,
-        conf.model.max_pos_enc_len)
+        conf.model.n_dec_conv_filter,
+        conf.model.dec_conv_kernel_size, conf.model.dec_dropout, conf.n_mels,
+        len(spk2id), conf.model.postnet_kernel_size,
+        conf.model.postnet_hidden_dim, conf.model.n_postnet_conv_layers,
+        conf.model.postnet_dropout, conf.model.max_pos_enc_len)
 
     model_state_dict, _, _, _, _, epoch = load_ckpt(args.ckpt)
     print('loading FastSpeech2 ckpt, epoch {}'.format(epoch))
@@ -129,7 +127,7 @@ def main(args):
             text = text.cuda()
             text_length = text_length.cuda()
             token_types = token_types.cuda()
-            speakers = speakers.cuda() if speakers is not None else None
+            speakers = speakers.cuda()
 
             (_, postnet_mel_prediction, _, mel_len,
              *_) = model(text,

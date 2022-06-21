@@ -68,9 +68,11 @@ def get_args(argv=None):
                         type=str,
                         help='path to phn2id file')
     parser.add_argument('--spk2id_file',
-                        default='',
+                        required=True,
                         type=str,
-                        help='path to spk2id file')
+                        help='path to spk2id file, this file must be provided '
+                        'for both multi-speaker FastSpeech2 and single-speaker '
+                        'FastSpeech2')
     parser.add_argument('--special_tokens_file',
                         required=True,
                         type=str,
@@ -118,10 +120,6 @@ def export_fastspeech2_mel_wav(fastspeech2_data_list, spk2id_file, phn2id_file,
     fastspeech2_data_loader = DataLoader(fastspeech2_dataset,
                                          batch_size=None,
                                          num_workers=num_workers)
-    if spk2id is None:
-        n_speakers = 1
-    else:
-        n_speakers = len(spk2id)
     fastspeech2 = FastSpeech2(
         fastspeech2_conf.model.d_model, fastspeech2_conf.model.n_enc_layer,
         fastspeech2_conf.model.n_enc_head,
@@ -139,13 +137,13 @@ def export_fastspeech2_mel_wav(fastspeech2_data_list, spk2id_file, phn2id_file,
         fastspeech2_conf.model.n_dec_conv_filter,
         fastspeech2_conf.model.dec_conv_kernel_size,
         fastspeech2_conf.model.dec_dropout, fastspeech2_conf.n_mels,
-        n_speakers, fastspeech2_conf.model.postnet_kernel_size,
+        len(spk2id), fastspeech2_conf.model.postnet_kernel_size,
         fastspeech2_conf.model.postnet_hidden_dim,
         fastspeech2_conf.model.n_postnet_conv_layers,
         fastspeech2_conf.model.postnet_dropout,
         fastspeech2_conf.model.max_pos_enc_len)
-    fastspeech2_state_dict, _, _, fastspeech2_steps, _, _ = file_utils.load_ckpt(
-        fastspeech2_ckpt)
+    (fastspeech2_state_dict, _, _, fastspeech2_steps,
+     *_) = file_utils.load_ckpt(fastspeech2_ckpt)
     print("Loading fastspeech2 from step {}.".format(fastspeech2_steps))
 
     fastspeech2.load_state_dict(fastspeech2_state_dict)
@@ -157,7 +155,7 @@ def export_fastspeech2_mel_wav(fastspeech2_data_list, spk2id_file, phn2id_file,
     with torch.no_grad():
         for (keys, speakers, durations, text, mel, _, _, text_length, _,
              token_types, wav) in fastspeech2_data_loader:
-            speakers = speakers.cuda() if speakers is not None else None
+            speakers = speakers.cuda()
             durations = durations.cuda()
             text = text.cuda()
             mel = mel.cuda()
