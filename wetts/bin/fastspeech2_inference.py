@@ -40,16 +40,21 @@ def get_args(argv=None):
                         help='batch size')
     parser.add_argument('--config', required=True, help='config file')
     parser.add_argument('--text_file', required=True, help='test data list')
-    parser.add_argument('--speaker_file',
-                        required=True,
-                        help='speaker for each utterance')
+    parser.add_argument(
+        '--speaker_file',
+        type=str,
+        default='',
+        help='speaker for each utterance, should not be provided for '
+        'single-speaker model')
     parser.add_argument('--lexicon_file', required=True, help='lexicon file')
     parser.add_argument('--cmvn_dir',
                         required=True,
                         help='mel/energy/pitch cmvn dir')
     parser.add_argument('--spk2id_file',
-                        required=True,
-                        help='speaker to id file')
+                        type=str,
+                        default='',
+                        help='speaker to id file, should not be provided for '
+                        'single-speaker model')
     parser.add_argument('--phn2id_file',
                         required=True,
                         help='phone to id file')
@@ -79,8 +84,8 @@ def main(args):
         conf = config.load_cfg(fin)
     export_dir = pathlib.Path(args.export_dir)
     export_dir.mkdir(parents=True, exist_ok=True)
-    (dataset, mel_stats, pitch_stats, energy_stats,
-     phn2id) = FastSpeech2InferenceDataset(args.text_file, args.speaker_file,
+    (dataset, mel_stats, pitch_stats, energy_stats, phn2id,
+     spk2id) = FastSpeech2InferenceDataset(args.text_file, args.speaker_file,
                                            args.special_token_file,
                                            args.lexicon_file, args.phn2id_file,
                                            args.spk2id_file, args.cmvn_dir,
@@ -92,6 +97,10 @@ def main(args):
     data_loader = DataLoader(dataset,
                              batch_size=None,
                              num_workers=args.num_workers)
+    if spk2id is None:
+        n_speakers = 1
+    else:
+        n_speakers = len(spk2id)
     model = FastSpeech2(
         conf.model.d_model, conf.model.n_enc_layer, conf.model.n_enc_head,
         conf.model.n_enc_conv_filter, conf.model.enc_conv_kernel_size,
@@ -102,7 +111,7 @@ def main(args):
         conf.model.n_pitch_bin, conf.model.n_energy_bin,
         conf.model.n_dec_layer, conf.model.n_dec_head,
         conf.model.n_dec_conv_filter, conf.model.dec_conv_kernel_size,
-        conf.model.dec_dropout, conf.n_mels, conf.n_speaker,
+        conf.model.dec_dropout, conf.n_mels, n_speakers,
         conf.model.postnet_kernel_size, conf.model.postnet_hidden_dim,
         conf.model.n_postnet_conv_layers, conf.model.postnet_dropout,
         conf.model.max_pos_enc_len)
@@ -120,7 +129,7 @@ def main(args):
             text = text.cuda()
             text_length = text_length.cuda()
             token_types = token_types.cuda()
-            speakers = speakers.cuda()
+            speakers = speakers.cuda() if speakers is not None else None
 
             (_, postnet_mel_prediction, _, mel_len,
              *_) = model(text,
