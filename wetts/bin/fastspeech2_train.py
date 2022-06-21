@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import argparse
-import os
+import pathlib
 
 import torch
 from torch.utils.data import DataLoader
@@ -38,20 +38,47 @@ def get_args(argv=None):
                         type=int,
                         default=1,
                         help='number of workers for dataloader')
-    parser.add_argument('--config', required=True, help='config file')
+    parser.add_argument('--config',
+                        required=True,
+                        type=str,
+                        help='config file')
     parser.add_argument('--train_data_list',
                         required=True,
+                        type=str,
                         help='training data list file')
     parser.add_argument('--val_data_list',
                         required=True,
+                        type=str,
                         help='validation data list file')
-    parser.add_argument('--phn2id_file', required=True, help='phn2id file')
-    parser.add_argument('--spk2id_file', required=True, help='spk2id file')
+    parser.add_argument('--phn2id_file',
+                        required=True,
+                        type=str,
+                        help='phn2id file')
+    parser.add_argument('--spk2id_file',
+                        type=str,
+                        default='',
+                        help='spk2id file, this file must be provided for '
+                        'multi-speaker FastSpeech2.')
     parser.add_argument('--special_tokens_file',
                         required=True,
+                        type=str,
                         help='special tokens file')
-    parser.add_argument('--cmvn_dir', required=True, help='cmvn dir')
-    parser.add_argument('--ckpt', help='path to ckpt to resume training')
+    parser.add_argument('--cmvn_dir', required=True, type=str, help='cmvn dir')
+    parser.add_argument('--ckpt',
+                        type=str,
+                        help='path to ckpt to resume training')
+    parser.add_argument('--log_dir',
+                        default='log',
+                        type=str,
+                        help='path to save tensorboard log and checkpoint')
+    parser.add_argument('--batch_size',
+                        type=int,
+                        default=32,
+                        help='batch size')
+    parser.add_argument('--epoch',
+                        type=int,
+                        default=100,
+                        help='number of epoch to train')
     args = parser.parse_args(argv)
     return args
 
@@ -63,7 +90,7 @@ def train(epoch, model, data_loader, loss_fn, optimizer, lr_scheduler,
     for (keys, speakers, durations, text, mel, pitch, energy, text_length,
          mel_length, token_types, _) in data_loader:
         optimizer.zero_grad()
-        speakers = speakers.cuda()
+        speakers = speakers.cuda() if speakers is not None else None
         durations = durations.cuda()
         text = text.cuda()
         mel = mel.cuda()
@@ -122,7 +149,7 @@ def eval(epoch, model, data_loader, loss_fn, summary_writer):
     with torch.no_grad():
         for (keys, speakers, durations, text, mel, pitch, energy, text_length,
              mel_length, token_types, _) in data_loader:
-            speakers = speakers.cuda()
+            speakers = speakers.cuda() if speakers is not None else None
             durations = durations.cuda()
             text = text.cuda()
             mel = mel.cuda()
@@ -203,17 +230,20 @@ def main(args):
     with open(args.config, 'r') as fin:
         conf = config.load_cfg(fin)
 
-    os.makedirs(conf.log_dir.checkpoint, exist_ok=True)
-    (train_dataset, _, pitch_stats, energy_stats,
-     phn2id) = FastSpeech2TrainingDataset(args.train_data_list,
-                                          args.spk2id_file, args.phn2id_file,
+    log_dir = pathlib.Path(args.log_dir)
+    tensorboard_dir = log_dir / 'tensorboard'
+    checkpoint_dir = log_dir / 'ckpt'
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
+    (train_dataset, _, pitch_stats, energy_stats, phn2id,
+     spk2id) = FastSpeech2TrainingDataset(args.train_data_list,
+                                          args.batch_size, args.spk2id_file,
+                                          args.phn2id_file,
                                           args.special_tokens_file,
                                           args.cmvn_dir, conf)
-    val_dataset, *_ = FastSpeech2TrainingDataset(args.val_data_list,
-                                                 args.spk2id_file,
-                                                 args.phn2id_file,
-                                                 args.special_tokens_file,
-                                                 args.cmvn_dir, conf)
+    val_dataset, *_ = FastSpeech2TrainingDataset(
+        args.val_data_list, args.batch_size, args.spk2id_file,
+        args.phn2id_file, args.special_tokens_file, args.cmvn_dir, conf)
     pitch_mean, pitch_sigma, pitch_min, pitch_max = pitch_stats
     energy_mean, energy_sigma, energy_min, energy_max = energy_stats
 
@@ -222,7 +252,11 @@ def main(args):
                                    num_workers=args.num_workers)
     val_data_loader = DataLoader(val_dataset,
                                  batch_size=None,
-                                 num_workers=conf.num_workers)
+                                 num_workers=args.num_workers)
+    if spk2id is None:
+        n_speakers = 1
+    else:
+        n_speakers = len(spk2id)
     model = FastSpeech2(
         conf.model.d_model, conf.model.n_enc_layer, conf.model.n_enc_head,
         conf.model.n_enc_conv_filter, conf.model.enc_conv_kernel_size,
@@ -233,7 +267,7 @@ def main(args):
         conf.model.n_pitch_bin, conf.model.n_energy_bin,
         conf.model.n_dec_layer, conf.model.n_dec_head,
         conf.model.n_dec_conv_filter, conf.model.dec_conv_kernel_size,
-        conf.model.dec_dropout, conf.n_mels, conf.n_speaker,
+        conf.model.dec_dropout, conf.n_mels, n_speakers,
         conf.model.postnet_kernel_size, conf.model.postnet_hidden_dim,
         conf.model.n_postnet_conv_layers, conf.model.postnet_dropout,
         conf.model.max_pos_enc_len)
@@ -245,7 +279,7 @@ def main(args):
                      conf.optimizer.eps)
     lr_scheduler = transformer_lr_scheduler(optimizer, conf.model.d_model,
                                             conf.optimizer.warmup_steps)
-    writer = SummaryWriter(conf.log_dir.tensorboard)
+    writer = SummaryWriter(tensorboard_dir)
     last_epoch = 0
     if args.ckpt:
         (model_state_dict, lr_scheduler_state_dict, optimizer_state_dict,
@@ -255,14 +289,13 @@ def main(args):
         lr_scheduler.load_state_dict(lr_scheduler_state_dict)
         print("Resume training from epoch {}.".format(last_epoch))
 
-    for epoch in range(last_epoch, conf.epoch):
+    for epoch in range(last_epoch, args.epoch):
         train(epoch, model, train_data_loader, loss_fn, optimizer,
               lr_scheduler, writer)
         eval(epoch, model, val_data_loader, loss_fn, writer)
-        save_ckpt(
-            os.path.join(conf.log_dir.checkpoint,
-                         'fastspeech2_{}.ckpt'.format(epoch + 1)), model,
-            lr_scheduler, optimizer, train_step, val_step, epoch + 1)
+        save_ckpt(checkpoint_dir / 'fastspeech2_{}.ckpt'.format(epoch + 1),
+                  model, lr_scheduler, optimizer, train_step, val_step,
+                  epoch + 1)
 
 
 if __name__ == '__main__':
