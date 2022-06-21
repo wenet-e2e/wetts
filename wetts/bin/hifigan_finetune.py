@@ -48,28 +48,47 @@ def get_args(argv=None):
                         type=int,
                         default=32,
                         help='batch size for hifigan finetuning')
+    parser.add_argument('--batch_size_fastspeech2',
+                        type=int,
+                        default=32,
+                        help='batch size for fastspeech2 inference')
     parser.add_argument('--fastspeech2_config',
                         required=True,
-                        help='fastspeech2 config file')
+                        type=str,
+                        help='path to fastspeech2 config file')
     parser.add_argument('--fastspeech2_datalist',
                         required=True,
-                        help='fastspeech2 data list file')
+                        type=str,
+                        help='path to fastspeech2 data list file')
     parser.add_argument('--hifigan_config',
                         required=True,
-                        help='hifigan config file')
-    parser.add_argument('--phn2id_file', required=True, help='phn2id file')
-    parser.add_argument('--spk2id_file', required=True, help='spk2id file')
+                        help='path to hifigan config file')
+    parser.add_argument('--phn2id_file',
+                        required=True,
+                        type=str,
+                        help='path to phn2id file')
+    parser.add_argument('--spk2id_file',
+                        default='',
+                        type=str,
+                        help='path to spk2id file')
     parser.add_argument('--special_tokens_file',
                         required=True,
-                        help='special tokens file')
-    parser.add_argument('--cmvn_dir', required=True, help='cmvn dir')
+                        type=str,
+                        help='path to special tokens file')
+    parser.add_argument('--cmvn_dir',
+                        required=True,
+                        type=str,
+                        help='path to cmvn dir')
     parser.add_argument('--fastspeech2_ckpt',
                         required=True,
+                        type=str,
                         help='path to fastspeech2 ckpt to generate mel')
-    parser.add_argument('--hifigan_ckpt',
-                        required=True,
-                        nargs=2,
-                        help='path to hifigan ckpt to finetune')
+    parser.add_argument(
+        '--hifigan_ckpt',
+        required=True,
+        nargs=2,
+        help='path to hifigan generator and discriminator checkpoint '
+        'for finetuning')
     parser.add_argument('--finetune_epoch',
                         default=1000,
                         type=int,
@@ -77,6 +96,7 @@ def get_args(argv=None):
     parser.add_argument(
         '--export_dir',
         required=True,
+        type=str,
         help='path to directory for exporting finetuned HiFiGAN')
     args = parser.parse_args(argv)
     return args
@@ -84,18 +104,24 @@ def get_args(argv=None):
 
 def export_fastspeech2_mel_wav(fastspeech2_data_list, spk2id_file, phn2id_file,
                                special_tokens_file, cmvn_dir, fastspeech2_conf,
-                               export_dir, num_workers, fastspeech2_ckpt):
+                               export_dir, num_workers, fastspeech2_ckpt,
+                               batch_size):
     export_dir.mkdir(parents=True, exist_ok=True)
-    (fastspeech2_dataset, mel_stats, pitch_stats, energy_stats,
-     phn2id) = FastSpeech2TrainingDataset(fastspeech2_data_list, spk2id_file,
-                                          phn2id_file, special_tokens_file,
-                                          cmvn_dir, fastspeech2_conf)
+    (fastspeech2_dataset, mel_stats, pitch_stats, energy_stats, phn2id,
+     spk2id) = FastSpeech2TrainingDataset(fastspeech2_data_list, batch_size,
+                                          spk2id_file, phn2id_file,
+                                          special_tokens_file, cmvn_dir,
+                                          fastspeech2_conf)
     pitch_mean, pitch_sigma, pitch_min, pitch_max = pitch_stats
     energy_mean, energy_sigma, energy_min, energy_max = energy_stats
     mel_mean, mel_sigma = mel_stats
     fastspeech2_data_loader = DataLoader(fastspeech2_dataset,
                                          batch_size=None,
                                          num_workers=num_workers)
+    if spk2id is None:
+        n_speakers = 1
+    else:
+        n_speakers = len(spk2id)
     fastspeech2 = FastSpeech2(
         fastspeech2_conf.model.d_model, fastspeech2_conf.model.n_enc_layer,
         fastspeech2_conf.model.n_enc_head,
@@ -113,7 +139,7 @@ def export_fastspeech2_mel_wav(fastspeech2_data_list, spk2id_file, phn2id_file,
         fastspeech2_conf.model.n_dec_conv_filter,
         fastspeech2_conf.model.dec_conv_kernel_size,
         fastspeech2_conf.model.dec_dropout, fastspeech2_conf.n_mels,
-        fastspeech2_conf.n_speaker, fastspeech2_conf.model.postnet_kernel_size,
+        n_speakers, fastspeech2_conf.model.postnet_kernel_size,
         fastspeech2_conf.model.postnet_hidden_dim,
         fastspeech2_conf.model.n_postnet_conv_layers,
         fastspeech2_conf.model.postnet_dropout,
@@ -131,7 +157,7 @@ def export_fastspeech2_mel_wav(fastspeech2_data_list, spk2id_file, phn2id_file,
     with torch.no_grad():
         for (keys, speakers, durations, text, mel, _, _, text_length, _,
              token_types, wav) in fastspeech2_data_loader:
-            speakers = speakers.cuda()
+            speakers = speakers.cuda() if speakers is not None else None
             durations = durations.cuda()
             text = text.cuda()
             mel = mel.cuda()
@@ -172,7 +198,7 @@ def export_fastspeech2_mel_wav(fastspeech2_data_list, spk2id_file, phn2id_file,
                     str(wav_target_filepath)
                 })
     with jsonlines.open(export_dir / 'hifigan_finetune_data_list.jsonl',
-                        mode='w') as f:
+                        'w') as f:
         f.write_all(file_list)
     print("Finished mel-spectrogram generating!")
 
@@ -328,7 +354,8 @@ def main(args):
                                args.phn2id_file, args.special_tokens_file,
                                args.cmvn_dir, fastspeech2_conf,
                                export_dir / 'vocoder_finetune_dataset',
-                               args.num_workers, args.fastspeech2_ckpt)
+                               args.num_workers, args.fastspeech2_ckpt,
+                               args.batch_size_fastspeech2)
     finetune(hifigan_conf, args.hifigan_ckpt, export_dir,
              args.batch_size_hifigan, args.num_workers, args.finetune_epoch)
 
