@@ -279,8 +279,7 @@ def apply_lexicon(data, lexicon, special_tokens):
 def CmvnDataset(data_list_file, conf):
     lists = read_lists(data_list_file)
     dataset = utils.DataList(lists, shuffle=False)
-    dataset = utils.Processor(dataset, processor.url_opener)
-    dataset = utils.Processor(dataset, processor.tar_file_and_group)
+    dataset = utils.Processor(dataset, processor.parse_raw)
     dataset = utils.Processor(dataset, processor.resample, conf.sr)
     dataset = utils.Processor(dataset, compute_feats, conf)
     return dataset
