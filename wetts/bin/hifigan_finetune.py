@@ -67,12 +67,13 @@ def get_args(argv=None):
                         required=True,
                         type=str,
                         help='path to phn2id file')
-    parser.add_argument('--spk2id_file',
-                        required=True,
-                        type=str,
-                        help='path to spk2id file, this file must be provided '
-                        'for both multi-speaker FastSpeech2 and single-speaker '
-                        'FastSpeech2')
+    parser.add_argument(
+        '--spk2id_file',
+        required=True,
+        type=str,
+        help='path to spk2id file, this file must be provided '
+        'for both multi-speaker FastSpeech2 and single-speaker '
+        'FastSpeech2')
     parser.add_argument('--special_tokens_file',
                         required=True,
                         type=str,
@@ -332,14 +333,15 @@ def finetune(hifigan_conf, hifigan_ckpt, export_dir, batch_size, num_workers,
             # saving ckpt in original HiFiGAN format for compatibility
             torch.save({'generator': hifigan_generator.state_dict()},
                        export_dir / 'g_finetune_{}'.format(i))
-            torch.save({
-                'mpd': hifigan_mpd.state_dict(),
-                'msd': hifigan_msd.state_dict(),
-                'steps': step,
-                'epoch': i,
-                'optim_g': optim_g.state_dict(),
-                'optim_d': optim_d.state_dict(),
-            })
+            torch.save(
+                {
+                    'mpd': hifigan_mpd.state_dict(),
+                    'msd': hifigan_msd.state_dict(),
+                    'steps': step,
+                    'epoch': i,
+                    'optim_g': optim_g.state_dict(),
+                    'optim_d': optim_d.state_dict(),
+                }, export_dir / 'd_finetune_{}'.format(i))
         writer.flush()
 
 
