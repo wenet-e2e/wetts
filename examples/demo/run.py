@@ -8,7 +8,6 @@ from scipy.io import wavfile
 
 from wetts.models.am.fastspeech2.fastspeech2 import FastSpeech2
 from wetts.bin.fastspeech2_train import load_ckpt
-from wetts.models.am.fastspeech2.module.dataset import FastSpeech2InferenceDataset
 from wetts.models.vocoder.hifigan.hifigan import Generator as HiFiGanGenerator
 from wetts.utils import file_utils
 from wetts.utils.file_utils import read_key2id, read_lists, read_lexicon
@@ -149,7 +148,7 @@ def tts(text, speaker):
         dur = dur[0].int().cpu().numpy()
         wavfile.write(name, vocoder_conf.sr, (wav * 32768).astype("int16"))
 
-    return (res[0], [pair for pair in zip(res[1], dur)], res[2])
+    return (res[0], list(zip(res[1], dur)), res[2])
 
 
 demo = gr.Interface(
