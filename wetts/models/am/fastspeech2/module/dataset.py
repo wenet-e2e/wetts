@@ -271,7 +271,7 @@ def apply_lexicon(data, lexicon, special_tokens):
             elif token in special_tokens:
                 new_text.append(token)
             else:
-                raise ValueError('Token {} not in lexicon or special tokens!')
+                raise ValueError('Token {} not in lexicon or special tokens!'.format(token))
         sample['text'] = new_text
         yield sample
 
