@@ -157,6 +157,9 @@ def rule(C, V, R, T):
 def generate_lexicon(with_tone=False, with_erhua=False):
     """Generate lexicon for Mandarin Chinese."""
     syllables = OrderedDict()
+    
+    for s in SPECIALS:
+        syllables[s] = s
 
     for C in [''] + INITIALS:
         for V in FINALS:
