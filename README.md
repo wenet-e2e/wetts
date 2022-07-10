@@ -9,15 +9,21 @@ Clone this repo:
 ```sh
 git clone https://github.com/wenet-e2e/wetts.git
 ```
+Create environment:
+```bash
+conda create -n wetts python=3.8 -y
+```
+Install MFA:
+```bash
+conda install -n wetts montreal-forced-aligner=2.0.1 -c conda-forge -y
+```
 For CUDA 10.2, run:
 ``` sh
-conda create -n wetts python=3.8 montreal-forced-aligner=2.0.1 pytorch=1.11 \
-torchaudio cudatoolkit=10.2 -c pytorch -c conda-forge
+conda install -n wetts pytorch=1.11 torchaudio cudatoolkit=10.2 -c pytorch -y
 ```
 For CUDA 11.3, run:
 ``` sh
-conda create -n wetts python=3.8 montreal-forced-aligner=2.0.1 pytorch=1.11 \
-torchaudio cudatoolkit=11.3 -c pytorch -c conda-forge
+conda install -n wetts pytorch=1.11 torchaudio cudatoolkit=11.3 -c pytorch -y
 ```
 Installing other dependencies using:
 ```sh
