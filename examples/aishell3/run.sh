@@ -136,12 +136,11 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 fi
 
 FASTSPEECH2_INFERENCE_OUTPUTDIR=$fastspeech2_outputdir/inference_mels # path to directory for inferenced mels
-FASTSPEECH2_CKPT_PATH=                                                # path to fastspeech2 checkpoint file
 if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
   # inference fastspeech2
-  TEXT_FILE=                 # path to text file, each line contains one sample for inference
-  SPEAKER_FILE=              # path to speaker file, each line contains one speaker name for corresponding line in text file
-  FASTSPEECH2_CKPT_PATH=
+  TEXT_FILE=test_samples.txt                 # path to text file, each line contains one sample for inference
+  SPEAKER_FILE=test_samples_speakers.txt     # path to speaker file, each line contains one speaker name for corresponding line in text file
+  FASTSPEECH2_CKPT_PATH=                     # path to fastspeech2 checkpoint file
   python wetts/bin/inference.py fastspeech2 \
       --num_workers 4 \
       --batch_size 64 \
