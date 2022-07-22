@@ -19,9 +19,9 @@ shuffle: True
 ###########################################################
 #                       DATA SETTING                      #
 ###########################################################
-batch_size: 64
-num_workers: 2
 segment_size: 8192
+num_train_clips: 0  # set to 0 to use all segments in a single wav
+                    # otherwise only num_train_clips segments will be used
 
 
 ###########################################################

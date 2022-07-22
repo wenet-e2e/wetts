@@ -150,7 +150,7 @@ def generate_token_types(data, special_tokens: Set) -> Iterable:
         yield sample
 
 
-def compute_feats(data, config):
+def compute_feats(data, config, extract_pitch=True, extract_energy=True):
     """ Compute mel, pitch, energy feature
         Args:
             data: Iterable[{key, wav, speaker, duration, text}]
@@ -165,23 +165,27 @@ def compute_feats(data, config):
                                       n_mels=config.n_mels,
                                       fmin=config.fmin,
                                       fmax=config.fmax)
-    pitch_extractor = feats.Pitch(sr=config.sr,
-                                  hop_length=config.hop_length,
-                                  pitch_min=config.pitch_min,
-                                  pitch_max=config.pitch_max)
-    energy_extractor = feats.Energy(sr=config.sr,
-                                    n_fft=config.n_fft,
-                                    hop_length=config.hop_length,
-                                    win_length=config.win_length,
-                                    window=config.window)
+    if extract_pitch:
+        pitch_extractor = feats.Pitch(sr=config.sr,
+                                      hop_length=config.hop_length,
+                                      pitch_min=config.pitch_min,
+                                      pitch_max=config.pitch_max)
+    if extract_energy:
+        energy_extractor = feats.Energy(sr=config.sr,
+                                        n_fft=config.n_fft,
+                                        hop_length=config.hop_length,
+                                        win_length=config.win_length,
+                                        window=config.window)
     for sample in data:
         key = sample['key']
         wav = sample['wav'].numpy()[0]  # First channel
         text = sample['text']
         duration = np.array(sample['duration'])
+
         assert len(wav.shape) == 1, f'{key} is not a mono-channel audio.'
         assert np.abs(wav).max(
         ) <= 1.0, f"{key} is seems to be different that 16 bit PCM."
+        assert len(duration) > 0
 
         d_cumsum = duration.cumsum()
 
@@ -189,7 +193,7 @@ def compute_feats(data, config):
             start = 0
             end = d_cumsum[-1]
             if text[0] == "sil" and len(duration) > 1:
-                start = d_cumsum[1]
+                start = d_cumsum[0]
                 duration = duration[1:]
                 text = text[1:]
             if text[-1] == 'sil' and len(duration) > 1:
@@ -219,15 +223,18 @@ def compute_feats(data, config):
                 continue
         assert sum(duration) == num_frames
         # extract pitch
-        pitch = pitch_extractor.get_pitch(wav, duration=duration)
-        assert pitch.shape[0] == len(duration)
+        if extract_pitch:
+            pitch = pitch_extractor.get_pitch(wav, duration=duration)
+            assert pitch.shape[0] == len(duration)
+            sample['pitch'] = pitch
         # extract energy
-        energy = energy_extractor.get_energy(wav, duration=duration)
-        assert energy.shape[0] == len(duration)
+        if extract_energy:
+            energy = energy_extractor.get_energy(wav, duration=duration)
+            assert energy.shape[0] == len(duration)
+            sample['energy'] = energy
+
         sample['duration'] = duration
         sample['mel'] = logmel
-        sample['pitch'] = pitch
-        sample['energy'] = energy
         sample['text'] = text
         yield sample
 
