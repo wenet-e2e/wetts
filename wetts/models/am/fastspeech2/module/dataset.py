@@ -182,6 +182,7 @@ def compute_feats(data, config):
         assert len(wav.shape) == 1, f'{key} is not a mono-channel audio.'
         assert np.abs(wav).max(
         ) <= 1.0, f"{key} is seems to be different that 16 bit PCM."
+        assert len(duration) > 0
 
         d_cumsum = duration.cumsum()
 
@@ -189,7 +190,7 @@ def compute_feats(data, config):
             start = 0
             end = d_cumsum[-1]
             if text[0] == "sil" and len(duration) > 1:
-                start = d_cumsum[1]
+                start = d_cumsum[0]
                 duration = duration[1:]
                 text = text[1:]
             if text[-1] == 'sil' and len(duration) > 1:
