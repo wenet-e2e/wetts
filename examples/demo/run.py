@@ -122,7 +122,7 @@ def tts(text, speaker):
     res = (pinyin, phonemes, name)
 
     text = [phn2id[x] for x in phonemes]
-    types = [0 if x in special_tokens else 1 for x in text]
+    types = [0 if x in special_tokens else 1 for x in phonemes]
     speaker = spk2id[speaker]
     with torch.no_grad():
         length = torch.tensor([len(text)], dtype=torch.int32).cuda()
