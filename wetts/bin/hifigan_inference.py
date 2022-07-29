@@ -20,6 +20,7 @@ import scipy.io.wavfile
 import torch
 from torch.utils.data import DataLoader
 import yacs.config
+import tqdm
 
 from wetts.models.vocoder.hifigan.hifigan import Generator
 from wetts.models.vocoder.hifigan.module.dataset import HiFiGANInferenceDataset
@@ -76,7 +77,7 @@ def inference(hifigan_conf, hifigan_ckpt, export_dir, batch_size, num_workers,
     hifigan_generator.remove_weight_norm()
     with torch.no_grad():
         output = []
-        for names, mels, lengths in hifigan_inference_dataloader:
+        for names, mels, lengths in tqdm.tqdm(hifigan_inference_dataloader):
             # mels: b,t,d -> b,d,t
             mels = mels.permute(0, 2, 1).cuda()
             # wav_prediction: b,t

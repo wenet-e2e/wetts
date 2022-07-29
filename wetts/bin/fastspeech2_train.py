@@ -54,12 +54,13 @@ def get_args(argv=None):
                         required=True,
                         type=str,
                         help='phn2id file')
-    parser.add_argument('--spk2id_file',
-                        type=str,
-                        required=True,
-                        help='path to spk2id file, this file must be provided '
-                        'for both multi-speaker FastSpeech2 and single-speaker '
-                        'FastSpeech2')
+    parser.add_argument(
+        '--spk2id_file',
+        type=str,
+        required=True,
+        help='path to spk2id file, this file must be provided '
+        'for both multi-speaker FastSpeech2 and single-speaker '
+        'FastSpeech2')
     parser.add_argument('--special_tokens_file',
                         required=True,
                         type=str,
@@ -136,8 +137,8 @@ def train(epoch, model, data_loader, loss_fn, optimizer, lr_scheduler,
         print(("epoch {}, train step {}, train duration loss {}, "
                "train pitch loss {}, train energy loss {}, train mel loss {}, "
                "train postnet mel loss {},  train total loss: {}").format(
-                   epoch + 1, train_step, duration_loss.item(),
-                   pitch_loss.item(), energy_loss.item(), mel_loss.item(),
+                   epoch, train_step, duration_loss.item(), pitch_loss.item(),
+                   energy_loss.item(), mel_loss.item(),
                    postnet_mel_loss.item(), total_loss.item()))
         optimizer.step()
         lr_scheduler.step()
@@ -193,8 +194,8 @@ def eval(epoch, model, data_loader, loss_fn, summary_writer):
                 ("epoch {}, eval step {}, eval duration loss {}, "
                  "eval pitch loss {}, eval energy loss {}, eval mel loss {}, "
                  "eval postnet mel loss {}, eval total loss: {}").format(
-                     epoch + 1, val_step, duration_loss.item(),
-                     pitch_loss.item(), energy_loss.item(), mel_loss.item(),
+                     epoch, val_step, duration_loss.item(), pitch_loss.item(),
+                     energy_loss.item(), mel_loss.item(),
                      postnet_mel_loss.item(), total_loss.item()))
             val_step += 1
         mels_to_plot = [
@@ -206,7 +207,7 @@ def eval(epoch, model, data_loader, loss_fn, summary_writer):
             'eval mels',
             plot_mel(mels_to_plot,
                      ['ground truth', 'prediction', 'postnet prediction']),
-            epoch + 1)
+            epoch)
 
 
 def save_ckpt(path, model, lr_scheduler, optimizer, train_step, val_step,
@@ -287,13 +288,12 @@ def main(args):
         lr_scheduler.load_state_dict(lr_scheduler_state_dict)
         print("Resume training from epoch {}.".format(last_epoch))
 
-    for epoch in range(last_epoch, args.epoch):
+    for epoch in range(last_epoch + 1, args.epoch + 1):
         train(epoch, model, train_data_loader, loss_fn, optimizer,
               lr_scheduler, writer)
         eval(epoch, model, val_data_loader, loss_fn, writer)
-        save_ckpt(checkpoint_dir / 'fastspeech2_{}.ckpt'.format(epoch + 1),
-                  model, lr_scheduler, optimizer, train_step, val_step,
-                  epoch + 1)
+        save_ckpt(checkpoint_dir / 'fastspeech2_{}.ckpt'.format(epoch), model,
+                  lr_scheduler, optimizer, train_step, val_step, epoch)
 
 
 if __name__ == '__main__':
