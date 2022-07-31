@@ -52,11 +52,19 @@ def generator_loss(disc_outputs):
 
     return loss, gen_losses
 
+# TODO: Using pytorch to get mel-spectrogram for both feature extraction and
+# loss calculation.
 
 class HiFiGANMelLoss(nn.Module):
 
-    def __init__(self, sr, n_fft, num_mels, hop_length, win_length, fmin,
-                 fmax):
+    def __init__(self,
+                 sr,
+                 n_fft,
+                 num_mels,
+                 hop_length,
+                 win_length,
+                 fmin,
+                 fmax=None):
         super().__init__()
         self.sr = sr
         self.n_fft = n_fft
@@ -71,31 +79,29 @@ class HiFiGANMelLoss(nn.Module):
                            n_fft=n_fft,
                            n_mels=num_mels,
                            fmin=fmin,
-                           fmax=None)), requires_grad=False)
+                           fmax=fmax)), requires_grad=False)
         self.hann_window = nn.Parameter(torch.hann_window(win_length),
                                         requires_grad=False)
         self.l1_loss = nn.L1Loss()
 
     def forward(self, y_prediction, y):
-        return self.l1_loss(self._get_mel(y_prediction), self._get_mel(y)) * 45
+        return self.l1_loss(self._get_mel(y_prediction), self._get_mel(y))
 
     def _get_mel(self, x):
         x = nn.functional.pad(x.unsqueeze(1),
                               (int((self.n_fft - self.hop_length) / 2),
                                int((self.n_fft - self.hop_length) / 2)),
                               mode='reflect').squeeze(1)
-        spec = torch.view_as_real(
-            torch.stft(x,
-                       n_fft=self.n_fft,
-                       hop_length=self.hop_length,
-                       win_length=self.win_length,
-                       window=self.hann_window,
-                       center=False,
-                       pad_mode='reflect',
-                       return_complex=True,
-                       normalized=False,
-                       onesided=True))
-        spec = torch.sqrt(spec.pow(2).sum(-1) + (1e-9))
-        spec = torch.matmul(self.mel_basis, spec)
+        spec = torch.stft(x,
+                          n_fft=self.n_fft,
+                          hop_length=self.hop_length,
+                          win_length=self.win_length,
+                          window=self.hann_window,
+                          center=False,
+                          pad_mode='reflect',
+                          return_complex=True,
+                          normalized=False,
+                          onesided=True)
+        spec = torch.matmul(self.mel_basis, torch.abs(spec))
         spec = torch.log(torch.clamp(spec, min=1e-5))
         return spec
