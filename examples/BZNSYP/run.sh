@@ -45,9 +45,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
       --train_data_list $fastspeech2_outputdir/train/datalist.jsonl \
       --val_data_list $fastspeech2_outputdir/val/datalist.jsonl \
       --cmvn_dir $fastspeech2_outputdir/train \
-      --spk2id_file $fastspeech2_outputdir/spk2id \
-      --phn2id_file $fastspeech2_outputdir/phn2id \
-      --special_tokens_file $fastspeech2_outputdir/special_token.txt \
+      --spk2id_file examples/BZNSYP/local/spk2id \
+      --phn2id_file examples/BZNSYP/local/phn2id \
+      --special_tokens_file examples/BZNSYP/local/special_token.txt \
       --log_dir log/ \
       --batch_size 64 \
       --epoch $EPOCH
