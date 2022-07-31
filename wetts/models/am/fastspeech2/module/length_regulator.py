@@ -37,11 +37,11 @@ class LengthRegulator(nn.Module):
 
         cum_duration = torch.cumsum(repeat_count, dim=1)  # (b,t_x)
         output_max_seq_len = torch.max(cum_duration)
-        M = mask.get_mask_from_lengths(
+        M = mask.get_content_mask(
             cum_duration.reshape(batch_size * input_max_seq_len),
-            output_max_seq_len).reshape(batch_size, input_max_seq_len,
-                                        output_max_seq_len)  # (b,t_x,t_y)
-        M = (~M).float()
+            output_max_seq_len).reshape(
+                batch_size, input_max_seq_len,
+                output_max_seq_len).float()  # (b,t_x,t_y)
         M[:, 1:, :] = M[:, 1:, :] - M[:, :-1, :]
         return torch.bmm(M.permute(0, 2, 1), x), torch.max(cum_duration,
                                                            dim=1)[0]

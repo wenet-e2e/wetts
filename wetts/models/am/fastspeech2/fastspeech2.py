@@ -174,10 +174,10 @@ class FastSpeech2(nn.Module):
         x = self.pos_enc(x)
         # If x_padding_mask[i,j] is True, x[i,j,:] will be masked in encoder
         # self-attention.
-        x_padding_mask = mask.get_mask_from_lengths(x_length)
+        x_padding_mask = mask.get_padding_mask(x_length)
         enc_output, enc_output_seq_len, _ = self.encoder(
             x, x_padding_mask, x_token_type)
-        enc_output_mask = mask.get_mask_from_lengths(enc_output_seq_len)
+        enc_output_mask = mask.get_padding_mask(enc_output_seq_len)
         enc_output += self.speaker_embedding(speaker).unsqueeze(1)
 
         (variance_adapter_output, mel_len, pitch_prediction, energy_prediction,
@@ -186,7 +186,7 @@ class FastSpeech2(nn.Module):
              energy_target, p_control, e_control, d_control)
 
         variance_adapter_output = self.pos_enc(variance_adapter_output)
-        mel_mask = mask.get_mask_from_lengths(mel_len)
+        mel_mask = mask.get_padding_mask(mel_len)
         dec_output, _ = self.decoder(variance_adapter_output, mel_mask)
         mel_prediction = self.linear(dec_output)
         postnet_mel_prediction = self.postnet(mel_prediction) + mel_prediction

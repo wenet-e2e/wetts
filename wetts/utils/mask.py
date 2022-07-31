@@ -16,8 +16,8 @@
 import torch
 
 
-def get_mask_from_lengths(lengths, max_len=None):
-    """Generate mask array from length.
+def get_padding_mask(lengths, max_len=None):
+    """Generate padding mask according to length of the input.
 
     Args:
         lengths:
@@ -37,3 +37,18 @@ def get_mask_from_lengths(lengths, max_len=None):
     mask = ids >= lengths.unsqueeze(1).expand(-1, max_len)
 
     return mask
+
+
+def get_content_mask(length, max_len=None):
+    """Generate content mask according to length of the input.
+
+    Args:
+        lengths:
+            A tensor of shape (b), where b is the batch size.
+
+    Return:
+        A mask tensor of shape (b,max_seq_len), where max_seq_len is the length
+        of the longest sequence. Positions of padded elements will be set to
+        False.
+    """
+    return ~get_padding_mask(length, max_len)
