@@ -39,7 +39,7 @@ def generate_duration(interval_info):
     duration_list = []
     for ele in interval_info["alignment"]:
         phone_list.append(ele[0])
-        duration_list.append(ele[1][1])
+        duration_list.append(float(ele[1][1] - ele[1][0]))
     return phone_list, duration_list
 
 
