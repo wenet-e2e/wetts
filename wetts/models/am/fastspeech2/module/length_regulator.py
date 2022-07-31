@@ -1,5 +1,4 @@
-# Copyright (c) 2021 PaddlePaddle Authors. All Rights Reserved.
-#                    Tsinghua University(Jie Chen)
+# Copyright (c) 2021 Tsinghua University(Jie Chen)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# Modified from PaddleSpeech(https://github.com/PaddlePaddle/PaddleSpeech)
 
 import torch
 from torch import nn
+
+from wetts.utils import mask
 
 
 class LengthRegulator(nn.Module):
@@ -24,17 +24,24 @@ class LengthRegulator(nn.Module):
     def __init__(self):
         super(LengthRegulator, self).__init__()
 
-    def forward(self, x, repeat_count):
-        batch_size, input_max_seq_len = repeat_count.shape
-        output_seq_len = torch.sum(repeat_count, dim=-1)
-        output_max_seq_len = int(torch.max(output_seq_len))
-        M = torch.zeros([batch_size, output_max_seq_len, input_max_seq_len],
-                        device=x.device)
-        for i in range(batch_size):
-            k = 0
-            for j in range(input_max_seq_len):
-                r = int(repeat_count[i, j])
-                M[i, k:k + r, j] = 1
-                k += r
+    def forward(self, x: torch.Tensor, repeat_count: torch.Tensor):
+        """Repeating all phonemes according to its duration.
 
-        return torch.bmm(M, x), output_seq_len
+        Args:
+            x (torch.Tensor): Input phoneme sequences of shape (b,t_x,d)
+            repeat_count (torch.Tensor): Duration of each phoneme of shape
+            (b,t_x)
+        """
+        batch_size, input_max_seq_len = repeat_count.shape
+        repeat_count = repeat_count.long()
+
+        cum_duration = torch.cumsum(repeat_count, dim=1)  # (b,t_x)
+        output_max_seq_len = torch.max(cum_duration)
+        M = mask.get_mask_from_lengths(
+            cum_duration.reshape(batch_size * input_max_seq_len),
+            output_max_seq_len).reshape(batch_size, input_max_seq_len,
+                                        output_max_seq_len)  # (b,t_x,t_y)
+        M = (~M).float()
+        M[:, 1:, :] = M[:, 1:, :] - M[:, :-1, :]
+        return torch.bmm(M.permute(0, 2, 1), x), torch.max(cum_duration,
+                                                           dim=1)[0]

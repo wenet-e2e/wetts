@@ -14,6 +14,7 @@
 # Modified from FastSpeech2(https://github.com/ming024/FastSpeech2)
 
 from typing import List, Optional, Tuple
+import math
 
 import torch
 from torch import nn
@@ -102,6 +103,7 @@ class FastSpeech2(nn.Module):
         self.src_word_emb = nn.Embedding(n_vocab,
                                          enc_hidden_dim,
                                          padding_idx=padding_idx)
+        self.src_word_emb_scale = math.sqrt(enc_hidden_dim)
         self.encoder = encoder.FastSpeech2Encoder(enc_hidden_dim, n_enc_layer,
                                                   n_enc_head,
                                                   n_enc_conv_filter,
@@ -168,7 +170,7 @@ class FastSpeech2(nn.Module):
             duration,
         """
 
-        x = self.src_word_emb(x)
+        x = self.src_word_emb(x) * self.src_word_emb_scale
         x = self.pos_enc(x)
         # If x_padding_mask[i,j] is True, x[i,j,:] will be masked in encoder
         # self-attention.
