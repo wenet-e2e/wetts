@@ -6,8 +6,7 @@
 stage=                            # start from -1 if you need to download data
 stop_stage=
 
-dataset_url=https://openslr.magicdatatech.com/resources/93/data_aishell3.tgz
-dataset_dir=                          # path to dataset directory
+dataset_dir=                      # path to dataset directory
 
 fastspeech2_outputdir=fastspeech2
 fastspeech2_config=conf/fastspeech2.yaml
@@ -19,7 +18,17 @@ conda_base=$(conda info --base)
 source $conda_base/bin/activate wetts
 
 
-if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+  # Prepare samples
+  python examples/BZNSYP/local/parse_data.py \
+      --data_path $dataset_dir \
+      --save_path $fastspeech2_outputdir \
+      --val_samples 20 \
+      --test_samples 20 \
+fi
+
+
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
   # Compute mel, f0, energy CMVN
   total=$(cat $fastspeech2_outputdir/train/datalist.jsonl | wc -l)
   python wetts/bin/compute_cmvn.py --total $total --num_workers 32 \
@@ -28,7 +37,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
 fi
 
 
-if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
   # train fastspeech2
   EPOCH=
   python wetts/bin/train.py fastspeech2 --num_workers 32 \
@@ -45,7 +54,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 fi
 
 FASTSPEECH2_INFERENCE_OUTPUTDIR=$fastspeech2_outputdir/inference_mels # path to directory for inferenced mels
-if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   # inference fastspeech2
   TEXT_FILE=test_samples.txt                 # path to text file, each line contains one sample for inference
   SPEAKER_FILE=test_samples_speakers.txt     # path to speaker file, each line contains one speaker name for corresponding line in text file
@@ -66,7 +75,7 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
 fi
 
 
-if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   # train hifigan using fastspeech2 training dataset
   EPOCH=                              # Number of epoch for training hifigan
   python wetts/bin/hifigan_train.py train \
@@ -79,7 +88,7 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
       --export_dir $hifigan_outputdir/train
 fi
 
-if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
   # finetune hifigan using fastspeech2 training dataset
   FASTSPEECH2_CKPT_PATH=          # path to fastspeech2 checkpoint
   HIFIGAN_CKPT_PATH=              # path to hifigan generator and discriminator checkpoint
@@ -106,7 +115,7 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
 fi
 
 
-if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
   # hifigan inference
   HIFIGAN_GENERATOR_CKPT_PATH=    # path to hifigan generator checkpoint
                                   # e.g. $HIFIGAN_GENERATOR_CKPT_PATH=g_02500000
