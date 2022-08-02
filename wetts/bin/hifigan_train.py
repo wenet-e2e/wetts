@@ -66,7 +66,9 @@ def get_args(argv=None):
         '--hifigan_ckpt',
         nargs=2,
         help='path to hifigan generator and discriminator checkpoint '
-        'for resume training or finetuning hifigan')
+        'for resume training or finetuning hifigan, the first argument is '
+        'path to generator checkpoint and the second argument is path to '
+        'discriminator')
     common_parser.add_argument(
         '--epoch',
         default=1000,
@@ -77,6 +79,21 @@ def get_args(argv=None):
         type=str,
         required=True,
         help='path to directory for exporting finetuned HiFiGAN')
+    common_parser.add_argument(
+        '--train_log_wav_interval',
+        type=int,
+        default=10000,
+        help='number of steps between logging one reconstructed training sample'
+    )
+    common_parser.add_argument('--validation_interval',
+                               type=int,
+                               default=10000,
+                               help='number of steps between validation')
+    common_parser.add_argument(
+        '--save_interval',
+        type=int,
+        default=10000,
+        help='number of steps between checkpoint saving')
 
     subparsers = parser.add_subparsers()
     train_parser = subparsers.add_parser('train', parents=[common_parser])
@@ -86,35 +103,28 @@ def get_args(argv=None):
     finetune_parser.add_argument('--batch_size_fastspeech2',
                                  type=int,
                                  default=32,
-                                 required=True,
                                  help='batch size for fastspeech2 inference')
     finetune_parser.add_argument('--fastspeech2_config',
                                  type=str,
-                                 required=True,
                                  help='path to fastspeech2 config file')
     finetune_parser.add_argument('--phn2id_file',
                                  type=str,
-                                 required=True,
                                  help='path to phn2id file')
     finetune_parser.add_argument(
         '--spk2id_file',
         type=str,
-        required=True,
         help='path to spk2id file, this file must be provided '
         'for both multi-speaker FastSpeech2 and single-speaker '
         'FastSpeech2')
     finetune_parser.add_argument('--special_tokens_file',
                                  type=str,
-                                 required=True,
                                  help='path to special tokens file')
     finetune_parser.add_argument('--cmvn_dir',
                                  type=str,
-                                 required=True,
                                  help='path to cmvn dir')
     finetune_parser.add_argument(
         '--fastspeech2_ckpt',
         type=str,
-        required=True,
         help='path to fastspeech2 ckpt to generate mel')
     finetune_parser.add_argument(
         '--generate_samples',
@@ -237,6 +247,9 @@ def train(hifigan_conf,
           export_dir,
           num_workers,
           total_epoch,
+          train_log_wav_interval,
+          validation_interval,
+          save_interval,
           hifigan_train_dataset,
           hifigan_val_dataset=None):
     export_dir = pathlib.Path(export_dir)
@@ -312,7 +325,7 @@ def train(hifigan_conf,
     writer = SummaryWriter(export_dir / 'log')
 
     for i in range(start_epoch, start_epoch + total_epoch):
-        for (mel_clip, wav_clip, _, _) in hifigan_train_dataloader:
+        for (mel_clip, wav_clip, mels, wavs) in hifigan_train_dataloader:
             mel_clip = mel_clip.permute(0, 2, 1).cuda()
             wav_clip = wav_clip.cuda()
 
@@ -377,55 +390,82 @@ def train(hifigan_conf,
             writer.add_scalar('loss_gen_f', loss_gen_f.item(), step)
             writer.add_scalar('loss_gen_s', loss_gen_s.item(), step)
             writer.add_scalar('loss_mel', loss_mel.item(), step)
+            writer.add_scalar('generator learning rate',
+                              scheduler_g.get_last_lr()[0], step)
+            writer.add_scalar('discriminator learning rate',
+                              scheduler_d.get_last_lr()[0], step)
+            if step % train_log_wav_interval == 0 and step:
+                with torch.no_grad():
+                    # randomly pick up one full mel from one batch
+                    # to get reconstructed speech
+                    random_idx = random.randrange(len(mels))
+                    random_wav = wavs[random_idx]
+                    random_mel = mels[random_idx]
+                    gen_wav = hifigan_generator(
+                        random_mel.unsqueeze(0).permute(0, 2,
+                                                        1).cuda()).squeeze(1)
+                    writer.add_audio('train predicted audio',
+                                     gen_wav,
+                                     step,
+                                     sample_rate=hifigan_conf.sr)
+                    writer.add_audio('train ground truth audio',
+                                     random_wav,
+                                     step,
+                                     sample_rate=hifigan_conf.sr)
+            if step % validation_interval == 0 and step:
+                with torch.no_grad():
+                    if hifigan_val_dataloader is not None:
+                        total_loss = []
+                        hifigan_generator.eval()
+                        for mel_clip, wav_clip, mels, wavs in hifigan_val_dataloader:
+                            mel_clip = mel_clip.permute(0, 2, 1).cuda()
+                            wav_clip = wav_clip.cuda()
+                            gen_wav_clip = hifigan_generator(mel_clip)
+                            loss_mel = hifigan_mel_loss(
+                                gen_wav_clip.squeeze(1), wav_clip)
+                            total_loss.append(loss_mel.item())
+
+                        # randomly pick up one full mel from last batch
+                        # to get reconstructed speech
+                        random_idx = random.randrange(len(mels))
+                        random_wav = wavs[random_idx]
+                        random_mel = mels[random_idx]
+                        gen_wav = hifigan_generator(
+                            random_mel.unsqueeze(0).permute(
+                                0, 2, 1).cuda()).squeeze(1)
+
+                        mean_loss = np.mean(np.array(total_loss))
+                        print('epoch: {}, mean valiation mel loss: {}'.format(
+                            step, mean_loss))
+                        writer.add_scalar('mean validation mel loss',
+                                          mean_loss, step)
+                        writer.add_audio('validation predicted audio',
+                                         gen_wav,
+                                         step,
+                                         sample_rate=hifigan_conf.sr)
+                        writer.add_audio('validation ground truth audio',
+                                         random_wav,
+                                         step,
+                                         sample_rate=hifigan_conf.sr)
+            if step % save_interval == 0 and step:
+                with torch.no_grad():
+                    # saving ckpt in original HiFiGAN format for compatibility
+                    torch.save({'generator': hifigan_generator.state_dict()},
+                               export_dir / 'g_{}'.format(step))
+                    torch.save(
+                        {
+                            'mpd': hifigan_mpd.state_dict(),
+                            'msd': hifigan_msd.state_dict(),
+                            'steps': step,
+                            'epoch': i,
+                            'optim_g': optim_g.state_dict(),
+                            'optim_d': optim_d.state_dict(),
+                        }, export_dir / 'd_{}'.format(step))
+            writer.flush()
             step += 1
+
         scheduler_g.step()
         scheduler_d.step()
-
-        with torch.no_grad():
-            if hifigan_val_dataloader is not None:
-                total_loss = []
-                hifigan_generator.eval()
-                for mel_clip, wav_clip, mels, wavs in hifigan_val_dataloader:
-                    mel_clip = mel_clip.permute(0, 2, 1).cuda()
-                    wav_clip = wav_clip.cuda()
-                    gen_wav_clip = hifigan_generator(mel_clip)
-                    loss_mel = hifigan_mel_loss(gen_wav_clip.squeeze(1),
-                                                wav_clip)
-                    total_loss.append(loss_mel.item())
-
-                # randomly pick up one full mel from last batch
-                # to get reconstructed speech
-                random_idx = random.randrange(len(mels))
-                random_wav = wavs[random_idx]
-                random_mel = mels[random_idx]
-                gen_wav = hifigan_generator(
-                    random_mel.unsqueeze(0).permute(0, 2, 1).cuda()).squeeze(1)
-
-                mean_loss = np.mean(np.array(total_loss))
-                print('epoch: {}, mean valiation mel loss: {}'.format(
-                    i, mean_loss))
-                writer.add_scalar('mean validation mel loss', mean_loss, i)
-                writer.add_audio('validation predicted audio',
-                                 gen_wav,
-                                 i,
-                                 sample_rate=hifigan_conf.sr)
-                writer.add_audio('validation ground truth audio',
-                                 random_wav,
-                                 i,
-                                 sample_rate=hifigan_conf.sr)
-            # saving ckpt in original HiFiGAN format for compatibility
-            torch.save({'generator': hifigan_generator.state_dict()},
-                       export_dir / 'g_{}'.format(i))
-            torch.save(
-                {
-                    'mpd': hifigan_mpd.state_dict(),
-                    'msd': hifigan_msd.state_dict(),
-                    'steps': step,
-                    'epoch': i,
-                    'optim_g': optim_g.state_dict(),
-                    'optim_d': optim_d.state_dict(),
-                }, export_dir / 'd_{}'.format(i))
-        writer.flush()
 
 
 def main(args):
@@ -433,19 +473,22 @@ def main(args):
 
     `args.func` will be determined by command line argument.
     For `python hifigan_train.py train ...`, it's `load_train_dataset`.
-    For `python hifigan_train.py finetune ...`, it's `load_train_dataset`
+    For `python hifigan_train.py finetune ...`, it's `load_fintune_dataset`
     """
     hifigan_conf, hifigan_train_dataset, hifigan_val_dataset = args.func(args)
     train(hifigan_conf, args.hifigan_ckpt, args.export_dir, args.num_workers,
-          args.epoch, hifigan_train_dataset, hifigan_val_dataset)
+          args.epoch, args.train_log_wav_interval, args.validation_interval,
+          args.save_interval, hifigan_train_dataset, hifigan_val_dataset)
 
 
 def load_finetune_dataset(args):
-    with open(args.hifigan_config) as f1, open(args.fastspeech2_config) as f2:
+    with open(args.hifigan_config) as f1:
         hifigan_conf = yacs.config.load_cfg(f1)
-        fastspeech2_conf = yacs.config.load_cfg(f2)
+
     export_dir = pathlib.Path(args.export_dir)
     if args.generate_samples:
+        with open(args.fastspeech2_config) as f2:
+            fastspeech2_conf = yacs.config.load_cfg(f2)
         export_fastspeech2_mel_wav(args.fastspeech2_train_datalist,
                                    args.spk2id_file, args.phn2id_file,
                                    args.special_tokens_file, args.cmvn_dir,
@@ -466,6 +509,8 @@ def load_train_dataset(args):
         hifigan_conf = yacs.config.load_cfg(f2)
     hifigan_train_dataset = HiFiGANTrainingDataset(
         args.fastspeech2_train_datalist, hifigan_conf, args.batch_size_hifigan)
+    # for validation dataset, we only use one mel segment for validation
+    hifigan_conf.num_train_clips = 1
     hifigan_val_dataset = HiFiGANTrainingDataset(args.fastspeech2_val_datalist,
                                                  hifigan_conf,
                                                  args.batch_size_hifigan)
