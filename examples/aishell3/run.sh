@@ -19,7 +19,7 @@ source $conda_base/bin/activate wetts
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
   # Download data
-  local/download_data.sh $data_url $dataset_dir
+  local/download_data.sh $dataset_url $dataset_dir
 fi
 
 
