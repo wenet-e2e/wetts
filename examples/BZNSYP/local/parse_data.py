@@ -73,7 +73,7 @@ def generate_data_list(args):
             data_list.append({
                 'key': key,
                 'wav_path': wav,
-                'speaker': 1,
+                'speaker': "1",
                 'text': phone_list,
                 'duration': [float(d) for d in duration_list]
             })
