@@ -20,11 +20,15 @@ source $conda_base/bin/activate wetts
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
   # Prepare samples
-  python examples/BZNSYP/local/parse_data.py \
+  python local/parse_data.py \
       --data_path $dataset_dir \
       --save_path $fastspeech2_outputdir \
       --val_samples 20 \
       --test_samples 20 \
+      --phn2id_path local/phn2id
+  # Prepare lexicon.
+  python tools/gen_mfa_pinyin_lexicon.py --with-tone --with-r \
+    $fastspeech2_outputdir/lexicon.txt $fastspeech2_outputdir/phone.txt
 fi
 
 
@@ -45,9 +49,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
       --train_data_list $fastspeech2_outputdir/train/datalist.jsonl \
       --val_data_list $fastspeech2_outputdir/val/datalist.jsonl \
       --cmvn_dir $fastspeech2_outputdir/train \
-      --spk2id_file examples/BZNSYP/local/spk2id \
-      --phn2id_file examples/BZNSYP/local/phn2id \
-      --special_tokens_file examples/BZNSYP/local/special_token.txt \
+      --spk2id_file local/spk2id \
+      --phn2id_file local/phn2id \
+      --special_tokens_file local/special_token.txt \
       --log_dir log/ \
       --batch_size 64 \
       --epoch $EPOCH
@@ -67,9 +71,9 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
       --speaker_file $SPEAKER_FILE \
       --lexicon_file $fastspeech2_outputdir/lexicon.txt \
       --cmvn_dir $fastspeech2_outputdir/train \
-      --spk2id_file $fastspeech2_outputdir/spk2id \
-      --phn2id_file $fastspeech2_outputdir/phn2id \
-      --special_token_file $fastspeech2_outputdir/special_token.txt \
+      --spk2id_file local/spk2id \
+      --phn2id_file local/phn2id \
+      --special_token_file local/special_token.txt \
       --export_dir $FASTSPEECH2_INFERENCE_OUTPUTDIR \
       --ckpt $FASTSPEECH2_CKPT_PATH
 fi
@@ -104,9 +108,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
       --fastspeech2_config conf/fastspeech2.yaml \
       --fastspeech2_train_datalist $fastspeech2_outputdir/train/datalist.jsonl \
       --hifigan_config $hifigan_config \
-      --phn2id_file $fastspeech2_outputdir/phn2id \
-      --spk2id_file $fastspeech2_outputdir/spk2id \
-      --special_tokens_file $fastspeech2_outputdir/special_token.txt \
+      --phn2id_file local/phn2id \
+      --spk2id_file local/spk2id \
+      --special_tokens_file local/special_token.txt \
       --cmvn_dir $fastspeech2_outputdir/train \
       --fastspeech2_ckpt $FASTSPEECH2_CKPT_PATH \
       --hifigan_ckpt $HIFIGAN_CKPT_PATH \
