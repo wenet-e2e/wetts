@@ -8,9 +8,12 @@ import jsonlines
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_path', "-d", type=str, help='Path to BZNSYP dataset.')
-    parser.add_argument('--save_path', "-s", type=str, help='Path to save processed data.')
-    parser.add_argument('--val_samples', "-v", type=int, default=20, help='Number of validation samples.')
-    parser.add_argument('--test_samples', "-t", type=int, default=20, help='Number of test samples.')
+    parser.add_argument('--save_path', "-s", type=str,
+                        help='Path to save processed data.')
+    parser.add_argument('--val_samples', "-v", type=int, default=20,
+                        help='Number of validation samples.')
+    parser.add_argument('--test_samples', "-t", type=int, default=20,
+                        help='Number of test samples.')
     parser.add_argument('--phn2id_path', "-p", type=str, help='Path to phn2id file.')
     return parser.parse_args()
 
@@ -65,7 +68,8 @@ def generate_data_list(args):
     for filename in filename_list:
         info_dict = parse_interval(os.path.join(path, filename))
         key = info_dict['sentence_id']
-        relative_path = os.path.join(args.data_path, "Wave", f"{info_dict['sentence_id']}.wav")
+        relative_path = os.path.join(args.data_path, "Wave",
+                                     f"{info_dict['sentence_id']}.wav")
         if os.path.exists(relative_path):
             wav = os.path.abspath(relative_path)
             phn_map = get_phone_map(args.phn2id_path)
@@ -84,13 +88,16 @@ def generate_data_list(args):
     os.makedirs(os.path.join(args.save_path, "train"), exist_ok=True)
     os.makedirs(os.path.join(args.save_path, "val"), exist_ok=True)
     os.makedirs(os.path.join(args.save_path, "test"), exist_ok=True)
-    with jsonlines.open(os.path.join(args.save_path, "train", "datalist.jsonl"), 'w') as fdatalist:
+    with jsonlines.open(
+            os.path.join(args.save_path, "train", "datalist.jsonl"), 'w') as fdatalist:
         for data in train_data_list:
             fdatalist.write(data)
-    with jsonlines.open(os.path.join(args.save_path, "val", "datalist.jsonl"), 'w') as fdatalist:
+    with jsonlines.open(
+            os.path.join(args.save_path, "val", "datalist.jsonl"), 'w') as fdatalist:
         for data in val_data_list:
             fdatalist.write(data)
-    with jsonlines.open(os.path.join(args.save_path, "test", "datalist.jsonl"), 'w') as fdatalist:
+    with jsonlines.open(
+            os.path.join(args.save_path, "test", "datalist.jsonl"), 'w') as fdatalist:
         for data in test_data_list:
             fdatalist.write(data)
 
