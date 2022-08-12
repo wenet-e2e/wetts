@@ -19,7 +19,7 @@ source $conda_base/bin/activate wetts
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
   # Download data
-  local/download_data.sh $data_url $dataset_dir
+  local/download_data.sh $dataset_url $dataset_dir
 fi
 
 
@@ -178,7 +178,11 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
                                   # e.g. $HIFIGAN_CKPT_PATH='g_02500000 do_02500000'
                                   # pretrained hifigan checkpoint can be obtained from:
                                   # https://github.com/jik876/hifi-gan
-
+  # This stage will continue training hifigan using checkpoints specified with --hifigan_ckpt.
+  # Mels predicted by fastspeech2 and ground truth audios from fastspeech2 training dataset are
+  # used as training dataset for hifigan.
+  # Commenting out --hifigan_ckpt will train hifigan from scratch.
+  # When running finetune command for the first time, --generate_samples should be specified.
   EPOCH=                          # number of epoch for finetune
   python wetts/bin/hifigan_train.py finetune \
       --num_workers 32 \
@@ -194,7 +198,8 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
       --fastspeech2_ckpt $FASTSPEECH2_CKPT_PATH \
       --hifigan_ckpt $HIFIGAN_CKPT_PATH \
       --epoch $EPOCH \
-      --export_dir $hifigan_outputdir/finetune
+      --export_dir $hifigan_outputdir/finetune \
+      --generate_samples
 fi
 
 

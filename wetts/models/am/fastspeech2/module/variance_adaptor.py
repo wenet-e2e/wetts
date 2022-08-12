@@ -167,8 +167,8 @@ class VarianceAdaptor(nn.Module):
             self.pitch_embedding, pitch_target, p_control)
 
         energy_prediction, energy_embedding = self._get_embedding(
-            x + pitch_embedding, x_mask, self.energy_predictor,
-            self.energy_bins, self.energy_embedding, energy_target, e_control)
+            x, x_mask, self.energy_predictor, self.energy_bins,
+            self.energy_embedding, energy_target, e_control)
 
         if duration_target is not None:
             output, mel_len = self.length_regulator(
