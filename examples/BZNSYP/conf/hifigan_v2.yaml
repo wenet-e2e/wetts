@@ -1,0 +1,90 @@
+###########################################################
+#                FEATURE EXTRACTION SETTING               #
+###########################################################
+
+sr: 22050          # sr
+n_fft: 1024        # FFT size (samples).
+hop_length: 256    # Hop size (samples). 12.5ms
+win_length: 1024   # Window length (samples). 50ms
+                   # If set to null, it will be the same as fft_size.
+window: "hann"     # Window function.
+
+fmin: 0           # Minimum frequency of Mel basis.
+fmax: 8000         # Maximum frequency of Mel basis.
+n_mels: 80         # The number of mel basis.
+
+shuffle: True
+
+
+###########################################################
+#                       DATA SETTING                      #
+###########################################################
+segment_size: 8192
+num_train_clips: 0  # set to 0 to use all segments in a single wav
+                    # otherwise only num_train_clips segments will be used
+
+
+###########################################################
+#                       MODEL SETTING                     #
+###########################################################
+model:
+  resblock_type: 'type1'
+  upsample_rates:
+    - 8
+    - 8
+    - 2
+    - 2
+  upsample_kernel_sizes:
+    - 16
+    - 16
+    - 4
+    - 4
+  upsample_initial_channel: 128
+  resblock_kernel_sizes:
+    - 3
+    - 7
+    - 11
+  resblock_dilation_sizes:
+    -
+      - 1
+      - 3
+      - 5
+    -
+      - 1
+      - 3
+      - 5
+    -
+      - 1
+      - 3
+      - 5
+
+###########################################################
+#                     OPTIMIZER SETTING                   #
+###########################################################
+optimizer:
+  betas:
+    - 0.8
+    - 0.99
+  lr: 0.0002
+  lr_decay: 0.999
+
+###########################################################
+#                     TRAINING SETTING                    #
+###########################################################
+
+epoch: 200
+log_dir:
+  tensorboard: 'log/tensorboard'
+  checkpoint: 'log/ckpt'
+
+
+###########################################################
+#                         EVAL SETTING                    #
+###########################################################
+
+
+###########################################################
+#                       OTHER SETTING                     #
+###########################################################
+seed: 10086
+
