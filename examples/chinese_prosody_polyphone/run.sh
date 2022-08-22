@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# Copyright 2022 Binbin Zhang(binbzha@qq.com)
+
+stage=-1
+stop_stage=100
+url=https://wetts-1256283475.cos.ap-shanghai.myqcloud.com/data/
+
+dir=exp
+
+if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
+  # Download prosody and polyphone
+  mkdir -p data/download
+  pushd data/download
+  wget -c $url/polyphone.tar.gz && tar zxf polyphone.tar.gz
+  wget -c $url/prosody.tar.gz && tar zxf prosody.tar.gz
+  popd
+
+  # Combine prosody data
+  mkdir -p data/prosody
+  cat data/download/prosody/biaobei/train.txt > data/prosody/train.txt
+  cat data/download/prosody/biaobei/cv.txt > data/prosody/cv.txt
+  # Combine polyphone data
+  mkdir -p data/polyphone
+  cat data/download/polyphone/g2pM/train.txt > data/polyphone/train.txt
+  cat data/download/polyphone/g2pM/dev.txt > data/polyphone/cv.txt
+  cat data/download/polyphone/g2pM/test.txt > data/polyphone/test.txt
+  cp data/download/polyphone/g2pM/phone2id.txt data/polyphone/phone2id.txt
+fi
+
+
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+  mkdir -p $dir
+  python wetts/frontend/train.py --gpu -1 \
+    --lr 0.001 \
+    --num_epochs 10 \
+    --batch_size 32 \
+    --log_interval 10 \
+    --phone_weight 0.1 \
+    --phone_dict data/polyphone/phone2id.txt \
+    --train_polyphone_data data/polyphone/train.txt \
+    --cv_polyphone_data data/polyphone/cv.txt \
+    --prosody_dict local/prosody2id.txt \
+    --train_prosody_data data/prosody/train.txt \
+    --cv_prosody_data data/prosody/cv.txt \
+    --model_dir $dir
+fi
+
+
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+  # Test polyphone, metric: accuracy
+  python wetts/frontend/test_polyphone.py \
+    --phone_dict data/polyphone/phone2id.txt \
+    --prosody_dict local/prosody2id.txt \
+    --test_data data/polyphone/test.txt \
+    --batch_size 32 \
+    --checkpoint $dir/9.pt
+
+  # Test prosody, metric: F1-score
+  python wetts/frontend/test_prosody.py \
+    --phone_dict data/polyphone/phone2id.txt \
+    --prosody_dict local/prosody2id.txt \
+    --test_data data/prosody/cv.txt \
+    --batch_size 32 \
+    --checkpoint $dir/9.pt
+fi
