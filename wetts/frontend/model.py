@@ -18,7 +18,6 @@ from transformers import AutoModel
 
 
 class FrontendModel(nn.Module):
-
     def __init__(self, num_phones: int, num_prosody: int):
         super(FrontendModel, self).__init__()
         self.bert = AutoModel.from_pretrained('bert-base-chinese')
@@ -31,11 +30,26 @@ class FrontendModel(nn.Module):
         self.phone_classifier = nn.Linear(768, num_phones)
         self.prosody_classifier = nn.Linear(768, num_prosody)
 
-    def forward(self, x):
+    def _forward(self, x):
         mask = x['attention_mask'] == 0
         bert_output = self.bert(**x)
         x = self.transform(bert_output.last_hidden_state,
                            src_key_padding_mask=mask)
         phone_pred = self.phone_classifier(x)
         prosody_pred = self.prosody_classifier(x)
+        return phone_pred, prosody_pred
+
+    def forward(self, x):
+        return self._forward(x)
+
+    def export_forward(self, x):
+        assert x.size(0) == 1
+        x = {
+            'input_ids': x,
+            'token_type_ids': torch.zeros(1, x.size(1), dtype=torch.int64),
+            'attention_mask': torch.ones(1, x.size(1), dtype=torch.int64)
+        }
+        phone_logits, prosody_logits = self._forward(x)
+        phone_pred = F.softmax(phone_logits, dim=-1)
+        prosody_pred = F.softmax(prosody_logits, dim=-1)
         return phone_pred, prosody_pred
