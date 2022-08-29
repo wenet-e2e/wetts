@@ -15,6 +15,7 @@
 import argparse
 import os
 
+from sklearn.metrics import f1_score
 import torch
 from torch.utils.data import DataLoader
 from tqdm import tqdm
@@ -22,38 +23,6 @@ from tqdm import tqdm
 from dataset import FrontendDataset, collote_fn, IGNORE_ID
 from model import FrontendModel
 from utils import read_table
-
-
-class ClassificationMetric:
-
-    def __init__(self, num_classes):
-        self.num_classes = num_classes
-        self.stats = [None] * num_classes
-        for i in range(num_classes):
-            self.stats[i] = {}
-            self.stats[i]['total_ref'] = 0
-            self.stats[i]['total_hyp'] = 0
-            self.stats[i]['correct'] = 0
-
-    def add_stat(self, pred, label):
-        assert len(pred) == len(label)
-        for i in range(len(pred)):
-            self.stats[pred[i]]['total_hyp'] += 1
-            self.stats[label[i]]['total_ref'] += 1
-            if pred[i] == label[i]:
-                self.stats[pred[i]]['correct'] += 1
-
-    def report(self):
-        print('class\t\tprecision\t\trecall\t\tf1-score')
-        for i in range(self.num_classes):
-            tag = '#{}'.format(i)
-            precision = self.stats[i]['correct'] / (
-                self.stats[i]['total_hyp'] + 1e-6)
-            recall = self.stats[i]['correct'] / (self.stats[i]['total_ref'] +
-                                                 1e-6)
-            f1 = 2 * precision * recall / (precision + recall + 1e-6)
-            print('{}\t\t{:.6f}\t\t{:.6f}\t\t{:.6f}'.format(
-                tag, precision, recall, f1))
 
 
 def get_args():
@@ -90,10 +59,12 @@ def main():
 
     model.load_state_dict(torch.load(args.checkpoint, map_location='cpu'))
 
-    metric = ClassificationMetric(num_prosody)
     model.eval()
     with torch.no_grad():
         pbar = tqdm(total=len(test_dataloader))
+        pw_f1_score = []
+        pph_f1_score = []
+        iph_f1_score = []
         for batch, (inputs, _, labels) in enumerate(test_dataloader):
             _, logits = model(inputs)
             mask = labels != IGNORE_ID
@@ -102,11 +73,17 @@ def main():
                 # Remove [CLS], [SEP] and padding
                 pred = logits[i][1:lengths[i] + 1, :].argmax(-1).tolist()
                 label = labels[i][1:lengths[i] + 1].tolist()
-                metric.add_stat(pred, label)
+                pw_f1_score.append(f1_score([1 if x > 0 else 0 for x in label],
+                                            [1 if x > 0 else 0 for x in pred]))
+                pph_f1_score.append(f1_score([1 if x > 1 else 0 for x in label],
+                                             [1 if x > 1 else 0 for x in pred]))
+                iph_f1_score.append(f1_score([1 if x > 2 else 0 for x in label],
+                                             [1 if x > 2 else 0 for x in pred]))
             pbar.update(1)
+        print("pw f1_score {} pph f1_score {} iph f1_score {}".format(
+             sum(pw_f1_score) / len(pw_f1_score), sum(pph_f1_score) / len(pph_f1_score),
+             sum(iph_f1_score) / len(iph_f1_score)))
         pbar.close()
-
-    metric.report()
 
 
 if __name__ == '__main__':

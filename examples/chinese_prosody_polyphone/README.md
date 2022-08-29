@@ -43,5 +43,5 @@ BERT-MLT is for polyphone and prosody joint training.
 
 | system       | PW-F1  | PPH-F1 | IPH-F1 |
 |--------------|--------|--------|--------|
-| BERT-prosody | 0.7631 | 0.5419 | 0.6277 |
-| BERT-MLT     | 0.7481 | 0.5191 | 0.6195 |
+| BERT-prosody | 0.9308 | 0.8058 | 0.8596 |
+| BERT-MLT     | 0.9334 | 0.8088 | 0.8559 |
