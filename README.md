@@ -2,6 +2,9 @@
 
 Production First and Production Ready End-to-End Text-to-Speech Toolkit
 
+Note: This project is at its early statge now.
+Its design and implementation are subjected to change.
+
 ## Install
 
 We suggest installing WeTTS with Anaconda or Miniconda.
@@ -65,4 +68,4 @@ We plan to support a variaty of hardwares and platforms, including:
 
 1. We borrow some code from [FastSpeech2](https://github.com/ming024/FastSpeech2) for FastSpeech2 implentation.
 2. We refer [PaddleSpeech](https://github.com/PaddlePaddle/PaddleSpeech) for feature extraction,
-   `pinyin` lexicon preparation for alignment, and the length regulator in `FastSpeech2`.
+   `pinyin` lexicon preparation for alignment.

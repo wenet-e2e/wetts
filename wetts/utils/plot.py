@@ -17,19 +17,21 @@ from matplotlib import pyplot as plt
 
 
 def plot_mel(data, titles=None):
-    fig, axes = plt.subplots(len(data), 1, squeeze=False, dpi=400)
+    fig, axes = plt.subplots(nrows=len(data),
+                             ncols=1,
+                             figsize=(12, 3 * len(data)))
     if titles is None:
-        titles = [None for _ in range(len(data))]
+        titles = ["" for _ in range(len(data))]
 
     for i, mel in enumerate(data):
         # mel: (t,d)
-        axes[i][0].imshow(mel.T, origin="lower")
-        axes[i][0].set_aspect(2.5, adjustable="box")
-        axes[i][0].set_ylim(0, mel.shape[1])
-        axes[i][0].set_title(titles[i], fontsize="medium")
-        axes[i][0].tick_params(labelsize="x-small",
-                               left=False,
-                               labelleft=False)
-        axes[i][0].set_anchor("W")
+        im = axes[i].imshow(mel.T,
+                            origin="lower",
+                            interpolation='none',
+                            aspect='auto')
+        axes[i].set_ylim(0, mel.shape[1])
+        axes[i].set_title(titles[i])
+        axes[i].set_anchor("W")
+        plt.colorbar(im, ax=axes[i])
     plt.tight_layout()
     return fig

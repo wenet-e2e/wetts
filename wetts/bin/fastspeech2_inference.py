@@ -50,12 +50,13 @@ def get_args(argv=None):
     parser.add_argument('--cmvn_dir',
                         required=True,
                         help='mel/energy/pitch cmvn dir')
-    parser.add_argument('--spk2id_file',
-                        type=str,
-                        required=True,
-                        help='path to spk2id file, this file must be provided '
-                        'for both multi-speaker FastSpeech2 and single-speaker '
-                        'FastSpeech2')
+    parser.add_argument(
+        '--spk2id_file',
+        type=str,
+        required=True,
+        help='path to spk2id file, this file must be provided '
+        'for both multi-speaker FastSpeech2 and single-speaker '
+        'FastSpeech2')
     parser.add_argument('--phn2id_file',
                         required=True,
                         help='phone to id file')
@@ -114,7 +115,7 @@ def main(args):
         conf.model.postnet_hidden_dim, conf.model.n_postnet_conv_layers,
         conf.model.postnet_dropout, conf.model.max_pos_enc_len)
 
-    model_state_dict, _, _, _, _, epoch = load_ckpt(args.ckpt)
+    model_state_dict, _, _, _, epoch = load_ckpt(args.ckpt)
     print('loading FastSpeech2 ckpt, epoch {}'.format(epoch))
     model.load_state_dict(model_state_dict)
     model = model.cuda()
