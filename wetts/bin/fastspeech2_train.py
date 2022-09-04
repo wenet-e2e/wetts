@@ -14,6 +14,7 @@
 
 import argparse
 import pathlib
+import random
 
 import torch
 from torch.utils.data import DataLoader
@@ -29,7 +30,6 @@ from wetts.utils.lr_scheduler import transformer_lr_scheduler
 from wetts.utils.plot import plot_mel
 
 train_step = 1
-val_step = 1
 
 
 def get_args(argv=None):
@@ -143,14 +143,20 @@ def train(epoch, model, data_loader, loss_fn, optimizer, lr_scheduler,
         optimizer.step()
         lr_scheduler.step()
         train_step += 1
+    summary_writer.flush()
 
 
 def eval(epoch, model, data_loader, loss_fn, summary_writer):
-    global val_step
     model.eval()
     with torch.no_grad():
-        for (keys, speakers, durations, text, mel, pitch, energy, text_length,
-             mel_length, token_types, _) in data_loader:
+        all_duration_loss = []
+        all_pitch_loss = []
+        all_energy_loss = []
+        all_mel_loss = []
+        all_postnet_mel_loss = []
+        for i, (keys, speakers, durations, text, mel, pitch, energy,
+                text_length, mel_length, token_types,
+                _) in enumerate(data_loader):
             speakers = speakers.cuda()
             durations = durations.cuda()
             text = text.cuda()
@@ -176,59 +182,76 @@ def eval(epoch, model, data_loader, loss_fn, summary_writer):
                                          energy_prediction, enc_output_mask,
                                          mel, mel_prediction,
                                          postnet_mel_prediction, mel_mask)
-            total_loss = (duration_loss + pitch_loss + energy_loss + mel_loss +
-                          postnet_mel_loss)
-            summary_writer.add_scalar('eval duration loss',
-                                      duration_loss.item(), val_step)
-            summary_writer.add_scalar('eval pitch loss', pitch_loss.item(),
-                                      val_step)
-            summary_writer.add_scalar('eval energy loss', energy_loss.item(),
-                                      val_step)
-            summary_writer.add_scalar('eval mel loss', mel_loss.item(),
-                                      val_step)
-            summary_writer.add_scalar('eval postnet mel loss',
-                                      postnet_mel_loss.item(), val_step)
-            summary_writer.add_scalar('eval total loss', total_loss.item(),
-                                      val_step)
-            print(
-                ("epoch {}, eval step {}, eval duration loss {}, "
-                 "eval pitch loss {}, eval energy loss {}, eval mel loss {}, "
-                 "eval postnet mel loss {}, eval total loss: {}").format(
-                     epoch, val_step, duration_loss.item(), pitch_loss.item(),
-                     energy_loss.item(), mel_loss.item(),
-                     postnet_mel_loss.item(), total_loss.item()))
-            val_step += 1
-        mels_to_plot = [
-            mel[0, :~mel_mask[0].sum()].cpu(),
-            mel_prediction[0, :~mel_mask[0].sum()].cpu(),
-            postnet_mel_prediction[0, :~mel_mask[0].sum()].cpu()
-        ]
+
+            all_duration_loss.append(duration_loss)
+            all_pitch_loss.append(pitch_loss)
+            all_energy_loss.append(energy_loss)
+            all_mel_loss.append(mel_loss)
+            all_postnet_mel_loss.append(postnet_mel_loss)
+            # randomly select one audio from the first eval batch to plot
+            if i == 0:
+                mel_idx = random.randrange(0, mel.shape[0])
+                mels_to_plot = [
+                    mel[mel_idx].cpu(), mel_prediction[mel_idx].cpu(),
+                    postnet_mel_prediction[mel_idx].cpu()
+                ]
+
+        def get_average_loss(loss_list):
+            return sum(loss_list) / len(loss_list)
+
+        avg_dur_loss = get_average_loss(all_duration_loss)
+        avg_pitch_loss = get_average_loss(all_pitch_loss)
+        avg_energy_loss = get_average_loss(all_energy_loss)
+        avg_mel_loss = get_average_loss(all_mel_loss)
+        avg_postnet_mel_loss = get_average_loss(all_postnet_mel_loss)
+        avg_total_loss = (avg_dur_loss + avg_pitch_loss + avg_energy_loss +
+                          avg_mel_loss + avg_postnet_mel_loss)
+        summary_writer.add_scalar('average eval duration loss',
+                                  avg_dur_loss.item(), epoch)
+        summary_writer.add_scalar('average eval pitch loss',
+                                  avg_pitch_loss.item(), epoch)
+        summary_writer.add_scalar('average eval energy loss',
+                                  avg_energy_loss.item(), epoch)
+        summary_writer.add_scalar('average eval mel loss', avg_mel_loss.item(),
+                                  epoch)
+        summary_writer.add_scalar('average eval postnet mel loss',
+                                  avg_postnet_mel_loss.item(), epoch)
+        summary_writer.add_scalar('average eval total loss',
+                                  avg_total_loss.item(), epoch)
+        print(("epoch {}, eval duration loss {}, "
+               "avg eval pitch loss {}, avg eval energy loss {}, "
+               "avg eval mel loss {}, "
+               "avg eval postnet mel loss {}, avg eval total loss: {}").format(
+                   epoch, avg_dur_loss.item(), avg_pitch_loss.item(),
+                   avg_energy_loss.item(), avg_mel_loss.item(),
+                   avg_postnet_mel_loss.item(), avg_total_loss.item()))
+
         summary_writer.add_figure(
             'eval mels',
             plot_mel(mels_to_plot,
                      ['ground truth', 'prediction', 'postnet prediction']),
             epoch)
+    summary_writer.flush()
 
 
-def save_ckpt(path, model, lr_scheduler, optimizer, train_step, val_step,
-              epoch):
+def save_ckpt(path, model, lr_scheduler, optimizer, train_step, epoch):
     torch.save([
         model.state_dict(),
         lr_scheduler.state_dict(),
-        optimizer.state_dict(), train_step, val_step, epoch
+        optimizer.state_dict(), train_step, epoch
     ], path)
 
 
 def load_ckpt(path):
     with open(path, 'rb') as fin:
         (model_state_dict, lr_scheduler_state_dict, optimizer_state_dict,
-         train_step, val_step, epoch) = torch.load(fin, 'cpu')
+         train_step, epoch) = torch.load(fin, 'cpu')
         return (model_state_dict, lr_scheduler_state_dict,
-                optimizer_state_dict, train_step, val_step, epoch)
+                optimizer_state_dict, train_step, epoch)
 
 
 def main(args):
-    global train_step, val_step
+    global train_step
     with open(args.config, 'r') as fin:
         conf = config.load_cfg(fin)
 
@@ -252,9 +275,7 @@ def main(args):
     train_data_loader = DataLoader(train_dataset,
                                    batch_size=None,
                                    num_workers=args.num_workers)
-    val_data_loader = DataLoader(val_dataset,
-                                 batch_size=None,
-                                 num_workers=args.num_workers)
+    val_data_loader = DataLoader(val_dataset, batch_size=None, num_workers=1)
 
     model = FastSpeech2(
         conf.model.d_model, conf.model.n_enc_layer, conf.model.n_enc_head,
@@ -282,7 +303,7 @@ def main(args):
     last_epoch = 0
     if args.ckpt:
         (model_state_dict, lr_scheduler_state_dict, optimizer_state_dict,
-         train_step, val_step, last_epoch) = load_ckpt(args.ckpt)
+         train_step, last_epoch) = load_ckpt(args.ckpt)
         model.load_state_dict(model_state_dict)
         optimizer.load_state_dict(optimizer_state_dict)
         lr_scheduler.load_state_dict(lr_scheduler_state_dict)
@@ -293,7 +314,7 @@ def main(args):
               lr_scheduler, writer)
         eval(epoch, model, val_data_loader, loss_fn, writer)
         save_ckpt(checkpoint_dir / 'fastspeech2_{}.ckpt'.format(epoch), model,
-                  lr_scheduler, optimizer, train_step, val_step, epoch)
+                  lr_scheduler, optimizer, train_step, epoch)
 
 
 if __name__ == '__main__':
