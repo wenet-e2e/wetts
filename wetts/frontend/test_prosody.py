@@ -37,6 +37,10 @@ def get_args():
                         default=32,
                         help='batch size')
     parser.add_argument('--checkpoint', required=True, help='checkpoint model')
+    parser.add_argument('--exclude_end',
+                        action='store_true',
+                        default=False,
+                        help='the prosody break at the end of sentence is not counted')
     args = parser.parse_args()
     return args
 
@@ -62,27 +66,29 @@ def main():
     model.eval()
     with torch.no_grad():
         pbar = tqdm(total=len(test_dataloader))
-        pw_f1_score = []
-        pph_f1_score = []
-        iph_f1_score = []
+        pred = []
+        label = []
         for batch, (inputs, _, labels) in enumerate(test_dataloader):
             _, logits = model(inputs)
             mask = labels != IGNORE_ID
             lengths = torch.sum(mask, dim=1)
             for i in range(logits.size(0)):
                 # Remove [CLS], [SEP] and padding
-                pred = logits[i][1:lengths[i] + 1, :].argmax(-1).tolist()
-                label = labels[i][1:lengths[i] + 1].tolist()
-                pw_f1_score.append(f1_score([1 if x > 0 else 0 for x in label],
-                                            [1 if x > 0 else 0 for x in pred]))
-                pph_f1_score.append(f1_score([1 if x > 1 else 0 for x in label],
-                                             [1 if x > 1 else 0 for x in pred]))
-                iph_f1_score.append(f1_score([1 if x > 2 else 0 for x in label],
-                                             [1 if x > 2 else 0 for x in pred]))
+                if args.exclude_end:
+                    pred.extend(logits[i][1:lengths[i], :].argmax(-1).tolist())
+                    label.extend(labels[i][1:lengths[i]].tolist())
+                else:
+                    pred.extend(logits[i][1:lengths[i] + 1, :].argmax(-1).tolist())
+                    label.extend(labels[i][1:lengths[i] + 1].tolist())
             pbar.update(1)
+        pw_f1_score = f1_score([1 if x > 0 else 0 for x in label],
+                               [1 if x > 0 else 0 for x in pred])
+        pph_f1_score = f1_score([1 if x > 1 else 0 for x in label],
+                                [1 if x > 1 else 0 for x in pred])
+        iph_f1_score = f1_score([1 if x > 2 else 0 for x in label],
+                                [1 if x > 2 else 0 for x in pred])
         print("pw f1_score {} pph f1_score {} iph f1_score {}".format(
-            sum(pw_f1_score) / len(pw_f1_score), sum(pph_f1_score) / len(pph_f1_score),
-            sum(iph_f1_score) / len(iph_f1_score)))
+            pw_f1_score, pph_f1_score, iph_f1_score))
         pbar.close()
 
 
