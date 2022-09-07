@@ -69,3 +69,4 @@ We plan to support a variaty of hardwares and platforms, including:
 1. We borrow some code from [FastSpeech2](https://github.com/ming024/FastSpeech2) for FastSpeech2 implentation.
 2. We refer [PaddleSpeech](https://github.com/PaddlePaddle/PaddleSpeech) for feature extraction,
    `pinyin` lexicon preparation for alignment.
+3. we borrowed some code from [chinese test normalization](https://github.com/speechio/chinese_text_normalization) for text normalization.
