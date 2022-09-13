@@ -63,3 +63,27 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     --batch_size 32 \
     --checkpoint $dir/9.pt
 fi
+
+
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+  # export onnx model
+  python wetts/frontend/export_onnx.py \
+    --phone_dict data/polyphone/phone2id.txt \
+    --prosody_dict local/prosody2id.txt \
+    --checkpoint $dir/9.pt \
+    --onnx_model $dir/9.onnx
+fi
+
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+  # g2p
+  # text: 8方財寶進
+  # pinyin ['ba1', 'fang1', 'cai2', 'bao3', 'jin4']
+  # prosody [0 1 0 0 4]
+  python wetts/frontend/g2p_prosody.py \
+    --text "8方財寶進" \
+    --hanzi2pinyin_file local/pinyin_dict.txt \
+    --trad2simple_file local/traditional2simple.txt \
+    --polyphone_phone_file local/polyphone_phone.txt \
+    --polyphone_character_file local/polyphone_character.txt \
+    --polyphone_prosody_model $dir/9.onnx
+fi
