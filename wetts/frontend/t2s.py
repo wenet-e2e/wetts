@@ -14,15 +14,15 @@
 
 class T2S:
     def __init__(self, dict_file: str):
-        self.t2p_dict = {}
+        self.t2s_dict = {}
         with open(dict_file) as f:
             for line in f.readlines():
                 line = line.strip().split()
-                self.t2p_dict[line[0]] = line[1]
+                self.t2s_dict[line[0]] = line[1]
 
     def convert(self, x: str):
         x = list(x)
         for i in range(len(x)):
-            if x[i] in self.t2p_dict:
-                x[i] = self.t2p_dict.get(x[i])
+            if x[i] in self.t2s_dict:
+                x[i] = self.t2s_dict.get(x[i])
         return ''.join(x)
