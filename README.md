@@ -28,10 +28,10 @@ Please note you should use `cudatoolkit=11.3` for CUDA 11.3.
 We mainly focus on end to end, production, and on-device TTS. We are going to use:
 
 * backend: end to end model, such as:
- * [VITS](https://arxiv.org/pdf/2106.06103.pdf)
+  * [VITS](https://arxiv.org/pdf/2106.06103.pdf)
 * frontend:
- * Text Normalization: [WeTextProcessing](https://github.com/wenet-e2e/WeTextProcessing)
- * Prosody & Polyphones: [Unified Mandarin TTS Front-end Based on Distilled BERT Model](https://arxiv.org/pdf/2012.15404.pdf)
+  * Text Normalization: [WeTextProcessing](https://github.com/wenet-e2e/WeTextProcessing)
+  * Prosody & Polyphones: [Unified Mandarin TTS Front-end Based on Distilled BERT Model](https://arxiv.org/pdf/2012.15404.pdf)
 
 ## Dataset
 
