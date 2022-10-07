@@ -15,43 +15,29 @@ git clone https://github.com/wenet-e2e/wetts.git
 Create environment:
 ```bash
 conda create -n wetts python=3.8 -y
-```
-Install MFA:
-```bash
-conda install -n wetts montreal-forced-aligner=2.0.1 -c conda-forge -y
-```
-For CUDA 10.2, run:
-``` sh
+conda activate wetts
+pip install -r requirements.txt
 conda install -n wetts pytorch=1.11 torchaudio cudatoolkit=10.2 -c pytorch -y
 ```
-For CUDA 11.3, run:
-``` sh
-conda install -n wetts pytorch=1.11 torchaudio cudatoolkit=11.3 -c pytorch -y
-```
-Installing other dependencies using:
-```sh
-conda activate wetts
-python -m pip install -r requirements.txt
-```
+
+Please note you should use `cudatoolkit=11.3` for CUDA 11.3.
+
 
 ## Roadmap
 
-We mainly focus on production and on-device TTS, and we plan to use:
+We mainly focus on end to end, production, and on-device TTS. We are going to use:
 
-* AM: FastSpeech2
-* vocoder: hifigan/melgan
-
-And we are going to provide reference solution of:
-
-* Prosody
-* Polyphones
-* Text Normalization
+* backend: end to end model, such as:
+  * [VITS](https://arxiv.org/pdf/2106.06103.pdf)
+* frontend:
+  * Text Normalization: [WeTextProcessing](https://github.com/wenet-e2e/WeTextProcessing)
+  * Prosody & Polyphones: [Unified Mandarin TTS Front-end Based on Distilled BERT Model](https://arxiv.org/pdf/2012.15404.pdf)
 
 ## Dataset
 
 We plan to support a variaty of open source TTS datasets, include but not limited to:
 
-* [BZNSYP](https://www.data-baker.com/data/index/TNtts/), Chinese Standard Mandarin Speech corpus open sourced by Data Baker.
+* [baker](https://www.data-baker.com/data/index/TNtts/), Chinese Standard Mandarin Speech corpus open sourced by Data Baker.
 * [AISHELL-3](https://openslr.org/93/), a large-scale and high-fidelity multi-speaker Mandarin speech corpus.
 * [Opencpop](https://wenet.org.cn/opencpop/), Mandarin singing voice synthesis (SVS) corpus open sourced by Netease Fuxi.
 
@@ -66,6 +52,5 @@ We plan to support a variaty of hardwares and platforms, including:
 
 ## Acknowledgement
 
-1. We borrow some code from [FastSpeech2](https://github.com/ming024/FastSpeech2) for FastSpeech2 implentation.
-2. We refer [PaddleSpeech](https://github.com/PaddlePaddle/PaddleSpeech) for feature extraction,
-   `pinyin` lexicon preparation for alignment.
+1. We borrow a lot of code from [vits](https://github.com/jaywalnut310/vits) for VITS implementation.
+2. We refer [PaddleSpeech](https://github.com/PaddlePaddle/PaddleSpeech) for `pinyin` lexicon generation.
