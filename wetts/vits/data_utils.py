@@ -5,10 +5,9 @@ import numpy as np
 import torch
 import torch.utils.data
 
-import commons 
+import commons
 from mel_processing import spectrogram_torch
 from utils import load_wav_to_torch, load_filepaths_and_text
-from text import text_to_sequence, cleaned_text_to_sequence
 
 
 class TextAudioLoader(torch.utils.data.Dataset):
@@ -19,7 +18,7 @@ class TextAudioLoader(torch.utils.data.Dataset):
     """
     def __init__(self, audiopaths_and_text, hparams):
         self.audiopaths_and_text = load_filepaths_and_text(audiopaths_and_text)
-        self.text_cleaners  = hparams.text_cleaners
+        # self.text_cleaners  = hparams.text_cleaners
         self.max_wav_value  = hparams.max_wav_value
         self.sampling_rate  = hparams.sampling_rate
         self.filter_length  = hparams.filter_length 
@@ -32,6 +31,15 @@ class TextAudioLoader(torch.utils.data.Dataset):
         self.add_blank = hparams.add_blank
         self.min_text_len = getattr(hparams, "min_text_len", 1)
         self.max_text_len = getattr(hparams, "max_text_len", 190)
+
+        phone_file = getattr(hparams, "phone_table", None)
+        self.phone_dict = None
+        if phone_file is not None:
+            self.phone_dict = {}
+            with open(phone_file) as fin:
+                for line in fin:
+                    arr = line.strip().split()
+                    self.phone_dict[arr[0]] = int(arr[1])
 
         random.seed(1234)
         random.shuffle(self.audiopaths_and_text)
@@ -81,10 +89,7 @@ class TextAudioLoader(torch.utils.data.Dataset):
         return spec, audio_norm
 
     def get_text(self, text):
-        if self.cleaned_text:
-            text_norm = cleaned_text_to_sequence(text)
-        else:
-            text_norm = text_to_sequence(text, self.text_cleaners)
+        text_norm = [self.phone_dict[phone] for phone in text.split()]
         if self.add_blank:
             text_norm = commons.intersperse(text_norm, 0)
         text_norm = torch.LongTensor(text_norm)

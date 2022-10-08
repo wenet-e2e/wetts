@@ -147,7 +147,13 @@ def get_hparams(init=True):
                       help='JSON file for configuration')
   parser.add_argument('-m', '--model', type=str, required=True,
                       help='Model name')
-  
+  parser.add_argument('--train_data', type=str, required=True,
+                      help='train data')
+  parser.add_argument('--val_data', type=str, required=True,
+                      help='val data')
+  parser.add_argument('--phone_table', type=str, required=True,
+                      help='phone table')
+
   args = parser.parse_args()
   model_dir = os.path.join("./logs", args.model)
 
@@ -165,7 +171,11 @@ def get_hparams(init=True):
     with open(config_save_path, "r") as f:
       data = f.read()
   config = json.loads(data)
-  
+  config['data']['training_files'] = args.train_data
+  config['data']['validation_files'] = args.val_data
+  config['data']['phone_table'] = args.phone_table
+  config['data']['num_phones'] = len(open(args.phone_table).readlines()) + 1
+
   hparams = HParams(**config)
   hparams.model_dir = model_dir
   return hparams
