@@ -1,11 +1,4 @@
-jsonlines==3.0.0
-librosa
-praatio
-pyworld
-pyyaml>=5.1
-scipy
 tqdm
-yacs
 flake8==3.8.2
 flake8-bugbear
 flake8-comprehensions
@@ -17,3 +10,7 @@ pyflakes==2.2.0
 tensorboard
 sklearn
 WeTextProcessing==0.0.1
+monotonic_align
+matplotlib
+librosa==0.8.0
+scipy==1.5.2
