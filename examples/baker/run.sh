@@ -22,8 +22,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
   python tools/gen_pinyin_lexicon.py --with-tone --with-r \
       $data/lexicon.txt $data/phones.list
   python local/prepare_data.py $data/lexicon.txt \
-      $raw_data_dir/script/000001-010000.txt \
-      $raw_data_dir/wave_48k/000001-010000 > $data/all.txt
+      $raw_data_dir/ProsodyLabeling/000001-010000.txt \
+      $raw_data_dir/Wave > $data/all.txt
   # phone with 0 is kept for <blank>
   cat $data/all.txt | awk -F '\|' '{print $2}' | \
       awk '{ for (i=1;i<=NF;i++) print $i}' | \
@@ -40,7 +40,7 @@ fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
   python vits/train.py -c $config -m $dir \
-    --train_data $data/trian.txt \
+    --train_data $data/train.txt \
     --val_data $data/val.txt \
     --phone_table $data/phones.txt
 fi
