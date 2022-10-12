@@ -52,8 +52,8 @@ def main():
                            hps.data.filter_length // 2 + 1,
                            hps.train.segment_size // hps.data.hop_length,
                            **hps.model).cuda()
-    _ = net_g.eval()
-    _ = utils.load_checkpoint(args.checkpoint, net_g, None)
+    net_g.eval()
+    utils.load_checkpoint(args.checkpoint, net_g, None)
 
     with open(args.test_file) as fin:
         for line in fin:
