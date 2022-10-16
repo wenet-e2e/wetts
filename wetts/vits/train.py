@@ -1,10 +1,6 @@
 import os
-import json
-import argparse
-import itertools
-import math
+
 import torch
-from torch import nn, optim
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -108,7 +104,7 @@ def run(rank, n_gpus, hps):
             utils.latest_checkpoint_path(hps.model_dir, "D_*.pth"), net_d,
             optim_d)
         global_step = (epoch_str - 1) * len(train_loader)
-    except:
+    except Exception as e:
         epoch_str = 1
         global_step = 0
 
@@ -158,8 +154,9 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler,
             rank, non_blocking=True)
 
         with autocast(enabled=hps.train.fp16_run):
-            y_hat, l_length, attn, ids_slice, x_mask, z_mask,\
-            (z, z_p, m_p, logs_p, m_q, logs_q) = net_g(x, x_lengths, spec, spec_lengths)
+            y_hat, l_length, attn, ids_slice, x_mask, z_mask,
+            (z, z_p, m_p, logs_p, m_q, logs_q) = net_g(x, x_lengths, spec,
+                                                       spec_lengths)
 
             mel = spec_to_mel_torch(spec, hps.data.filter_length,
                                     hps.data.n_mel_channels,

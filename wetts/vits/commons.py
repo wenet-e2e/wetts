@@ -1,7 +1,6 @@
 import math
-import numpy as np
+
 import torch
-from torch import nn
 from torch.nn import functional as F
 
 
@@ -112,12 +111,6 @@ def fused_add_tanh_sigmoid_multiply(input_a, input_b, n_channels):
     s_act = torch.sigmoid(in_act[:, n_channels_int:, :])
     acts = t_act * s_act
     return acts
-
-
-def convert_pad_shape(pad_shape):
-    l = pad_shape[::-1]
-    pad_shape = [item for sublist in l for item in sublist]
-    return pad_shape
 
 
 def shift_1d(x):

@@ -1,7 +1,6 @@
-import time
 import os
 import random
-import numpy as np
+
 import torch
 import torchaudio
 import torch.utils.data
@@ -127,8 +126,8 @@ class TextAudioCollate():
         # Right zero-pad all one-hot text sequences to max input length
         _, ids_sorted_decreasing = torch.sort(torch.LongTensor(
             [x[1].size(1) for x in batch]),
-                                              dim=0,
-                                              descending=True)
+            dim=0,
+            descending=True)
 
         max_text_len = max([len(x[0]) for x in batch])
         max_spec_len = max([x[1].size(1) for x in batch])
@@ -161,8 +160,10 @@ class TextAudioCollate():
             wav_lengths[i] = wav.size(1)
 
         if self.return_ids:
-            return text_padded, text_lengths, spec_padded, spec_lengths, wav_padded, wav_lengths, ids_sorted_decreasing
-        return text_padded, text_lengths, spec_padded, spec_lengths, wav_padded, wav_lengths
+            return (text_padded, text_lengths, spec_padded, spec_lengths,
+                    wav_padded, wav_lengths, ids_sorted_decreasing)
+        return (text_padded, text_lengths, spec_padded, spec_lengths,
+                wav_padded, wav_lengths)
 
 
 """Multi speaker version"""
@@ -225,7 +226,7 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
     def get_audio(self, filename):
         audio, sampling_rate = load_wav_to_torch(filename)
         if sampling_rate != self.sampling_rate:
-            raise ValueError("{} {} SR doesn't match target {} SR".format(
+            raise ValueError("{} SR doesn't match target {} SR".format(
                 sampling_rate, self.sampling_rate))
         audio_norm = audio / self.max_wav_value
         audio_norm = audio_norm.unsqueeze(0)
@@ -280,8 +281,8 @@ class TextAudioSpeakerCollate():
         # Right zero-pad all one-hot text sequences to max input length
         _, ids_sorted_decreasing = torch.sort(torch.LongTensor(
             [x[1].size(1) for x in batch]),
-                                              dim=0,
-                                              descending=True)
+            dim=0,
+            descending=True)
 
         max_text_len = max([len(x[0]) for x in batch])
         max_spec_len = max([x[1].size(1) for x in batch])
@@ -317,8 +318,10 @@ class TextAudioSpeakerCollate():
             sid[i] = row[3]
 
         if self.return_ids:
-            return text_padded, text_lengths, spec_padded, spec_lengths, wav_padded, wav_lengths, sid, ids_sorted_decreasing
-        return text_padded, text_lengths, spec_padded, spec_lengths, wav_padded, wav_lengths, sid
+            return (text_padded, text_lengths, spec_padded, spec_lengths,
+                    wav_padded, wav_lengths, sid, ids_sorted_decreasing)
+        return (text_padded, text_lengths, spec_padded, spec_lengths,
+                wav_padded, wav_lengths, sid)
 
 
 class DistributedBucketSampler(torch.utils.data.distributed.DistributedSampler
@@ -326,10 +329,12 @@ class DistributedBucketSampler(torch.utils.data.distributed.DistributedSampler
     """
     Maintain similar input lengths in a batch.
     Length groups are specified by boundaries.
-    Ex) boundaries = [b1, b2, b3] -> any batch is included either {x | b1 < length(x) <=b2} or {x | b2 < length(x) <= b3}.
-  
+    Ex) boundaries = [b1, b2, b3] -> any batch is included either
+    {x | b1 < length(x) <=b2} or {x | b2 < length(x) <= b3}.
+
     It removes samples which are not included in the boundaries.
-    Ex) boundaries = [b1, b2, b3] -> any x s.t. length(x) <= b1 or length(x) > b3 are discarded.
+    Ex) boundaries = [b1, b2, b3] -> any x s.t. length(x) <= b1
+    or length(x) > b3 are discarded.
     """
     def __init__(self,
                  dataset,

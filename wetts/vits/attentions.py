@@ -1,12 +1,10 @@
-import copy
 import math
-import numpy as np
+
 import torch
 from torch import nn
 from torch.nn import functional as F
 
 import commons
-import modules
 from modules import LayerNorm
 
 
@@ -214,7 +212,8 @@ class MultiHeadAttention(nn.Module):
         scores = torch.matmul(query / math.sqrt(self.k_channels),
                               key.transpose(-2, -1))
         if self.window_size is not None:
-            assert t_s == t_t, "Relative attention is only available for self-attention."
+            msg = "Relative attention is only available for self-attention."
+            assert t_s == t_t, msg
             key_relative_embeddings = self._get_relative_embeddings(
                 self.emb_rel_k, t_s)
             rel_logits = self._matmul_with_relative_keys(
@@ -223,13 +222,15 @@ class MultiHeadAttention(nn.Module):
                 rel_logits)
             scores = scores + scores_local
         if self.proximal_bias:
-            assert t_s == t_t, "Proximal bias is only available for self-attention."
+            msg = "Proximal bias is only available for self-attention."
+            assert t_s == t_t, msg
             scores = scores + self._attention_bias_proximal(t_s).to(
                 device=scores.device, dtype=scores.dtype)
         if mask is not None:
             scores = scores.masked_fill(mask == 0, -1e4)
             if self.block_length is not None:
-                assert t_s == t_t, "Local attention is only available for self-attention."
+                msg = "Local attention is only available for self-attention."
+                assert t_s == t_t, msg
                 block_mask = torch.ones_like(scores).triu(
                     -self.block_length).tril(self.block_length)
                 scores = scores.masked_fill(block_mask == 0, -1e4)

@@ -1,10 +1,11 @@
-import os
-import glob
-import sys
 import argparse
-import logging
+import glob
 import json
+import logging
+import os
 import subprocess
+import sys
+
 import numpy as np
 from scipy.io.wavfile import read
 import torch
@@ -31,7 +32,7 @@ def load_checkpoint(checkpoint_path, model, optimizer=None):
     for k, v in state_dict.items():
         try:
             new_state_dict[k] = saved_state_dict[k]
-        except:
+        except Exception as e:
             logger.info("%s is not in the checkpoint" % k)
             new_state_dict[k] = v
     if hasattr(model, 'module'):
@@ -61,13 +62,14 @@ def save_checkpoint(model, optimizer, learning_rate, iteration,
         }, checkpoint_path)
 
 
-def summarize(writer,
-              global_step,
-              scalars={},
-              histograms={},
-              images={},
-              audios={},
-              audio_sampling_rate=22050):
+def summarize(
+        writer,
+        global_step,
+        scalars={},  # noqa
+        histograms={},  # noqa
+        images={},  # noqa
+        audios={},  # noqa
+        audio_sampling_rate=22050):
     for k, v in scalars.items():
         writer.add_scalar(k, v, global_step)
     for k, v in histograms.items():
@@ -228,9 +230,8 @@ def get_hparams_from_file(config_path):
 def check_git_hash(model_dir):
     source_dir = os.path.dirname(os.path.realpath(__file__))
     if not os.path.exists(os.path.join(source_dir, ".git")):
-        logger.warn(
-            "{} is not a git repository, therefore hash value comparison will be ignored."
-            .format(source_dir))
+        logger.warn('''{} is not a git repository, therefore hash value
+                       comparison will be ignored.'''.format(source_dir))
         return
 
     cur_hash = subprocess.getoutput("git rev-parse HEAD")
