@@ -25,18 +25,14 @@ import utils
 
 def get_args():
     parser = argparse.ArgumentParser(description='inference')
-    parser.add_argument('--checkpoint',
-                        required=True, help='checkpoint')
-    parser.add_argument('--cfg',
-                        required=True, help='config file')
-    parser.add_argument('--outdir',
-                        required=True, help='ouput directory')
-    parser.add_argument('--phone',
-                        required=True, help='input phone dict')
-    parser.add_argument('--test_file',
-                        required=True, help='test file')
+    parser.add_argument('--checkpoint', required=True, help='checkpoint')
+    parser.add_argument('--cfg', required=True, help='config file')
+    parser.add_argument('--outdir', required=True, help='ouput directory')
+    parser.add_argument('--phone', required=True, help='input phone dict')
+    parser.add_argument('--test_file', required=True, help='test file')
     args = parser.parse_args()
     return args
+
 
 def main():
     args = get_args()
@@ -48,16 +44,15 @@ def main():
             phone_dict[phone_id[0]] = int(phone_id[1])
     hps = utils.get_hparams_from_file(args.cfg)
 
-    net_g = SynthesizerTrn(len(phone_dict) + 1,
-                           hps.data.filter_length // 2 + 1,
-                           hps.train.segment_size // hps.data.hop_length,
-                           **hps.model).cuda()
+    net_g = SynthesizerTrn(
+        len(phone_dict) + 1, hps.data.filter_length // 2 + 1,
+        hps.train.segment_size // hps.data.hop_length, **hps.model).cuda()
     net_g.eval()
     utils.load_checkpoint(args.checkpoint, net_g, None)
 
     with open(args.test_file) as fin:
         for line in fin:
-            audio_text = line.strip().split("|") 
+            audio_text = line.strip().split("|")
             seq = [phone_dict[symbol] for symbol in audio_text[1].split()]
             if hps.data.add_blank:
                 seq = commons.intersperse(seq, 0)
@@ -65,15 +60,16 @@ def main():
             with torch.no_grad():
                 x = seq.cuda().unsqueeze(0)
                 x_length = torch.LongTensor([seq.size(0)]).cuda()
-                audio = net_g.infer(x,
-                                    x_length,
-                                    noise_scale=.667,
-                                    noise_scale_w=0.8,
-                                    length_scale=1)[0][0, 0].data.cpu().float().numpy()
+                audio = net_g.infer(
+                    x,
+                    x_length,
+                    noise_scale=.667,
+                    noise_scale_w=0.8,
+                    length_scale=1)[0][0, 0].data.cpu().float().numpy()
                 audio *= 32767 / max(0.01, np.max(np.abs(audio))) * 0.6
                 wavfile.write(args.outdir + "/" + audio_text[0].split("/")[-1],
-                              hps.data.sampling_rate,
-                              audio.astype(np.int16))
+                              hps.data.sampling_rate, audio.astype(np.int16))
+
 
 if __name__ == '__main__':
     main()
