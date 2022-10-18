@@ -40,7 +40,7 @@ def piecewise_rational_quadratic_transform(
 
 
 def searchsorted(bin_locations, inputs, eps=1e-6):
-    bin_locations[..., -1] += eps
+    bin_locations[..., bin_locations.size(-1) - 1] += eps
     return torch.sum(inputs[..., None] >= bin_locations, dim=-1) - 1
 
 
@@ -65,7 +65,7 @@ def unconstrained_rational_quadratic_spline(
         unnormalized_derivatives = F.pad(unnormalized_derivatives, pad=(1, 1))
         constant = np.log(np.exp(1 - min_derivative) - 1)
         unnormalized_derivatives[..., 0] = constant
-        unnormalized_derivatives[..., -1] = constant
+        unnormalized_derivatives[..., unnormalized_derivatives.size(-1) - 1] = constant
 
         outputs[outside_interval_mask] = inputs[outside_interval_mask]
         logabsdet[outside_interval_mask] = 0
@@ -119,7 +119,7 @@ def rational_quadratic_spline(inputs,
     cumwidths = F.pad(cumwidths, pad=(1, 0), mode='constant', value=0.0)
     cumwidths = (right - left) * cumwidths + left
     cumwidths[..., 0] = left
-    cumwidths[..., -1] = right
+    cumwidths[..., cumwidths.size(-1) - 1] = right
     widths = cumwidths[..., 1:] - cumwidths[..., :-1]
 
     derivatives = min_derivative + F.softplus(unnormalized_derivatives)
@@ -130,7 +130,7 @@ def rational_quadratic_spline(inputs,
     cumheights = F.pad(cumheights, pad=(1, 0), mode='constant', value=0.0)
     cumheights = (top - bottom) * cumheights + bottom
     cumheights[..., 0] = bottom
-    cumheights[..., -1] = top
+    cumheights[..., cumheights.size(-1) - 1] = top
     heights = cumheights[..., 1:] - cumheights[..., :-1]
 
     if inverse:

@@ -19,13 +19,22 @@ from scipy.io import wavfile
 import torch
 
 import commons
-from models import SynthesizerTrn
 import utils
 
 
+try:
+    import onnxruntime as ort
+except ImportError:
+    print('Please install onnxruntime!')
+    sys.exit(1)
+
+def to_numpy(tensor):
+    return tensor.detach().cpu().numpy() if tensor.requires_grad \
+        else tensor.detach().numpy()
+
 def get_args():
     parser = argparse.ArgumentParser(description='inference')
-    parser.add_argument('--checkpoint', required=True, help='checkpoint')
+    parser.add_argument('--onnx_model', required=True, help='onnx model')
     parser.add_argument('--cfg', required=True, help='config file')
     parser.add_argument('--outdir', required=True, help='ouput directory')
     parser.add_argument('--phone', required=True, help='input phone dict')
@@ -44,11 +53,8 @@ def main():
             phone_dict[phone_id[0]] = int(phone_id[1])
     hps = utils.get_hparams_from_file(args.cfg)
 
-    net_g = SynthesizerTrn(
-        len(phone_dict) + 1, hps.data.filter_length // 2 + 1,
-        hps.train.segment_size // hps.data.hop_length, **hps.model).cuda()
-    net_g.eval()
-    utils.load_checkpoint(args.checkpoint, net_g, None)
+    ort_sess = ort.InferenceSession(args.onnx_model)
+    scales = torch.FloatTensor([0.667, 1.0, 0.8])
 
     with open(args.test_file) as fin:
         for line in fin:
@@ -56,21 +62,16 @@ def main():
             seq = [phone_dict[symbol] for symbol in audio_text[1].split()]
             if hps.data.add_blank:
                 seq = commons.intersperse(seq, 0)
-            seq = torch.LongTensor(seq)
-            with torch.no_grad():
-                x = seq.cuda().unsqueeze(0)
-                x_length = torch.LongTensor([seq.size(0)]).cuda()
-                audio = net_g.infer(
-                    x,
-                    x_length,
-                    noise_scale=.667,
-                    noise_scale_w=0.8,
-                    length_scale=1)[0][0, 0].data.cpu().float().numpy()
-                audio *= 32767 / max(0.01, np.max(np.abs(audio))) * 0.6
-                audio = np.clip(audio, -32767.0, 32767.0)
-                wavfile.write(args.outdir + "/" + audio_text[0].split("/")[-1],
-                              hps.data.sampling_rate, audio.astype(np.int16))
-
+            x = torch.LongTensor([seq])
+            x_len = torch.IntTensor([x.size(1)]).long()
+            ort_inputs = {'input': to_numpy(x),
+                          'input_lengths': to_numpy(x_len),
+                          'scales': to_numpy(scales)}
+            audio = np.squeeze(ort_sess.run(None, ort_inputs))
+            audio *= 32767.0 / max(0.01, np.max(np.abs(audio))) * 0.6
+            audio = np.clip(audio, -32767.0, 32767.0)
+            wavfile.write(args.outdir + "/" + audio_text[0].split("/")[-1],
+                          hps.data.sampling_rate, audio.astype(np.int16))
 
 if __name__ == '__main__':
     main()
