@@ -15,8 +15,7 @@ def get_padding(kernel_size, dilation=1):
 
 
 def convert_pad_shape(pad_shape):
-    l = pad_shape[::-1]
-    pad_shape = [item for sublist in l for item in sublist]
+    pad_shape = [item for sublist in reversed(pad_shape) for item in sublist]
     return pad_shape
 
 

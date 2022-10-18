@@ -648,6 +648,18 @@ class SynthesizerTrn(nn.Module):
         o = self.dec((z * y_mask)[:, :, :max_len], g=g)
         return o, attn, y_mask, (z, z_p, m_p, logs_p)
 
+    def export_forward(self,
+                       x,
+                       x_lengths,
+                       scales):
+        audio, *_ = self.infer(x,
+                               x_lengths,
+                               noise_scale=scales[0],
+                               length_scale=scales[1],
+                               noise_scale_w=scales[2])
+        return audio
+
+
     def voice_conversion(self, y, y_lengths, sid_src, sid_tgt):
         assert self.n_speakers > 0, "n_speakers have to be larger than 0."
         g_src = self.emb_g(sid_src).unsqueeze(-1)
