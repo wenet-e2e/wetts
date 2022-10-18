@@ -77,7 +77,7 @@ def main():
                       opset_version=13,
                       verbose=False)
 
-    # Verify onnx precision 
+    # Verify onnx precision
     torch_output = net_g(seq, seq_len, scales)
     ort_sess = ort.InferenceSession(args.onnx_model)
     ort_inputs = {'input': to_numpy(seq),
