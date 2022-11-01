@@ -6,5 +6,5 @@ LABEL maintainer="NVIDIA"
 LABEL repository="tritonserver"
 
 RUN pip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu116
-RUN pip3 install pypinyin scipy WeTextProcessing
+RUN pip3 install pypinyin scipy WeTextProcessing grpcio-tools tritonclient
 WORKDIR /workspace
