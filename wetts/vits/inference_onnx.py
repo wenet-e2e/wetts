@@ -55,6 +55,8 @@ def main():
 
     ort_sess = ort.InferenceSession(args.onnx_model)
     scales = torch.FloatTensor([0.667, 1.0, 0.8])
+    # make triton dynamic shape happy
+    scales = scales.unsqueeze(0)
 
     with open(args.test_file) as fin:
         for line in fin:

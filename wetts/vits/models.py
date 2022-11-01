@@ -652,11 +652,12 @@ class SynthesizerTrn(nn.Module):
                        x,
                        x_lengths,
                        scales):
+        # shape of scales: Bx3, make triton happy
         audio, *_ = self.infer(x,
                                x_lengths,
-                               noise_scale=scales[0],
-                               length_scale=scales[1],
-                               noise_scale_w=scales[2])
+                               noise_scale=scales[0][0],
+                               length_scale=scales[0][1],
+                               noise_scale_w=scales[0][2])
         return audio
 
 
