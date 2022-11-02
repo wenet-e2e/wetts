@@ -71,9 +71,9 @@ class TritonPythonModel:
                 assert pinyin in self.pinyin_lexicon
                 phoneme_seq += self.pinyin_lexicon[pinyin]
             else:
-                # Pinyins would end up with a number in 1-5, 
+                # Pinyins would end up with a number in 1-5,
                 # which represents tones of the pinyin.
-                # For symbols which are not pinyin, 
+                # For symbols which are not pinyin,
                 # e.g. English letters, Chinese puncts, we directly use them as inputs.
                 phoneme_seq.append(pinyin)
         seq = [self.token_dict[symbol] for symbol in phoneme_seq]

@@ -64,7 +64,7 @@ if __name__ == '__main__':
 
     def single_job(client_textlines):
         predictions = []
-        with grpcclient.InferenceServerClient(url=FLAGS.url, 
+        with grpcclient.InferenceServerClient(url=FLAGS.url,
                                               verbose=FLAGS.verbose) as triton_client:
             idx, textlines = client_textlines
             for cur_id, li in enumerate(textlines):
@@ -73,8 +73,8 @@ if __name__ == '__main__':
                 input0_data = np.array([[audio_text]], dtype=object)
                 inputs = [
                     grpcclient.InferInput(
-                        "text", 
-                        input0_data.shape, 
+                        "text",
+                        input0_data.shape,
                         np_to_triton_dtype(input0_data.dtype))
                 ]
 
