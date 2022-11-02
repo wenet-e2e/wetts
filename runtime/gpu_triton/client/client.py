@@ -45,11 +45,13 @@ if __name__ == '__main__':
                         required=False,
                         default=None,
                         help='each line is a text scp file')
-    parser.add_argument('--outdir', required=True, help='ouput wav file directory')
-    parser.add_argument('--sampling_rate', type=int, required=False, default="22050", help='wav file sampling rate')
-  
+    parser.add_argument('--outdir', required=True,
+                        help='ouput wav file directory')
+    parser.add_argument('--sampling_rate', type=int, required=False,
+                        default="22050", help='wav file sampling rate')
+
     FLAGS = parser.parse_args()
-    
+
     total_lines = []
     # load data
     with open(FLAGS.text, "r", encoding="utf-8") as f:
@@ -57,28 +59,29 @@ if __name__ == '__main__':
             line = line.strip('\n')
             total_lines.append(line)
 
-    num_workers = min(multiprocessing.cpu_count()//2, len(total_lines))
+    num_workers = min(multiprocessing.cpu_count() // 2, len(total_lines))
 
     def single_job(client_textlines):
         predictions = []
         with grpcclient.InferenceServerClient(url=FLAGS.url, verbose=FLAGS.verbose) as triton_client:
             idx, textlines = client_textlines
             for cur_id, li in enumerate(textlines):
-                audio_name, audio_text = li.strip().split("|",1)
+                audio_name, audio_text = li.strip().split("|", 1)
                 audio_name = audio_name.strip()
                 input0_data = np.array([[audio_text]], dtype=object)
                 inputs = [
-                    grpcclient.InferInput("text", input0_data.shape, np_to_triton_dtype(input0_data.dtype))
-                    ]
-    
+                    grpcclient.InferInput(
+                        "text", input0_data.shape, np_to_triton_dtype(input0_data.dtype))
+                ]
+
                 inputs[0].set_data_from_numpy(input0_data)
                 outputs = [
                     grpcclient.InferRequestedOutput("wav")
                 ]
                 response = triton_client.infer(FLAGS.model_name,
-                                    inputs,
-                                    outputs=outputs,
-                                    request_id=str(idx + cur_id))
+                                               inputs,
+                                               outputs=outputs,
+                                               request_id=str(idx + cur_id))
                 result = response.as_numpy("wav")
                 result = np.squeeze(result)
                 # TODO: remove audio padding here, assert dtype np.int16 here
@@ -97,11 +100,11 @@ if __name__ == '__main__':
     with Pool(processes=num_workers) as pool:
         predictions = pool.map(single_job, tasks)
 
-    predictions = [item for sub_pred in predictions for item in sub_pred ]
+    predictions = [item for sub_pred in predictions for item in sub_pred]
 
     os.makedirs(FLAGS.outdir, exist_ok=True)
 
     for audio_name, result in predictions:
         assert len(result.shape) == 1, result.shape
         wavfile.write(FLAGS.outdir + "/" + audio_name + ".wav",
-                        FLAGS.sampling_rate, result.astype(np.int16))
+                      FLAGS.sampling_rate, result.astype(np.int16))

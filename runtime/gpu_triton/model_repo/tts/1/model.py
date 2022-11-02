@@ -3,9 +3,9 @@ import numpy as np
 
 import json
 
-import torch
 from pypinyin import lazy_pinyin, Style
 from tn.chinese.normalizer import Normalizer
+
 
 class TritonPythonModel:
     """Your Python model must use the same class name. Every Python model
@@ -37,9 +37,8 @@ class TritonPythonModel:
         self.text_normalizer = Normalizer()
         print("Finish Init")
 
-
     def init_dicts(self, parameters):
-        for key,value in parameters.items():
+        for key, value in parameters.items():
             parameters[key] = value["string_value"]
         # TODO: parse add_blank from config file
         self.add_blank = False
@@ -63,7 +62,8 @@ class TritonPythonModel:
             text,
             style=Style.TONE3,
             neutral_tone_with_five=True,
-            errors=lambda punct_and_en_words: [letter for letter in punct_and_en_words],
+            errors=lambda punct_and_en_words: [
+                letter for letter in punct_and_en_words],
         )
         phoneme_seq = []
         for pinyin in pinyin_seq:
@@ -81,7 +81,7 @@ class TritonPythonModel:
             import commons
             seq = commons.intersperse(seq, self.blank_id)
         return seq
-        
+
     def execute(self, requests):
         """`execute` must be implemented in every Python model. `execute`
         function receives a list of pb_utils.InferenceRequest as the only
@@ -107,7 +107,8 @@ class TritonPythonModel:
         batch_count = []
         total_text = []
         for request in requests:
-            input0 = pb_utils.get_input_tensor_by_name(request, "text").as_numpy()
+            input0 = pb_utils.get_input_tensor_by_name(
+                request, "text").as_numpy()
             batch_count.append(len(input0))
             for li in input0:
                 total_text.append(li.decode("utf-8"))
@@ -115,17 +116,19 @@ class TritonPythonModel:
         seqs = [self.tokenize(text) for text in total_text]
         max_seq_length = max(len(x) for x in seqs)
 
-        input_ids = np.zeros((len(total_text),max_seq_length), dtype=self.dtype)
-        input_lengths =  np.zeros(len(total_text), dtype=np.int64)
+        input_ids = np.zeros(
+            (len(total_text), max_seq_length), dtype=self.dtype)
+        input_lengths = np.zeros(len(total_text), dtype=np.int64)
         # hard-coding scales here, may accept them from client
         # noise scale, length scale, noise_scale_w
-        input_scales = np.tile(np.array([0.667, 1.0, 0.8], dtype=np.float32), (len(total_text), 1))
+        input_scales = np.tile(
+            np.array([0.667, 1.0, 0.8], dtype=np.float32), (len(total_text), 1))
 
-        for i,seq in enumerate(seqs):
+        for i, seq in enumerate(seqs):
             input_ids[i][:len(seq)] = seq
             input_lengths[i] = len(seq)
         input_lengths = np.expand_dims(input_lengths, axis=1)
-        
+
         in_0 = pb_utils.Tensor("input", input_ids)
         in_1 = pb_utils.Tensor("input_lengths", input_lengths)
         in_2 = pb_utils.Tensor("scales", input_scales)
@@ -137,11 +140,12 @@ class TritonPythonModel:
 
         inference_response = inference_request.exec()
         if inference_response.has_error():
-            raise pb_utils.TritonModelException(inference_response.error().message())
+            raise pb_utils.TritonModelException(
+                inference_response.error().message())
         else:
             # Extract the output tensors from the inference response.
             audios = pb_utils.get_output_tensor_by_name(inference_response,
-                                                            'output')
+                                                        'output')
             audios = audios.as_numpy()
             audios *= 32767.0 / max(0.01, np.max(np.abs(audios))) * 0.6
             audios = np.clip(audios, -32767.0, 32767.0)
@@ -150,15 +154,16 @@ class TritonPythonModel:
         responses = []
         start = 0
         for batch in batch_count:
-            sub_audios = audios[start:start+batch]
+            sub_audios = audios[start:start + batch]
             out0 = pb_utils.Tensor("wav", sub_audios.astype(np.int16))
-            inference_response = pb_utils.InferenceResponse(output_tensors=[out0])
+            inference_response = pb_utils.InferenceResponse(
+                output_tensors=[out0])
             responses.append(inference_response)
             start += batch
-                    
+
         assert len(requests) == len(responses)
         return responses
-    
+
     def finalize(self):
         """`finalize` is called only once when the model is being unloaded.
         Implementing `finalize` function is optional. This function allows
