@@ -38,12 +38,17 @@ def get_args():
     parser.add_argument('--cfg', required=True, help='config file')
     parser.add_argument('--onnx_model', required=True, help='onnx model')
     parser.add_argument('--phone', required=True, help='input phone dict')
+    parser.add_argument('--providers',
+                        required=False,
+                        default='CPUExecutionProvider',
+                        choices=['CUDAExecutionProvider', 'CPUExecutionProvider'],
+                        help='the model to send request to')
     args = parser.parse_args()
     return args
 
 def main():
     args = get_args()
-    os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 
     hps = utils.get_hparams_from_file(args.cfg)
     with open(args.phone) as p_f:
@@ -59,6 +64,8 @@ def main():
     seq = torch.randint(low=0, high=phone_num, size=(1, 10), dtype=torch.long)
     seq_len = torch.IntTensor([seq.size(1)]).long()
     scales = torch.FloatTensor([0.667, 1.0, 0.8])
+    # make triton dynamic shape happy
+    scales = scales.unsqueeze(0)
 
     dummy_input = (seq, seq_len, scales)
     torch.onnx.export(model=net_g,
@@ -68,10 +75,19 @@ def main():
                       output_names=['output'],
                       dynamic_axes={
                           'input': {
+                              0: 'batch',
                               1: 'phonemes'
                           },
+                          'input_lengths': {
+                              0: 'batch'
+                          },
+                          'scales': {
+                              0: 'batch'
+                          },
                           'output': {
-                              1: 'audio'
+                              0: 'batch',
+                              1: 'audio',
+                              2: 'audio_length'
                           }
                       },
                       opset_version=13,
@@ -79,7 +95,8 @@ def main():
 
     # Verify onnx precision
     torch_output = net_g(seq, seq_len, scales)
-    ort_sess = ort.InferenceSession(args.onnx_model)
+    providers = [args.providers]
+    ort_sess = ort.InferenceSession(args.onnx_model, providers=providers)
     ort_inputs = {'input': to_numpy(seq),
                   'input_lengths': to_numpy(seq_len),
                   'scales': to_numpy(scales)}
