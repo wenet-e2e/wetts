@@ -62,8 +62,7 @@ class TritonPythonModel:
             text,
             style=Style.TONE3,
             neutral_tone_with_five=True,
-            errors=lambda punct_and_en_words: [
-                letter for letter in punct_and_en_words],
+            errors=lambda punct_and_en_words: list(punct_and_en_words),
         )
         phoneme_seq = []
         for pinyin in pinyin_seq:
@@ -72,9 +71,10 @@ class TritonPythonModel:
                 assert pinyin in self.pinyin_lexicon
                 phoneme_seq += self.pinyin_lexicon[pinyin]
             else:
-                # All pinyin would end up with a number in 1-5, which represents tones of the pinyin.
-                # For symbols which are not pinyin, e.g. English letters, Chinese puncts, we directly
-                # use them as inputs.
+                # Pinyins would end up with a number in 1-5, 
+                # which represents tones of the pinyin.
+                # For symbols which are not pinyin, 
+                # e.g. English letters, Chinese puncts, we directly use them as inputs.
                 phoneme_seq.append(pinyin)
         seq = [self.token_dict[symbol] for symbol in phoneme_seq]
         if self.add_blank:

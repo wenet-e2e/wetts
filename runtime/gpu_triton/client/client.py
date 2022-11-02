@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 # Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -63,7 +64,8 @@ if __name__ == '__main__':
 
     def single_job(client_textlines):
         predictions = []
-        with grpcclient.InferenceServerClient(url=FLAGS.url, verbose=FLAGS.verbose) as triton_client:
+        with grpcclient.InferenceServerClient(url=FLAGS.url, 
+                                              verbose=FLAGS.verbose) as triton_client:
             idx, textlines = client_textlines
             for cur_id, li in enumerate(textlines):
                 audio_name, audio_text = li.strip().split("|", 1)
@@ -71,7 +73,9 @@ if __name__ == '__main__':
                 input0_data = np.array([[audio_text]], dtype=object)
                 inputs = [
                     grpcclient.InferInput(
-                        "text", input0_data.shape, np_to_triton_dtype(input0_data.dtype))
+                        "text", 
+                        input0_data.shape, 
+                        np_to_triton_dtype(input0_data.dtype))
                 ]
 
                 inputs[0].set_data_from_numpy(input0_data)
