@@ -7,7 +7,7 @@ import torch.utils.data
 
 import commons
 from mel_processing import spectrogram_torch
-from utils import load_wav_to_torch, load_filepaths_and_text
+from utils import load_filepaths_and_text
 
 
 class TextAudioSpeakerLoader(torch.utils.data.Dataset):
