@@ -50,6 +50,17 @@ We plan to support a variaty of hardwares and platforms, including:
 * Raspberry Pi
 * Other on-device platforms
 
+## Discussion & Communication
+
+For Chinese users, you can aslo scan the QR code on the left to follow our offical account of WeNet.
+We created a WeChat group for better discussion and quicker response.
+Please scan the personal QR code on the right, and the guy is responsible for inviting you to the chat group.
+
+| <img src="https://github.com/robin1001/qr/blob/master/wenet.jpeg" width="250px"> | <img src="https://github.com/pengzhendong/files/blob/master/images/wechat.png" width="250px"> |
+| ---- | ---- |
+
+Or you can directly discuss on [Github Issues](https://github.com/wenet-e2e/wetts/issues).
+
 ## Acknowledgement
 
 1. We borrow a lot of code from [vits](https://github.com/jaywalnut310/vits) for VITS implementation.
