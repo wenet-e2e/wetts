@@ -17,6 +17,8 @@ raw_data_dir=/mnt/mnt-data-1/binbin.zhang/data/BZNSYP
 data=data
 use_onnx=false
 
+. tools/parse_options.sh || exit 1;
+
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
   # Prepare data for training/validation
   mkdir -p $data
