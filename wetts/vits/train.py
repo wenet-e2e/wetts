@@ -30,7 +30,7 @@ def main():
 
     n_gpus = torch.cuda.device_count()
     os.environ['MASTER_ADDR'] = 'localhost'
-    os.environ['MASTER_PORT'] = '10086'
+    os.environ['MASTER_PORT'] = '10087'
 
     hps = utils.get_hparams()
     mp.spawn(run, nprocs=n_gpus, args=(
@@ -83,7 +83,7 @@ def run(rank, n_gpus, hps):
     net_g = SynthesizerTrn(hps.data.num_phones,
                            hps.data.filter_length // 2 + 1,
                            hps.train.segment_size // hps.data.hop_length,
-                           n_speakers=getattr(hps.data, "n_speakers", 0),
+                           n_speakers=hps.data.n_speakers,
                            **hps.model).cuda(rank)
     net_d = MultiPeriodDiscriminator(hps.model.use_spectral_norm).cuda(rank)
     optim_g = torch.optim.AdamW(net_g.parameters(),

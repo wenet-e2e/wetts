@@ -12,7 +12,7 @@ import torch
 
 MATPLOTLIB_FLAG = False
 
-logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
+logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logger = logging
 
 
@@ -179,6 +179,10 @@ def get_hparams(init=True):
                         type=str,
                         required=True,
                         help='phone table')
+    parser.add_argument('--speaker_table',
+                        type=str,
+                        default=None,
+                        help='speaker table, required for multiple speakers')
 
     args = parser.parse_args()
     model_dir = os.path.join("./logs", args.model)
@@ -189,18 +193,25 @@ def get_hparams(init=True):
     config_path = args.config
     config_save_path = os.path.join(model_dir, "config.json")
     if init:
-        with open(config_path, "r") as f:
+        with open(config_path, "r", encoding='utf8') as f:
             data = f.read()
-        with open(config_save_path, "w") as f:
+        with open(config_save_path, "w", encoding='utf8') as f:
             f.write(data)
     else:
-        with open(config_save_path, "r") as f:
+        with open(config_save_path, "r", encoding='utf8') as f:
             data = f.read()
     config = json.loads(data)
     config['data']['training_files'] = args.train_data
     config['data']['validation_files'] = args.val_data
     config['data']['phone_table'] = args.phone_table
+    # 0 is kept for blank
     config['data']['num_phones'] = len(open(args.phone_table).readlines()) + 1
+    if args.speaker_table is not None:
+        config['data']['speaker_table'] = args.speaker_table
+        # 0 is kept for unknown speaker
+        config['data']['n_speakers'] = len(open(args.speaker_table).readlines()) + 1
+    else:
+        config['data']['n_speakers'] = 0
 
     hparams = HParams(**config)
     hparams.model_dir = model_dir
@@ -250,14 +261,14 @@ def check_git_hash(model_dir):
 def get_logger(model_dir, filename="train.log"):
     global logger
     logger = logging.getLogger(os.path.basename(model_dir))
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(logging.INFO)
 
     formatter = logging.Formatter(
         "%(asctime)s\t%(name)s\t%(levelname)s\t%(message)s")
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
     h = logging.FileHandler(os.path.join(model_dir, filename))
-    h.setLevel(logging.DEBUG)
+    h.setLevel(logging.INFO)
     h.setFormatter(formatter)
     logger.addHandler(h)
     return logger

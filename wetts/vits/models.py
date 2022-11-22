@@ -509,6 +509,9 @@ class SynthesizerTrn(nn.Module):
         self.segment_size = segment_size
         self.n_speakers = n_speakers
         self.gin_channels = gin_channels
+        if self.n_speakers != 0:
+            assert gin_channels != 0, \
+                 "gin_channels must be none zero for multiple speakers"
 
         self.use_sdp = use_sdp
 
