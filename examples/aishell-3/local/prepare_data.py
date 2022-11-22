@@ -1,3 +1,5 @@
+#!/user/bin/env python3
+
 # Copyright (c) 2022 Binbin Zhang(binbzha@qq.com)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
