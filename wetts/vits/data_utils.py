@@ -43,6 +43,15 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
                     arr = line.strip().split()
                     self.phone_dict[arr[0]] = int(arr[1])
 
+        speaker_file = getattr(hparams, "speaker_table", None)
+        self.speaker_dict = None
+        if speaker_file is not None:
+            self.speaker_dict = {}
+            with open(speaker_file) as fin:
+                for line in fin:
+                    arr = line.strip().split()
+                    self.speaker_dict[arr[0]] = int(arr[1])
+
         random.seed(1234)
         random.shuffle(self.audiopaths_sid_text)
         self._filter()
@@ -59,7 +68,8 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         lengths = []
         for item in self.audiopaths_sid_text:
             audiopath = item[0]
-            text = item[1]
+            # filename|text or filename|speaker|text
+            text = item[1] if len(item) == 2 else item[2]
             if self.min_text_len <= len(text) and len(
                     text) <= self.max_text_len:
                 audiopaths_sid_text_new.append(item)
@@ -71,10 +81,13 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         self.lengths = lengths
 
     def get_audio_text_speaker_pair(self, audiopath_sid_text):
-        # separate filename, speaker_id and text
-        audiopath, text = audiopath_sid_text[0], audiopath_sid_text[
-            1]
-        sid = audiopath_sid_text[2] if len(audiopath_sid_text) > 2 else 0
+        audiopath = audiopath_sid_text[0]
+        if len(audiopath_sid_text) == 2:  # filename|text
+            sid = 0
+            text = audiopath_sid_text[1]
+        else:  # filename|speaker|text
+            sid = self.speaker_dict[audiopath_sid_text[1]]
+            text = audiopath_sid_text[2]
         text = self.get_text(text)
         spec, wav = self.get_audio(audiopath)
         sid = self.get_sid(sid)
