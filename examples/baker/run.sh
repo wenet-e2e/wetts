@@ -50,9 +50,9 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
   python vits/export_onnx.py  \
-    --checkpoint logs/exp/base/G_90000.pth \
+    --checkpoint $dir/G_90000.pth \
     --cfg configs/base.json \
-    --onnx_model ./logs/exp/base/G_90000.onnx \
+    --onnx_model $dir/G_90000.onnx \
     --phone data/phones.txt
 fi
 
@@ -60,13 +60,13 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   [ ! -d ${test_audio} ] && mkdir ${test_audio}
   if $use_onnx; then
     python vits/inference_onnx.py  \
-      --onnx_model ./logs/exp/base/G_90000.onnx --cfg $config \
+      --onnx_model $dir/G_90000.onnx --cfg $config \
       --outdir $test_audio \
       --phone $data/phones.txt \
       --test_file $data/test.txt
   else
     python vits/inference.py  \
-      --checkpoint ./logs/exp/base/G_90000.pth --cfg $config \
+      --checkpoint $dir/G_90000.pth --cfg $config \
       --outdir $test_audio \
       --phone $data/phones.txt \
       --test_file $data/test.txt
