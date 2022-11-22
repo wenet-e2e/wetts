@@ -4,6 +4,8 @@
 
 [ -f path.sh ] && . path.sh
 
+export CUDA_VISIBLE_DEVICES="0,1,2,3"  # specify your gpu id for training
+
 stage=0  # start from -1 if you need to download data
 stop_stage=3
 
@@ -42,6 +44,8 @@ fi
 
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+  export MASTER_ADDR=localhost
+  export MASTER_PORT=10086
   python vits/train.py -c $config -m $dir \
     --train_data $data/train.txt \
     --val_data $data/val.txt \
