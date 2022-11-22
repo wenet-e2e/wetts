@@ -30,12 +30,12 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
       $raw_data_dir/ProsodyLabeling/000001-010000.txt \
       $raw_data_dir/Wave > $data/all.txt
   # phone with 0 is kept for <blank>
-  cat $data/all.txt | awk -F '\|' '{print $2}' | \
+  cat $data/all.txt | awk -F '|' '{print $2}' | \
       awk '{ for (i=1;i<=NF;i++) print $i}' | \
       sort | uniq | awk '{print $0, NR}' > $data/phones.txt
   # Split train/validation
   cat $data/all.txt | shuf --random-source=<(yes 777) | head -n 110 | \
-      awk -F '\|' '{print $1}' > $data/val.key
+      awk -F '|' '{print $1}' > $data/val.key
   cat $data/all.txt | grep -f $data/val.key > $data/val.txt
   head -10 $data/val.txt > $data/test.txt
   sed -i '1,10d' $data/val.txt
