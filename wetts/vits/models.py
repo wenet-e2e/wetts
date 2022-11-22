@@ -510,8 +510,8 @@ class SynthesizerTrn(nn.Module):
         self.n_speakers = n_speakers
         self.gin_channels = gin_channels
         if self.n_speakers != 0:
-            assert gin_channels != 0, \
-                 "gin_channels must be none zero for multiple speakers"
+            message = "gin_channels must be none zero for multiple speakers"
+            assert gin_channels != 0, message
 
         self.use_sdp = use_sdp
 
@@ -651,10 +651,7 @@ class SynthesizerTrn(nn.Module):
         o = self.dec((z * y_mask)[:, :, :max_len], g=g)
         return o, attn, y_mask, (z, z_p, m_p, logs_p)
 
-    def export_forward(self,
-                       x,
-                       x_lengths,
-                       scales):
+    def export_forward(self, x, x_lengths, scales):
         # shape of scales: Bx3, make triton happy
         audio, *_ = self.infer(x,
                                x_lengths,
@@ -662,7 +659,6 @@ class SynthesizerTrn(nn.Module):
                                length_scale=scales[0][1],
                                noise_scale_w=scales[0][2])
         return audio
-
 
     def voice_conversion(self, y, y_lengths, sid_src, sid_tgt):
         assert self.n_speakers > 0, "n_speakers have to be larger than 0."

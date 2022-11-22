@@ -209,7 +209,8 @@ def get_hparams(init=True):
     if args.speaker_table is not None:
         config['data']['speaker_table'] = args.speaker_table
         # 0 is kept for unknown speaker
-        config['data']['n_speakers'] = len(open(args.speaker_table).readlines()) + 1
+        config['data']['n_speakers'] = len(
+            open(args.speaker_table).readlines()) + 1
     else:
         config['data']['n_speakers'] = 0
 
