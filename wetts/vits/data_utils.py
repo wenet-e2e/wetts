@@ -103,7 +103,6 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         audio = audio[0]  # Get the first channel
         audio_norm = audio / self.max_wav_value
         audio_norm = audio_norm.unsqueeze(0)
-        spec_filename = filename.replace(".wav", ".spec.pt")
         spec = spectrogram_torch(audio_norm,
                                  self.filter_length,
                                  self.sampling_rate,
