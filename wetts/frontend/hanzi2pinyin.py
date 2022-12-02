@@ -18,7 +18,11 @@ class Hanzi2Pinyin:
         with open(dict_file) as f:
             for line in f.readlines():
                 line = line.strip()
-                self.pinyin_dict[line[0]] = line[1:].split(',')[0]
+                pos = line.find(' ')
+                assert pos > 0
+                word = line[:pos]
+                prons = line[pos + 1:]
+                self.pinyin_dict[word] = prons.split(',')[0]
 
     def convert(self, x: str):
         pinyin = []
