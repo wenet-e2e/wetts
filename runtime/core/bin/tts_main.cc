@@ -18,6 +18,7 @@
 #include "gflags/gflags.h"
 #include "glog/logging.h"
 
+#include "frontend/wav.h"
 #include "model/onnx_tts_model.h"
 #include "utils/string.h"
 
@@ -25,26 +26,6 @@ DEFINE_string(model_path, "", "model path");
 DEFINE_string(phonemes, "", "input phonemes");
 DEFINE_string(phone_dict, "", "phone dict path");
 DEFINE_string(wav_path, "", "output wave path");
-
-typedef struct WAV_HEADER {
-  /* RIFF Chunk Descriptor */
-  uint8_t RIFF[4] = {'R', 'I', 'F', 'F'};  // RIFF Header Magic header
-  uint32_t ChunkSize;                      // RIFF Chunk Size
-  uint8_t WAVE[4] = {'W', 'A', 'V', 'E'};  // WAVE Header
-  /* "fmt" sub-chunk */
-  uint8_t fmt[4] = {'f', 'm', 't', ' '};  // FMT header
-  uint32_t Subchunk1Size = 16;            // Size of the fmt chunk
-  uint16_t AudioFormat = 1;  // Audio format 1=PCM,6=mulaw,7=alaw,     257=IBM
-                             // Mu-Law, 258=IBM A-Law, 259=ADPCM
-  uint16_t NumOfChan = 1;    // Number of channels 1=Mono 2=Sterio
-  uint32_t SamplesPerSec = 22050;    // Sampling Frequency in Hz
-  uint32_t bytesPerSec = 22050 * 2;  // bytes per second
-  uint16_t blockAlign = 2;           // 2=16-bit mono, 4=16-bit stereo
-  uint16_t bitsPerSample = 16;       // Number of bits per sample
-  /* "data" sub-chunk */
-  uint8_t Subchunk2ID[4] = {'d', 'a', 't', 'a'};  // "data"  string
-  uint32_t Subchunk2Size;                         // Sampled data length
-} wav_hdr;
 
 int main(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, false);
@@ -73,15 +54,11 @@ int main(int argc, char* argv[]) {
 
   std::vector<float> audio;
   model->Forward(&inputs, &audio);
-
-  wav_hdr wav;
-  wav.ChunkSize = audio.size() * 2 + sizeof(wav_hdr) - 8;
-  wav.Subchunk2Size = audio.size() * 2 + sizeof(wav_hdr) - 44;
-  std::ofstream out(FLAGS_wav_path, std::ios::binary);
-  out.write(reinterpret_cast<const char*>(&wav), sizeof(wav));
-  for (int i = 0; i < audio.size(); ++i) {
-    int16_t d = (int16_t)(audio[i] * 32767);
-    out.write(reinterpret_cast<char*>(&d), sizeof(int16_t));
+  for (size_t i = 0; i < audio.size(); i++) {
+    audio[i] *= 32767.0;
   }
+
+  wetts::WavWriter wav_writer(audio.data(), audio.size(), 1, 22050, 16);
+  wav_writer.Write(FLAGS_wav_path);
   return 0;
 }
