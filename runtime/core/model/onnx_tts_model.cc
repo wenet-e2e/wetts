@@ -14,6 +14,8 @@
 
 #include "model/onnx_tts_model.h"
 
+#include <utility>
+
 #include "glog/logging.h"
 
 namespace wetts {

@@ -15,6 +15,10 @@
 #ifndef MODEL_ONNX_TTS_MODEL_H_
 #define MODEL_ONNX_TTS_MODEL_H_
 
+#include <memory>
+#include <string>
+#include <vector>
+
 #include "onnxruntime_cxx_api.h"  // NOLINT
 
 namespace wetts {

@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef UTILS_STRING_H_
+#define UTILS_STRING_H_
+
 #include <string>
 #include <vector>
 
@@ -33,3 +36,5 @@ std::string Rtrim(const std::string& str);
 std::string Trim(const std::string& str);
 
 }  // namespace wetts
+
+#endif  // UTILS_STRING_H_
