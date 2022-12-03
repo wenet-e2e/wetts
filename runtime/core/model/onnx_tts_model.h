@@ -34,7 +34,7 @@ class OnnxTtsModel {
   void GetInputOutputInfo(const std::shared_ptr<Ort::Session>& session,
                           std::vector<const char*>* in_names,
                           std::vector<const char*>* out_names);
-  void Forward(std::vector<int64_t>& phonemes, std::vector<float>* audio);
+  void Forward(std::vector<int64_t>* phonemes, std::vector<float>* audio);
 
  private:
   int sampling_rate_;

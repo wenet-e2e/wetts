@@ -72,7 +72,7 @@ int main(int argc, char* argv[]) {
   }
 
   std::vector<float> audio;
-  model->Forward(inputs, &audio);
+  model->Forward(&inputs, &audio);
 
   wav_hdr wav;
   wav.ChunkSize = audio.size() * 2 + sizeof(wav_hdr) - 8;

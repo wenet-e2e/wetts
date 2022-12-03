@@ -97,15 +97,15 @@ void OnnxTtsModel::Read(const std::string& model_path) {
   GetInputOutputInfo(session_, &in_names_, &out_names_);
 }
 
-void OnnxTtsModel::Forward(std::vector<int64_t>& phonemes,
+void OnnxTtsModel::Forward(std::vector<int64_t>* phonemes,
                            std::vector<float>* audio) {
   auto memory_info =
       Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
 
-  int num_phones = phonemes.size();
+  int num_phones = phonemes->size();
   const int64_t inputs_shape[] = {1, num_phones};
   auto inputs_ort = Ort::Value::CreateTensor<int64_t>(
-      memory_info, phonemes.data(), phonemes.size(), inputs_shape, 2);
+      memory_info, phonemes->data(), num_phones, inputs_shape, 2);
 
   std::vector<int64_t> inputs_len = {num_phones};
   const int64_t inputs_len_shape[] = {1};
