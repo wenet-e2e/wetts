@@ -1,0 +1,5 @@
+add_executable(frontend_t2s_main frontend_t2s_main.cc)
+target_link_libraries(frontend_t2s_main PUBLIC frontend gflags)
+
+add_executable(frontend_lexicon_main frontend_lexicon_main.cc)
+target_link_libraries(frontend_lexicon_main PUBLIC frontend gflags)
