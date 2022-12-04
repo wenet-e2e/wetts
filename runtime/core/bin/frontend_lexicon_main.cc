@@ -21,7 +21,7 @@
 
 #include "frontend/lexicon.h"
 
-DEFINE_string(lexicon_file, "", "traditional to simplified dictionary");
+DEFINE_string(lexicon_file, "", "lexicon file");
 
 int main(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, false);
