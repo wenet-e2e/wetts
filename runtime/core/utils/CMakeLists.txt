@@ -1,1 +1,3 @@
-add_library(utils STATIC string.cc)
+add_library(utils STATIC
+  string.cc
+)
