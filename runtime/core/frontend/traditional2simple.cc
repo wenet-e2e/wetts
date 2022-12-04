@@ -14,12 +14,12 @@
 
 #include "frontend/traditional2simple.h"
 
-#include <glog/logging.h>
-
 #include <fstream>
 #include <string>
 #include <unordered_map>
 #include <vector>
+
+#include "glog/logging.h"
 
 #include "utils/string.h"
 

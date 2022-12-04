@@ -12,14 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <glog/logging.h>
-#include <gflags/gflags.h>
-
 #include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
 
+#include "glog/logging.h"
+#include "gflags/gflags.h"
 
 #include "frontend/tokenizer.h"
 
