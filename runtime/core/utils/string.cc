@@ -94,6 +94,43 @@ bool CheckEnglishChar(const std::string& ch) {
   return isalpha(ch[0]) || ch[0] == '\'';
 }
 
+bool IsChineseChar(const std::string& ch) {
+  // TODO(Binbin Zhang): Fix it
+  if (((ch[0] & 0xF0) == 0xE0 || (ch[0] & 0xF8) == 0xF0) &&
+      (ch.size() == 3 || ch.size() == 4)) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+
+std::string AddSpaceForChineseChar(const std::string& str) {
+  std::string result;
+  int bytes = 1;
+  for (size_t i = 0; i < str.length(); i += bytes) {
+    bool add_space = false;
+    assert((str[i] & 0xF8) <= 0xF0);
+    if ((str[i] & 0x80) == 0x00) {
+      bytes = 1;
+    } else if ((str[i] & 0xE0) == 0xC0) {
+      bytes = 2;
+    } else if ((str[i] & 0xF0) == 0xE0) {
+      bytes = 3;
+      add_space = true;
+    } else if ((str[i] & 0xF8) == 0xF0) {
+      bytes = 4;
+      add_space = true;
+    }
+    result += str.substr(i, bytes);
+    if (add_space) {
+      result += ' ';
+    }
+  }
+  return result;
+}
+
+
 bool CheckEnglishWord(const std::string& word) {
   std::vector<std::string> chars;
   SplitUTF8StringToChars(word, &chars);

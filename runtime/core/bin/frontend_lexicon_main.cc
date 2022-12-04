@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <iostream>
-#include <fstream>
-#include <string>
-
 #include <glog/logging.h>
 #include <gflags/gflags.h>
+
+#include <fstream>
+#include <iostream>
+#include <string>
 
 #include "frontend/lexicon.h"
 

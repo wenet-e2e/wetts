@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 project(wetts VERSION 0.1)
 
 set(CMAKE_VERBOSE_MAKEFILE OFF)
+set(ONNX ON)
 
 include(FetchContent)
 set(FETCHCONTENT_QUIET OFF)
@@ -16,8 +17,10 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 include(glog)
 include(gflags)
+include(onnx)
 
 add_subdirectory(utils)
 add_subdirectory(frontend)
+add_subdirectory(model)
 add_subdirectory(bin)
 

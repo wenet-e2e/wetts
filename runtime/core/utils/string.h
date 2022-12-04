@@ -49,6 +49,10 @@ int UTF8StringLength(const std::string& str);
 // Check whether the UTF-8 char is alphabet or '.
 bool CheckEnglishChar(const std::string& ch);
 
+bool IsChineseChar(const std::string& ch);
+
+std::string AddSpaceForChineseChar(const std::string& str);
+
 // Check whether the UTF-8 word is only contains alphabet or '.
 bool CheckEnglishWord(const std::string& word);
 

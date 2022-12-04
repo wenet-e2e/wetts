@@ -18,21 +18,36 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <vector>
 
-#include "frontend/t2s.h"
 
-DEFINE_string(t2s_file, "", "traditional to simplified dictionary");
+#include "frontend/tokenizer.h"
+
+DEFINE_string(vocab_file, "", "tokenizer vocab file");
 DEFINE_string(input_file, "", "input testing file");
 
 int main(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, false);
   google::InitGoogleLogging(argv[0]);
 
-  wetts::T2S t2s(FLAGS_t2s_file);
+  wetts::Tokenizer tokenizer(FLAGS_vocab_file);
   std::ifstream is(FLAGS_input_file);
   std::string line;
   while (getline(is, line)) {
-    std::cout << t2s.Convert(line) << "\n";
+    std::vector<std::string> tokens;
+    std::vector<int> token_ids;
+    tokenizer.Tokenize(line, &tokens);
+    tokenizer.Tokenize(line, &token_ids);
+    CHECK_EQ(tokens.size(), token_ids.size());
+    for (const auto& x : tokens) {
+      std::cout << x << " ";
+    }
+    std::cout << "\n";
+
+    for (const auto& x : token_ids) {
+      std::cout << x << " ";
+    }
+    std::cout << "\n";
   }
   return 0;
 }

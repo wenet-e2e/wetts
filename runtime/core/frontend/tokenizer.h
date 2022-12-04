@@ -17,15 +17,23 @@
 
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace wetts {
 
+// The Tokenizer is like:
+// https://github.com/huggingface/transformers/blob/v4.24.0/src/transformers/models/bert/tokenization_bert.py#L137  // NOLINT
 class Tokenizer {
  public:
-  Tokenizer(const std::string& token_file);
+  explicit Tokenizer(const std::string& vocab_file);
+  int NumTokens() const { return vocab_.size(); }
+  void Tokenize(const std::string& str,
+                std::vector<int>* token_ids) const;
+  void Tokenize(const std::string& str,
+                std::vector<std::string>* tokens) const;
 
  private:
-  std::unordered_map<std::string, int> token_dict_;
+  std::unordered_map<std::string, int> vocab_;
 };
 
 }  // namespace wetts

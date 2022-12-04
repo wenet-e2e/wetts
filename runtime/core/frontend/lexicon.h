@@ -17,6 +17,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 namespace wetts {
 
@@ -29,7 +30,7 @@ namespace wetts {
 
 class Lexicon {
  public:
-  Lexicon(const std::string& lexicon_file);
+  explicit Lexicon(const std::string& lexicon_file);
   int NumProns(const std::string& word);
   std::string Prons(const std::string& word);
 
