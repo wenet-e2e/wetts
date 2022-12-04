@@ -40,7 +40,7 @@ std::string T2S::Convert(const std::string& in) {
   std::vector<std::string> chars;
   std::string out;
   SplitUTF8StringToChars(in, &chars);
-  for (auto& x : chars) {
+  for (const auto& x : chars) {
     if (t2s_dict_.find(x) != t2s_dict_.end()) {
       out += t2s_dict_[x];
     } else {
