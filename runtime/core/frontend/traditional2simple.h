@@ -12,27 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <glog/logging.h>
-#include <gflags/gflags.h>
+#ifndef FRONTEND_TRADITIONAL2SIMPLE_H_
+#define FRONTEND_TRADITIONAL2SIMPLE_H_
 
-#include <fstream>
-#include <iostream>
 #include <string>
+#include <unordered_map>
 
-#include "frontend/t2s.h"
+namespace wetts {
 
-DEFINE_string(t2s_file, "", "traditional to simplified dictionary");
-DEFINE_string(input_file, "", "input testing file");
+// Traditional to simplified
+// The format of dict_file is like:
+// 丟 丢
+// 並 并
+// 乗 乘
+// 乹 乾
+// 亁 乾
 
-int main(int argc, char* argv[]) {
-  gflags::ParseCommandLineFlags(&argc, &argv, false);
-  google::InitGoogleLogging(argv[0]);
+class Traditional2Simple {
+ public:
+  explicit Traditional2Simple(const std::string& dict_file);
+  std::string Convert(const std::string& in);
 
-  wetts::T2S t2s(FLAGS_t2s_file);
-  std::ifstream is(FLAGS_input_file);
-  std::string line;
-  while (getline(is, line)) {
-    std::cout << t2s.Convert(line) << "\n";
-  }
-  return 0;
-}
+ private:
+  std::unordered_map<std::string, std::string> t2s_dict_;
+};
+
+}  // namespace wetts
+
+
+#endif  //  FRONTEND_TRADITIONAL2SIMPLE_H_

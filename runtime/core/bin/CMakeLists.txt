@@ -1,5 +1,5 @@
 set(FRONTEND_BINS
-  frontend_t2s_main
+  frontend_traditional2simple_main
   frontend_lexicon_main
   frontend_tokenizer_main
 )

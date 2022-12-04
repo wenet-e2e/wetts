@@ -12,25 +12,27 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FRONTEND_T2S_H_
-#define FRONTEND_T2S_H_
+#include <glog/logging.h>
+#include <gflags/gflags.h>
 
+#include <fstream>
+#include <iostream>
 #include <string>
-#include <unordered_map>
 
-namespace wetts {
+#include "frontend/traditional2simple.h"
 
-// Traditional to simplified
-class T2S {
- public:
-  explicit T2S(const std::string& dict_file);
-  std::string Convert(const std::string& in);
+DEFINE_string(t2s_file, "", "traditional to simplified dictionary");
+DEFINE_string(input_file, "", "input testing file");
 
- private:
-  std::unordered_map<std::string, std::string> t2s_dict_;
-};
+int main(int argc, char* argv[]) {
+  gflags::ParseCommandLineFlags(&argc, &argv, false);
+  google::InitGoogleLogging(argv[0]);
 
-}  // namespace wetts
-
-
-#endif  //  FRONTEND_T2S_H_
+  wetts::Traditional2Simple t2s(FLAGS_t2s_file);
+  std::ifstream is(FLAGS_input_file);
+  std::string line;
+  while (getline(is, line)) {
+    std::cout << t2s.Convert(line) << "\n";
+  }
+  return 0;
+}

@@ -1,5 +1,5 @@
 add_library(frontend STATIC
-  t2s.cc
+  traditional2simple.cc
   lexicon.cc
   tokenizer.cc
 )

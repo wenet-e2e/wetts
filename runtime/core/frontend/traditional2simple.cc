@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "frontend/t2s.h"
+#include "frontend/traditional2simple.h"
 
 #include <glog/logging.h>
 
@@ -25,7 +25,7 @@
 
 namespace wetts {
 
-T2S::T2S(const std::string& dict_file) {
+Traditional2Simple::Traditional2Simple(const std::string& dict_file) {
   std::ifstream is(dict_file);
   std::string line;
   while (getline(is, line)) {
@@ -36,7 +36,7 @@ T2S::T2S(const std::string& dict_file) {
   }
 }
 
-std::string T2S::Convert(const std::string& in) {
+std::string Traditional2Simple::Convert(const std::string& in) {
   std::vector<std::string> chars;
   std::string out;
   SplitUTF8StringToChars(in, &chars);
