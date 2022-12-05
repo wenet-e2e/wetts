@@ -15,7 +15,7 @@
 丱 kuang4,guan4
 丳 chan3
 丵 zhuo2
-丷 ba1,xx5
+丷 ba1
 丼 jing3,dong4
 乀 fu2,pie3
 乁 yi2,fu2
@@ -61,7 +61,7 @@
 亸 duo3
 亹 wei3,men2
 亼 ji2
-亽 ji2,xx5
+亽 ji2
 亾 wu2,wang2
 仈 ba1
 仌 bing1
@@ -772,7 +772,7 @@
 卝 kuang4,guan4
 卥 xi1
 卨 xie4
-卪 jie2,xx5
+卪 jie2
 卬 yang3,ang2
 卭 qiong2
 卲 shao4
