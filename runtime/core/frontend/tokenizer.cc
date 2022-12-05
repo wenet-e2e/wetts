@@ -34,27 +34,15 @@ Tokenizer::Tokenizer(const std::string& vocab_file) {
 
 
 void Tokenizer::Tokenize(const std::string& str,
-                         std::vector<int>* token_ids) const {
-  std::vector<std::string> tokens;
-  Tokenize(str, &tokens);
-  token_ids->clear();
-  token_ids->resize(tokens.size());
-  // Already process OOV before, so just use it here.
-  for (int i = 0; i < tokens.size(); i++) {
-    (*token_ids)[i] = vocab_.at(tokens[i]);
-  }
-}
-
-
-void Tokenizer::Tokenize(const std::string& str,
-                         std::vector<std::string>* tokens) const {
+                         std::vector<std::string>* tokens,
+                         std::vector<int64_t>* token_ids) const {
   std::string space_str = AddSpaceForChineseChar(str);
   std::vector<std::string> split_strs;
   SplitString(space_str, &split_strs);
 
   tokens->clear();
+  tokens->emplace_back(cls_token_);
   for (const std::string& token : split_strs) {
-    std::cout << token << "\n";
     if (IsChineseChar(token)) {
       // TODO(Binbin Zhang): Chinese OOV
       tokens->emplace_back(token);
@@ -81,6 +69,15 @@ void Tokenizer::Tokenize(const std::string& str,
         }
       }
     }
+  }
+  tokens->emplace_back(sep_token_);
+
+  // Get Id
+  token_ids->clear();
+  token_ids->resize(tokens->size());
+  // Already process OOV before, so just use it here.
+  for (int i = 0; i < tokens->size(); i++) {
+    (*token_ids)[i] = vocab_.at((*tokens)[i]);
   }
 }
 

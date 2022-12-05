@@ -34,7 +34,7 @@ Lexicon::Lexicon(const std::string& lexicon_file) {
     size_t pos = line.find(' ');
     CHECK(pos != std::string::npos);
     std::string word = line.substr(0, pos);
-    std::string prons = line.substr(pos);
+    std::string prons = line.substr(pos + 1);
     int num_prons = 0;
     while (pos != std::string::npos) {
       pos = line.find(',', pos + 1);
