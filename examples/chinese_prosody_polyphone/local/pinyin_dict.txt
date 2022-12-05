@@ -5068,7 +5068,7 @@
 溁 ying2
 溂 la4
 溄 feng2
-溇 lou2,lu:3
+溇 lou2,lv3
 溈 wei2
 溊 bo1
 溋 ying2
@@ -9928,7 +9928,7 @@
 虑 lv4
 氯 lv4
 律 lv4
-率 lu:4,shuai4
+率 lv4,shuai4
 滤 lv4
 绿 lv4
 峦 luan2
@@ -10459,10 +10459,10 @@
 奴 nu2
 努 nu3
 怒 nu4
-女 nu:3,ru3
+女 nv3,ru3
 暖 nuan3
 虐 nve4
-疟 nu:e4,yao4
+疟 nve4,yao4
 挪 nuo2
 懦 nuo4
 糯 nuo4
@@ -14238,7 +14238,7 @@
 偈 ji4,jie2
 偎 wei1
 偬 zong3
-偻 lou2,lu:3
+偻 lou2,lv3
 傥 tang3
 傧 bin1
 傩 nuo2
@@ -15190,7 +15190,7 @@
 挢 jiao3
 拶 za1
 挹 yi4
-捋 lu:3,luo1
+捋 lv3,luo1
 捃 jun4
 掭 tian4
 揶 ye2
