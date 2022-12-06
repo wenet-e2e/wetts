@@ -1,5 +1,4 @@
 add_library(frontend STATIC
-  traditional2simple.cc
   lexicon.cc
   tokenizer.cc
   g2p_prosody.cc

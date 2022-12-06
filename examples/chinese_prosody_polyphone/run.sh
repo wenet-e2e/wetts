@@ -82,7 +82,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   python wetts/frontend/g2p_prosody.py \
     --text "8方財寶進" \
     --hanzi2pinyin_file local/pinyin_dict.txt \
-    --trad2simple_file local/traditional2simple.txt \
     --polyphone_phone_file local/polyphone_phone.txt \
     --polyphone_character_file local/polyphone_character.txt \
     --polyphone_prosody_model $dir/9.onnx

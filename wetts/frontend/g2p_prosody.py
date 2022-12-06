@@ -21,7 +21,6 @@ from transformers import AutoTokenizer
 
 from hanzi2pinyin import Hanzi2Pinyin
 from tn.chinese.normalizer import Normalizer
-from t2s import T2S
 
 
 try:
@@ -37,8 +36,6 @@ def get_args():
     parser.add_argument('--text', required=True, help='input text')
     parser.add_argument('--hanzi2pinyin_file',
                         required=True, help='pinyin dict')
-    parser.add_argument('--trad2simple_file',
-                        required=True, help='traditionl2simple dict')
     parser.add_argument('--polyphone_phone_file',
                         required=True, help='polyphone phone dict')
     parser.add_argument('--polyphone_character_file',
@@ -53,7 +50,6 @@ class Frontend(object):
     def __init__(
         self,
         hanzi2pinyin_file: str,
-        trad2simple_file: str,
         polyphone_prosody_model: str,
         polyphone_phone_file: str,
         polyphone_character_file: str,
@@ -61,7 +57,6 @@ class Frontend(object):
         self.hanzi2pinyin = Hanzi2Pinyin(hanzi2pinyin_file)
         self.ppm_sess = ort.InferenceSession(polyphone_prosody_model)
         self.tn = Normalizer()
-        self.t2s = T2S(trad2simple_file)
         self.polyphone_phone_dict = []
         self.polyphone_character_dict = []
         with open(polyphone_phone_file) as pp_f:
@@ -72,8 +67,6 @@ class Frontend(object):
                 self.polyphone_character_dict.append(line.strip())
 
     def g2p(self, x):
-        # traditionl to simple
-        x = self.t2s.convert(x)
         # text normalization
         x = self.tn.normalize(x)
         # hanzi2pinyin
@@ -99,7 +92,6 @@ def main():
 
 
     frontend = Frontend(args.hanzi2pinyin_file,
-                        args.trad2simple_file,
                         args.polyphone_prosody_model,
                         args.polyphone_phone_file,
                         args.polyphone_character_file)

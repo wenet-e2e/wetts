@@ -9,7 +9,7 @@ pycodestyle==2.6.0
 pyflakes==2.2.0
 tensorboard
 sklearn
-WeTextProcessing==0.0.1
+WeTextProcessing
 monotonic_align
 matplotlib
 librosa==0.8.0
