@@ -83,4 +83,4 @@ void OnnxGetInputsOutputs(const std::shared_ptr<Ort::Session>& session,
   }
 }
 
-}
+}  // namespace wetts

@@ -16,6 +16,7 @@
 #define UTILS_ONNX_UTILS_H_
 
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "onnxruntime_cxx_api.h"  // NOLINT
@@ -32,7 +33,7 @@ void OnnxGetInputsOutputs(const std::shared_ptr<Ort::Session>& session,
                           std::vector<const char*>* in_names,
                           std::vector<const char*>* out_names);
 
-}
+}  // namespace wetts
 
 #endif  // UTILS_ONNX_UTILS_H_
 
