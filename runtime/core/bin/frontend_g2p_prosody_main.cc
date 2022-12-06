@@ -15,34 +15,38 @@
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <vector>
 
 #include "glog/logging.h"
 #include "gflags/gflags.h"
 
-#include "frontend/tokenizer.h"
+#include "frontend/g2p_prosody.h"
 
-DEFINE_string(vocab_file, "", "tokenizer vocab file");
+DEFINE_string(phone_file, "", "phone list file");
+DEFINE_string(tokenizer_vocab_file, "", "tokenizer vocab file");
+DEFINE_string(lexicon_file, "", "lexicon file");
+DEFINE_string(g2p_prosody_model, "", "g2p prosody model file");
 DEFINE_string(input_file, "", "input testing file");
 
 int main(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, false);
   google::InitGoogleLogging(argv[0]);
 
-  wetts::Tokenizer tokenizer(FLAGS_vocab_file);
+  wetts::G2pProsody g2p_prosody(FLAGS_g2p_prosody_model,
+                                FLAGS_phone_file,
+                                FLAGS_tokenizer_vocab_file,
+                                FLAGS_lexicon_file);
   std::ifstream is(FLAGS_input_file);
   std::string line;
   while (getline(is, line)) {
-    std::vector<std::string> tokens;
-    std::vector<int64_t> token_ids;
-    tokenizer.Tokenize(line, &tokens, &token_ids);
-    CHECK_EQ(tokens.size(), token_ids.size());
-    for (const auto& x : tokens) {
+    std::vector<std::string> phonemes;
+    std::vector<int> prosody;
+    g2p_prosody.Compute(line, &phonemes, &prosody);
+    std::cout << line << "\n";
+    for (const auto& x : phonemes) {
       std::cout << x << " ";
     }
     std::cout << "\n";
-
-    for (const auto& x : token_ids) {
+    for (const auto& x : prosody) {
       std::cout << x << " ";
     }
     std::cout << "\n";

@@ -2,6 +2,7 @@ set(FRONTEND_BINS
   frontend_traditional2simple_main
   frontend_lexicon_main
   frontend_tokenizer_main
+  frontend_g2p_prosody_main
 )
 
 foreach(name IN LISTS FRONTEND_BINS)

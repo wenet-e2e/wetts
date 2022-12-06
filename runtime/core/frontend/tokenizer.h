@@ -28,12 +28,13 @@ class Tokenizer {
   explicit Tokenizer(const std::string& vocab_file);
   int NumTokens() const { return vocab_.size(); }
   void Tokenize(const std::string& str,
-                std::vector<int>* token_ids) const;
-  void Tokenize(const std::string& str,
-                std::vector<std::string>* tokens) const;
+                std::vector<std::string>* tokens,
+                std::vector<int64_t>* token_ids) const;
 
  private:
   std::unordered_map<std::string, int> vocab_;
+  std::string cls_token_ = "[CLS]";
+  std::string sep_token_ = "[SEP]";
 };
 
 }  // namespace wetts
