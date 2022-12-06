@@ -76,7 +76,7 @@ void OnnxTtsModel::Forward(std::vector<int64_t>* phonemes,
       session_->Run(Ort::RunOptions{nullptr}, in_names_.data(),
                     ort_inputs.data(), ort_inputs.size(), out_names_.data(), 1);
   int len = outputs_ort[0].GetTensorTypeAndShapeInfo().GetShape()[2];
-  float* outputs = outputs_ort[0].GetTensorMutableData<float>();
+  const float* outputs = outputs_ort[0].GetTensorData<float>();
   audio->assign(outputs, outputs + len);
 }
 
