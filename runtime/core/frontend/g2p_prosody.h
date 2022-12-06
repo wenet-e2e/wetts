@@ -33,9 +33,6 @@ class G2pProsody {
                       const std::string& phone_file,
                       const std::string& tokenizer_vocab_file,
                       const std::string& lexicon_file);
-  void GetInputOutputInfo(const std::shared_ptr<Ort::Session>& session,
-                          std::vector<const char*>* in_names,
-                          std::vector<const char*>* out_names);
   void Compute(const std::string& str,
                std::vector<std::string>* phonemes,
                std::vector<int>* prosody);

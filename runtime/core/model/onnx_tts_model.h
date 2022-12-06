@@ -30,10 +30,6 @@ class OnnxTtsModel {
   OnnxTtsModel() = default;
   OnnxTtsModel(const OnnxTtsModel& other);
   void Read(const std::string& model_path);
-  std::shared_ptr<OnnxTtsModel> Copy() const;
-  void GetInputOutputInfo(const std::shared_ptr<Ort::Session>& session,
-                          std::vector<const char*>* in_names,
-                          std::vector<const char*>* out_names);
   void Forward(std::vector<int64_t>* phonemes, std::vector<float>* audio);
 
  private:

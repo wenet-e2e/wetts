@@ -23,6 +23,7 @@
 
 #include "glog/logging.h"
 
+#include "utils/onnx_utils.h"
 #include "utils/string.h"
 
 namespace wetts {
@@ -42,65 +43,14 @@ G2pProsody::G2pProsody(const std::string& g2p_prosody_model,
     phones_.emplace_back(line);
   }
   // Load g2p & prosody model sessions
-  try {
-#ifdef _MSC_VER
-    session_ = std::make_shared<Ort::Session>(
-        env_, ToWString(g2p_prosody_model).c_str(), session_options_);
-#else
-    session_ = std::make_shared<Ort::Session>(env_, g2p_prosody_model.c_str(),
-                                              session_options_);
-#endif
-  } catch (std::exception const& e) {
-    LOG(FATAL) << "error when load onnx model: " << e.what();
-  }
-  GetInputOutputInfo(session_, &in_names_, &out_names_);
+  session_ = OnnxCreateSession(g2p_prosody_model, session_options_, &env_);
+  OnnxGetInputsOutputs(session_, &in_names_, &out_names_);
 
   // Load tokenizer
   tokenizer_ = std::make_shared<Tokenizer>(tokenizer_vocab_file);
   lexicon_ = std::make_shared<Lexicon>(lexicon_file);
 }
 
-void G2pProsody::GetInputOutputInfo(
-    const std::shared_ptr<Ort::Session>& session,
-    std::vector<const char*>* in_names, std::vector<const char*>* out_names) {
-  Ort::AllocatorWithDefaultOptions allocator;
-  // Input info
-  int num_nodes = session->GetInputCount();
-  in_names->resize(num_nodes);
-  for (int i = 0; i < num_nodes; ++i) {
-    char* name = session->GetInputName(i, allocator);
-    Ort::TypeInfo type_info = session->GetInputTypeInfo(i);
-    auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
-    ONNXTensorElementDataType type = tensor_info.GetElementType();
-    std::vector<int64_t> node_dims = tensor_info.GetShape();
-    std::stringstream shape;
-    for (auto j : node_dims) {
-      shape << j;
-      shape << " ";
-    }
-    LOG(INFO) << "\tInput " << i << " : name=" << name << " type=" << type
-              << " dims=" << shape.str();
-    (*in_names)[i] = name;
-  }
-  // Output info
-  num_nodes = session->GetOutputCount();
-  out_names->resize(num_nodes);
-  for (int i = 0; i < num_nodes; ++i) {
-    char* name = session->GetOutputName(i, allocator);
-    Ort::TypeInfo type_info = session->GetOutputTypeInfo(i);
-    auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
-    ONNXTensorElementDataType type = tensor_info.GetElementType();
-    std::vector<int64_t> node_dims = tensor_info.GetShape();
-    std::stringstream shape;
-    for (auto j : node_dims) {
-      shape << j;
-      shape << " ";
-    }
-    LOG(INFO) << "\tOutput " << i << " : name=" << name << " type=" << type
-              << " dims=" << shape.str();
-    (*out_names)[i] = name;
-  }
-}
 
 void G2pProsody::Compute(const std::string& str,
                          std::vector<std::string>* phonemes,

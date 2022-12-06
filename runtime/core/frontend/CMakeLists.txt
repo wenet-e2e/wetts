@@ -5,4 +5,4 @@ add_library(frontend STATIC
   g2p_prosody.cc
 )
 
-target_link_libraries(frontend PUBLIC utils glog onnxruntime)
+target_link_libraries(frontend PUBLIC utils)
