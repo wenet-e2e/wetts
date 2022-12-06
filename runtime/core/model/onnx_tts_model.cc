@@ -29,10 +29,9 @@ void OnnxTtsModel::InitEngineThreads(int num_threads) {
   session_options_.SetIntraOpNumThreads(num_threads);
 }
 
-
 void OnnxTtsModel::Read(const std::string& model_path) {
   // 1. Load sessions
-  OnnxCreateSession(model_path, session_options_, &env_);
+  session_ = OnnxCreateSession(model_path, session_options_, &env_);
 
   // 2. TODO: Read metadata
   // auto model_metadata = session_->GetModelMetadata();
