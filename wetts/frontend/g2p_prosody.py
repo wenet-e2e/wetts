@@ -38,8 +38,6 @@ def get_args():
                         required=True, help='pinyin dict')
     parser.add_argument('--polyphone_phone_file',
                         required=True, help='polyphone phone dict')
-    parser.add_argument('--polyphone_character_file',
-                        required=True, help='polyphone word dict')
     parser.add_argument('--polyphone_prosody_model',
                         required=True, help='checkpoint model')
     args = parser.parse_args()
@@ -52,7 +50,6 @@ class Frontend(object):
         hanzi2pinyin_file: str,
         polyphone_prosody_model: str,
         polyphone_phone_file: str,
-        polyphone_character_file: str,
     ):
         self.hanzi2pinyin = Hanzi2Pinyin(hanzi2pinyin_file)
         self.ppm_sess = ort.InferenceSession(polyphone_prosody_model)
@@ -62,15 +59,10 @@ class Frontend(object):
         with open(polyphone_phone_file) as pp_f:
             for line in pp_f.readlines():
                 self.polyphone_phone_dict.append(line.strip())
-        with open(polyphone_character_file) as pc_f:
-            for line in pc_f.readlines():
-                self.polyphone_character_dict.append(line.strip())
 
     def g2p(self, x):
         # text normalization
         x = self.tn.normalize(x)
-        # hanzi2pinyin
-        pinyin = self.hanzi2pinyin.convert(x)
         # polyphone disambiguation & prosody prediction
         tokens = tokenizer(list(x),
                            is_split_into_words=True,
@@ -79,11 +71,13 @@ class Frontend(object):
         ort_outs = self.ppm_sess.run(None, ort_inputs)
         polyphone_pred = ort_outs[0].argmax(-1)[0][1:-1]
         prosody_pred = ort_outs[1].argmax(-1)[0][1:-1]
-        index = 0
-        for char in x:
-            if char in self.polyphone_character_dict:
-                pinyin[index] = self.polyphone_phone_dict[polyphone_pred[index]]
-            index += 1
+        pinyin = []
+        for i, char in enumerate(x):
+            prons = self.hanzi2pinyin.get(char)
+            if len(prons) > 1:
+                pinyin.append(self.polyphone_phone_dict[polyphone_pred[i]])
+            else:
+                pinyin.append(prons[0])
         return pinyin, prosody_pred
 
 def main():
@@ -93,8 +87,7 @@ def main():
 
     frontend = Frontend(args.hanzi2pinyin_file,
                         args.polyphone_prosody_model,
-                        args.polyphone_phone_file,
-                        args.polyphone_character_file)
+                        args.polyphone_phone_file)
     pinyin, prosody = frontend.g2p(args.text)
     print("text: {} \npinyin {} \nprosody {}".format(
           args.text, pinyin, prosody))
