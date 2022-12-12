@@ -12,24 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 class Hanzi2Pinyin:
     def __init__(self, dict_file: str):
         self.pinyin_dict = {}
         with open(dict_file) as f:
             for line in f.readlines():
                 line = line.strip()
-                pos = line.find(' ')
-                assert pos > 0
-                word = line[:pos]
-                prons = line[pos + 1:]
-                self.pinyin_dict[word] = prons.split(',')[0]
+                self.pinyin_dict[line[0]] = line[2:].split(',')
+
+    def get(self, x):
+        assert x in self.pinyin_dict
+        return self.pinyin_dict[x]
 
     def convert(self, x: str):
         pinyin = []
         for char in x:
             pinyin.append(self.pinyin_dict.get(char, "UNK"))
         return pinyin
-
 
 def main():
     hanzi2pinyin = Hanzi2Pinyin("./local/pinyin_dict.txt")
