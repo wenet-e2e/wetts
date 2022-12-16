@@ -20,18 +20,24 @@
 #include <vector>
 
 #include "onnxruntime_cxx_api.h"  // NOLINT
+#include "processor/processor.h"
 
-#include "model/onnx_model.h"
+#include "frontend/g2p_prosody.h"
 
 namespace wetts {
 
 class TtsModel : public OnnxModel {
  public:
-  explicit TtsModel(const std::string& model_path);
+  explicit TtsModel(const std::string& model_path,
+                    std::shared_ptr<wetext::Processor> processor,
+                    std::shared_ptr<G2pProsody> g2p_prosody);
   void Forward(std::vector<int64_t>* phonemes, std::vector<float>* audio);
+  void Synthesis(const std::string& text, std::vector<float>* audio);
 
  private:
   int sampling_rate_;
+  std::shared_ptr<wetext::Processor> processor_;
+  std::shared_ptr<G2pProsody> g2p_prosody_;
 };
 
 }  // namespace wetts
