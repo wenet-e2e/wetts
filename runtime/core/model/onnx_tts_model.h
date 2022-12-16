@@ -21,27 +21,17 @@
 
 #include "onnxruntime_cxx_api.h"  // NOLINT
 
+#include "model/onnx_model.h"
+
 namespace wetts {
 
-class OnnxTtsModel {
+class OnnxTtsModel : public OnnxModel {
  public:
-  static void InitEngineThreads(int num_threads = 1);
-
-  OnnxTtsModel() = default;
-  OnnxTtsModel(const OnnxTtsModel& other);
-  void Read(const std::string& model_path);
+  OnnxTtsModel(const std::string& model_path);
   void Forward(std::vector<int64_t>* phonemes, std::vector<float>* audio);
 
  private:
   int sampling_rate_;
-
-  static Ort::Env env_;  // shared environment across threads.
-  static Ort::SessionOptions session_options_;
-  std::shared_ptr<Ort::Session> session_ = nullptr;
-
-  // node names
-  std::vector<const char*> in_names_;
-  std::vector<const char*> out_names_;
 };
 
 }  // namespace wetts

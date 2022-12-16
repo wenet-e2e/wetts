@@ -1,6 +1,3 @@
-add_library(utils STATIC
-  string.cc
-  onnx_utils.cc
-)
+add_library(utils STATIC string.cc)
 
-target_link_libraries(utils PUBLIC onnxruntime glog)
+target_link_libraries(utils PUBLIC glog)

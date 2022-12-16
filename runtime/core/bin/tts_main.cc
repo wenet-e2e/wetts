@@ -44,9 +44,7 @@ int main(int argc, char* argv[]) {
   wetext::Processor processor(FLAGS_tagger_file, FLAGS_verbalizer_file);
   wetts::G2pProsody g2p_prosody(FLAGS_g2p_prosody_model, FLAGS_phone_file,
                                 FLAGS_tokenizer_vocab_file, FLAGS_lexicon_file);
-  wetts::OnnxTtsModel::InitEngineThreads(1);
-  auto model = std::make_shared<wetts::OnnxTtsModel>();
-  model->Read(FLAGS_e2e_model_file);
+  auto model = std::make_shared<wetts::OnnxTtsModel>(FLAGS_e2e_model_file);
 
   // 1. TN
   std::string normalized_text = processor.normalize(FLAGS_text);
