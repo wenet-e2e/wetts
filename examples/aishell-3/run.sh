@@ -62,3 +62,13 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     --speaker_table $data/speaker.txt
 fi
 
+
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+  mkdir -p $test_audio
+  python vits/inference.py  \
+    --checkpoint $dir/G_950000.pth --cfg $config \
+    --outdir $test_audio \
+    --phone_table $data/phones.txt \
+    --speaker_table $data/speaker.txt \
+    --test_file $data/test.txt
+fi
