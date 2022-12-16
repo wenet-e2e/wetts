@@ -181,7 +181,7 @@ T t
 鹮 huan2
 麸 fu1
 䵹 zhi1
-衄 nu:4
+衄 nv4
 䶑 ti4
 一 yi1
 丁 ding1
@@ -471,7 +471,7 @@ T t
 侮 wu3
 侯 hou2
 侵 qin1
-侣 lu:3
+侣 lv3
 局 ju2
 侽 nan2
 便 bian4,pian2
@@ -614,7 +614,7 @@ T t
 傻 sha3
 倾 qing1
 傿 yan4,yan1
-偻 lou2,lu:3
+偻 lou2,lv3
 僃 bei4
 僄 piao4
 仅 jin3
@@ -1000,7 +1000,7 @@ T t
 南 nan2
 単 dan1
 博 bo2
-卛 shuai4,lu:4
+卛 shuai4,lv4
 卜 bo5,bu3
 卝 kuang4,guan4
 卞 bian4
@@ -1142,7 +1142,7 @@ T t
 吽 hong1,hou3
 吾 wu2
 呀 ya5
-吕 lu:3
+吕 lv3
 呃 e4
 呆 dai1
 呇 qi3
@@ -1601,7 +1601,7 @@ T t
 圕 tuan1
 图 tu2
 团 tuan2
-圙 lu:e4
+圙 lve4
 圛 yi4
 圜 huan2,yuan2
 圞 luan2
@@ -1919,7 +1919,7 @@ T t
 奭 shi4
 奋 fen4
 奰 bi4
-女 nu:3,ru3
+女 nv3,ru3
 奴 nu2
 奶 nai3
 奸 jian1
@@ -2300,10 +2300,10 @@ T t
 屉 ti4
 屝 fei4
 屠 tu2
-屡 lu:3
+屡 lv3
 屣 xi3
 层 ceng2
-履 lu:3
+履 lv3
 屧 xie4
 屦 ju4
 屩 jue1
@@ -2394,7 +2394,7 @@ T t
 崶 feng1
 崽 zai3
 崿 e4
-嵂 lu:4
+嵂 lv4
 嵄 mei3
 嵇 ji1
 嵊 sheng4
@@ -2706,7 +2706,7 @@ T t
 很 hen3
 徉 yang2
 徊 huai2
-律 lu:4
+律 lv4
 徐 xu2
 径 jing4
 徒 tu2
@@ -2818,7 +2818,7 @@ T t
 恢 hui1
 恣 zi4
 耻 chi3
-恧 nu:4
+恧 nv4
 恨 hen4
 恪 ke4
 恫 dong4
@@ -2956,7 +2956,7 @@ T t
 怄 ou4
 怂 song3
 慬 jin3
-虑 lu:4
+虑 lv4
 慰 wei4
 慱 tuan2
 悭 qian1
@@ -3195,7 +3195,7 @@ T t
 挐 na2
 挑 tiao1,tiao3
 挓 zha1
-挔 lu:3
+挔 lv3
 挖 wa1
 挙 ju3
 挨 ai1,ai2
@@ -3216,7 +3216,7 @@ T t
 捅 tong3
 捆 kun3
 捉 zhuo1
-捋 lu:3,luo1
+捋 lv3,luo1
 捌 ba1
 捎 shao1
 捏 nie1
@@ -3260,7 +3260,7 @@ T t
 挣 zheng1,zheng4
 挂 gua4
 掞 shan4
-掠 lu:e4
+掠 lve4
 采 cai3,cai4
 探 tan4
 掣 che4
@@ -3465,7 +3465,7 @@ T t
 摆 bai3
 擞 sou3
 撸 lu1
-㧰 lu:e4
+㧰 lve4
 扰 rao3
 擿 ti1,zhi4
 攀 pan1
@@ -3586,7 +3586,7 @@ T t
 旗 qi2
 旃 zhan1
 旄 mao2,mao4
-旅 lu:3
+旅 lv3
 旆 pei4
 旊 fang3
 旋 xuan2,xuan4
@@ -3968,7 +3968,7 @@ T t
 𬂩 jia1
 条 tiao2
 枭 xiao1
-梠 lu:3
+梠 lv3
 梡 kuan3
 梢 shao1
 梣 chen2
@@ -4236,7 +4236,7 @@ T t
 槛 kan3,jian4
 櫆 kui2
 櫌 you1
-榈 lu:2
+榈 lv2
 栉 zhi4
 櫜 gao1
 椟 du2
@@ -4430,7 +4430,7 @@ T t
 氢 qing1
 氩 ya4
 氮 dan4
-氯 lu:4
+氯 lv4
 氰 qing2
 氲 yun1
 水 shui3
@@ -4815,7 +4815,7 @@ T t
 漆 qi1
 漈 ji4
 漉 lu4
-溇 lou2,lu:3
+溇 lou2,lv3
 漎 cong2
 漏 lou4
 漓 li2
@@ -4944,7 +4944,7 @@ T t
 阔 kuo4
 溅 jian4
 泺 luo4
-滤 lu:4
+滤 lv4
 濿 li4
 瀁 yang4
 滢 ying2
@@ -5384,7 +5384,7 @@ T t
 玃 jue2
 玄 xuan2
 玆 zi1
-率 lu:4,shuai4
+率 lv4,shuai4
 玈 lu2
 玉 yu4
 玊 su4
@@ -5644,7 +5644,7 @@ T t
 畟 ce4
 毕 bi4
 畤 zhi4
-略 lu:e4
+略 lve4
 畦 qi2
 番 fan1,pan1
 画 hua4
@@ -5759,7 +5759,7 @@ T t
 瘤 liu2
 瘥 chai4,cuo2
 瘦 shou4
-疟 nu:e4,yao4
+疟 nve4,yao4
 瘨 dian1
 瘩 da2
 瘭 biao1
@@ -6258,7 +6258,7 @@ T t
 稂 lang2
 稃 fu1
 税 shui4
-稆 lu:3
+稆 lv3
 秆 gan3
 稊 ti2
 程 cheng2
@@ -6307,7 +6307,7 @@ T t
 穧 ji4
 颓 tui2
 稳 wen3
-穞 lu:3
+穞 lv3
 穮 biao1
 穯 se4
 穰 rang2
@@ -6563,7 +6563,7 @@ T t
 米 mi3
 籵 fan2
 籸 shen1
-籹 nu:3
+籹 nv3
 籼 xian1
 籽 zi3
 粀 zhang4
@@ -6723,7 +6723,7 @@ T t
 続 xu4
 综 zong1,zeng4
 𬘭 chen1
-绿 lu:4
+绿 lv4
 绸 chou2
 绻 quan3
 綥 qi2
@@ -6760,7 +6760,7 @@ T t
 緎 yu4
 総 zong3
 繁 fan2
-緑 lu:4
+緑 lv4
 绪 xu4
 绱 shang4
 緖 xu4
@@ -6822,7 +6822,7 @@ T t
 纤 xian1,qian4
 缦 man4
 絷 zhi2
-缕 lu:3
+缕 lv3
 缥 piao3
 縻 mi2
 总 zong3
@@ -7197,7 +7197,7 @@ T t
 腺 xian4
 腿 tui3
 膀 bang3,bang4,pang1,pang2
-膂 lu:3
+膂 lv3
 腽 wa4
 膆 su4
 膇 zhui4
@@ -7214,7 +7214,7 @@ T t
 肤 fu1
 膛 tang2
 膜 mo2
-膟 lu:4
+膟 lv4
 胶 jiao1
 膣 zhi4
 膦 lin4
@@ -7584,7 +7584,7 @@ T t
 葆 bao3
 葇 rou2
 葍 fu2
-葎 lu:4
+葎 lv4
 葑 feng1
 荭 hong2
 葖 tu2
@@ -7785,7 +7785,7 @@ T t
 藐 miao3
 藒 qie4
 藕 ou3
-藘 lu:2
+藘 lv2
 藙 yi4
 藚 xu4
 藜 li2
@@ -7832,7 +7832,7 @@ T t
 𬟁 yi4
 虍 hu1
 虎 hu3
-虐 nu:e4
+虐 nve4
 虒 si1
 虓 xiao1
 虔 qian2
@@ -8198,7 +8198,7 @@ T t
 裢 lian2
 褵 li2
 褶 zhe3,xi2
-褛 lu:3
+褛 lv3
 亵 xie4
 褽 wei4
 褾 biao3
@@ -9295,7 +9295,7 @@ T t
 钗 chai1
 钍 tu3
 釸 xi1
-钕 nu:3
+钕 nv3
 钎 qian1
 钯 ba3,pa2
 钫 fang1
@@ -9399,7 +9399,7 @@ T t
 销 xiao1
 锈 xiu4
 锑 ti1
-铝 lu:3
+铝 lv3
 鋂 mei2
 锒 lang2
 锌 xin1
@@ -9416,7 +9416,7 @@ T t
 鋕 zhi4
 鋘 wu2
 铻 wu2
-锊 lu:e4
+锊 lve4
 锓 qin2
 鋡 han2
 锄 chu2
@@ -9607,7 +9607,7 @@ T t
 钻 zuan1,zuan4
 镴 la4
 铄 shuo4
-鑢 lu:4
+鑢 lv4
 镳 biao1
 镥 lu3
 𬬻 lu2
@@ -9659,7 +9659,7 @@ T t
 闽 min3
 阃 kun3
 阆 lang2,lang4
-闾 lu:2
+闾 lv2
 阅 yue4
 閲 yue4
 閳 chan3
@@ -10119,7 +10119,7 @@ T t
 驯 xun4
 馵 zhu4
 驲 ri4
-驴 lu:2
+驴 lv2
 驳 bo2
 𫘝 kuai4
 駄 tuo2
