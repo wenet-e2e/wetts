@@ -23,11 +23,11 @@
 namespace wetts {
 
 TtsModel::TtsModel(const std::string& model_path,
-                   std::shared_ptr<wetext::Processor> processor,
+                   std::shared_ptr<wetext::Processor> tn,
                    std::shared_ptr<G2pProsody> g2p_prosody)
     : OnnxModel(model_path),
-    processor_(std::move(processor)),
-    g2p_prosody_(std::move(g2p_prosody)) {
+      tn_(std::move(tn)),
+      g2p_prosody_(std::move(g2p_prosody)) {
   // TODO(zhendong.peng): Read metadata
   // auto model_metadata = session_->GetModelMetadata();
   // Ort::AllocatorWithDefaultOptions allocator;
@@ -38,12 +38,13 @@ TtsModel::TtsModel(const std::string& model_path,
   // LOG(INFO) << "\tsampling_rate " << sampling_rate_;
 }
 
-void TtsModel::Forward(std::vector<int64_t>* phonemes,
+void TtsModel::Forward(const std::vector<int64_t>& phonemes,
                        std::vector<float>* audio) {
-  int num_phones = phonemes->size();
+  int num_phones = phonemes.size();
   const int64_t inputs_shape[] = {1, num_phones};
   auto inputs_ort = Ort::Value::CreateTensor<int64_t>(
-      memory_info_, phonemes->data(), num_phones, inputs_shape, 2);
+      memory_info_, const_cast<int64_t*>(phonemes.data()), num_phones,
+      inputs_shape, 2);
 
   std::vector<int64_t> inputs_len = {num_phones};
   const int64_t inputs_len_shape[] = {1};
@@ -70,7 +71,7 @@ void TtsModel::Forward(std::vector<int64_t>* phonemes,
 
 void TtsModel::Synthesis(const std::string& text, std::vector<float>* audio) {
   // 1. TN
-  std::string norm_text = processor_->normalize(text);
+  std::string norm_text = tn_->normalize(text);
   // 2. G2P: char => pinyin => phones => ids
   std::vector<std::string> pinyins;
   std::vector<int> prosody;
@@ -88,7 +89,7 @@ void TtsModel::Synthesis(const std::string& text, std::vector<float>* audio) {
     }
   }
 
-  Forward(&inputs, audio);
+  Forward(inputs, audio);
   for (size_t i = 0; i < audio->size(); i++) {
     (*audio)[i] *= 32767.0;
   }

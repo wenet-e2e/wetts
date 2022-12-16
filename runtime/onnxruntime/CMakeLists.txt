@@ -3,7 +3,9 @@ cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 project(wetts VERSION 0.1)
 
 set(CMAKE_VERBOSE_MAKEFILE OFF)
-set(ONNX ON)
+option(BUILD_TESTING "whether to build unit test" OFF)
+option(BUILD_SERVER "whether to build server binaries" OFF)
+option(ONNX "whether to build with ONNX" ON)
 
 include(FetchContent)
 set(FETCHCONTENT_QUIET OFF)
@@ -23,4 +25,10 @@ include(wetextprocessing)
 add_subdirectory(utils)
 add_subdirectory(model)
 add_subdirectory(frontend)
+
+if(BUILD_SERVER)
+  include(boost)
+  add_subdirectory(http)
+endif()
+
 add_subdirectory(bin)
