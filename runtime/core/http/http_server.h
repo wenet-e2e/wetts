@@ -15,6 +15,7 @@
 #ifndef HTTP_HTTP_SERVER_H_
 #define HTTP_HTTP_SERVER_H_
 
+#include <memory>
 #include <string>
 #include <thread>
 #include <utility>
