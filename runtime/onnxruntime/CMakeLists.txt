@@ -21,6 +21,6 @@ include(onnx)
 include(wetextprocessing)
 
 add_subdirectory(utils)
-add_subdirectory(frontend)
 add_subdirectory(model)
+add_subdirectory(frontend)
 add_subdirectory(bin)

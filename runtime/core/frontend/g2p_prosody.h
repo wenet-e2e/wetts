@@ -23,32 +23,24 @@
 
 #include "frontend/lexicon.h"
 #include "frontend/tokenizer.h"
+#include "model/onnx_model.h"
 
 namespace wetts {
 
 // Unified G2P & Prosody model
-class G2pProsody {
+class G2pProsody : public OnnxModel {
  public:
   explicit G2pProsody(const std::string& g2p_prosody_model,
                       const std::string& phone_file,
                       const std::string& tokenizer_vocab_file,
                       const std::string& lexicon_file);
-  void Compute(const std::string& str,
-               std::vector<std::string>* phonemes,
+  void Compute(const std::string& str, std::vector<std::string>* phonemes,
                std::vector<int>* prosody);
 
  private:
   std::vector<std::string> phones_;
   std::shared_ptr<Tokenizer> tokenizer_;
   std::shared_ptr<Lexicon> lexicon_;
-
-  static Ort::Env env_;  // shared environment across threads.
-  static Ort::SessionOptions session_options_;
-  std::shared_ptr<Ort::Session> session_ = nullptr;
-
-  // node names
-  std::vector<const char*> in_names_;
-  std::vector<const char*> out_names_;
 };
 
 }  // namespace wetts

@@ -23,34 +23,25 @@
 
 #include "glog/logging.h"
 
-#include "utils/onnx_utils.h"
 #include "utils/string.h"
 
 namespace wetts {
 
-
-Ort::Env G2pProsody::env_ = Ort::Env(ORT_LOGGING_LEVEL_WARNING, "");
-Ort::SessionOptions G2pProsody::session_options_ = Ort::SessionOptions();
-
 G2pProsody::G2pProsody(const std::string& g2p_prosody_model,
                        const std::string& phone_file,
                        const std::string& tokenizer_vocab_file,
-                       const std::string& lexicon_file) {
+                       const std::string& lexicon_file)
+    : OnnxModel(g2p_prosody_model) {
   // Load phone list file
   std::ifstream is(phone_file);
   std::string line;
   while (getline(is, line)) {
     phones_.emplace_back(line);
   }
-  // Load g2p & prosody model sessions
-  session_ = OnnxCreateSession(g2p_prosody_model, session_options_, &env_);
-  OnnxGetInputsOutputs(session_, &in_names_, &out_names_);
-
   // Load tokenizer
   tokenizer_ = std::make_shared<Tokenizer>(tokenizer_vocab_file);
   lexicon_ = std::make_shared<Lexicon>(lexicon_file);
 }
-
 
 void G2pProsody::Compute(const std::string& str,
                          std::vector<std::string>* phonemes,
@@ -60,18 +51,15 @@ void G2pProsody::Compute(const std::string& str,
   std::vector<int64_t> token_ids;
   std::vector<std::string> tokens;
   tokenizer_->Tokenize(str, &tokens, &token_ids);
-  auto memory_info =
-      Ort::MemoryInfo::CreateCpu(OrtDeviceAllocator, OrtMemTypeCPU);
   int num_tokens = token_ids.size();
   const int64_t inputs_shape[] = {1, num_tokens};
   auto inputs_ort = Ort::Value::CreateTensor<int64_t>(
-      memory_info, token_ids.data(), num_tokens, inputs_shape, 2);
+      memory_info_, token_ids.data(), num_tokens, inputs_shape, 2);
   std::vector<Ort::Value> ort_inputs;
   ort_inputs.push_back(std::move(inputs_ort));
-  auto outputs_ort =
-      session_->Run(Ort::RunOptions{nullptr},
-                    in_names_.data(), ort_inputs.data(), ort_inputs.size(),
-                    out_names_.data(), 2);
+  auto outputs_ort = session_->Run(
+      Ort::RunOptions{nullptr}, input_node_names_.data(), ort_inputs.data(),
+      ort_inputs.size(), output_node_names_.data(), 2);
   auto phoneme_info = outputs_ort[0].GetTensorTypeAndShapeInfo();
   int phoneme_dim = phoneme_info.GetShape()[2];
   const float* phoneme_data = outputs_ort[0].GetTensorData<float>();
@@ -82,8 +70,8 @@ void G2pProsody::Compute(const std::string& str,
     std::string phone;
     if (lexicon_->NumProns(tokens[i]) > 1) {
       const float* cur_data = phoneme_data + i * phoneme_dim;
-      int best_idx = std::max_element(cur_data,
-                                      cur_data + phoneme_dim) - cur_data;
+      int best_idx =
+          std::max_element(cur_data, cur_data + phoneme_dim) - cur_data;
       phone = phones_[best_idx];
     } else {
       phone = lexicon_->Prons(tokens[i]);
@@ -98,8 +86,8 @@ void G2pProsody::Compute(const std::string& str,
   // Remove [CLS] & [SEQ]
   for (int i = 1; i < num_tokens - 1; i++) {
     const float* cur_data = prosody_data + i * prosody_dim;
-    int best_idx = std::max_element(cur_data,
-                                    cur_data + prosody_dim) - cur_data;
+    int best_idx =
+        std::max_element(cur_data, cur_data + prosody_dim) - cur_data;
     prosody->emplace_back(best_idx);
   }
 }
