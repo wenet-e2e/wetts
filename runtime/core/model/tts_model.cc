@@ -18,9 +18,16 @@
 
 #include "glog/logging.h"
 
+#include "utils/string.h"
+
 namespace wetts {
 
-TtsModel::TtsModel(const std::string& model_path) : OnnxModel(model_path) {
+TtsModel::TtsModel(const std::string& model_path,
+                   std::shared_ptr<wetext::Processor> processor,
+                   std::shared_ptr<G2pProsody> g2p_prosody)
+    : OnnxModel(model_path),
+    processor_(std::move(processor)),
+    g2p_prosody_(std::move(g2p_prosody)) {
   // TODO(zhendong.peng): Read metadata
   // auto model_metadata = session_->GetModelMetadata();
   // Ort::AllocatorWithDefaultOptions allocator;
@@ -32,7 +39,7 @@ TtsModel::TtsModel(const std::string& model_path) : OnnxModel(model_path) {
 }
 
 void TtsModel::Forward(std::vector<int64_t>* phonemes,
-                           std::vector<float>* audio) {
+                       std::vector<float>* audio) {
   int num_phones = phonemes->size();
   const int64_t inputs_shape[] = {1, num_phones};
   auto inputs_ort = Ort::Value::CreateTensor<int64_t>(
@@ -59,6 +66,32 @@ void TtsModel::Forward(std::vector<int64_t>* phonemes,
   int len = outputs_ort[0].GetTensorTypeAndShapeInfo().GetShape()[2];
   const float* outputs = outputs_ort[0].GetTensorData<float>();
   audio->assign(outputs, outputs + len);
+}
+
+void TtsModel::Synthesis(const std::string& text, std::vector<float>* audio) {
+  // 1. TN
+  std::string norm_text = processor_->normalize(text);
+  // 2. G2P: char => pinyin => phones => ids
+  std::vector<std::string> pinyins;
+  std::vector<int> prosody;
+  g2p_prosody_->Compute(norm_text, &pinyins, &prosody);
+
+  std::vector<int64_t> inputs;
+  for (int i = 0; i < pinyins.size(); ++i) {
+    std::vector<std::string> phonemes;
+    SplitString(pinyins[i], &phonemes);
+    for (std::string phoneme : phonemes) {
+      inputs.emplace_back(std::stoi(phoneme));
+    }
+    if (prosody[i] != 0) {
+      inputs.emplace_back(prosody[i]);
+    }
+  }
+
+  Forward(&inputs, audio);
+  for (size_t i = 0; i < audio->size(); i++) {
+    (*audio)[i] *= 32767.0;
+  }
 }
 
 }  // namespace wetts

@@ -41,35 +41,16 @@ int main(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, false);
   google::InitGoogleLogging(argv[0]);
 
-  wetext::Processor processor(FLAGS_tagger_file, FLAGS_verbalizer_file);
-  wetts::G2pProsody g2p_prosody(FLAGS_g2p_prosody_model, FLAGS_phone_file,
-                                FLAGS_tokenizer_vocab_file, FLAGS_lexicon_file);
-  auto model = std::make_shared<wetts::TtsModel>(FLAGS_e2e_model_file);
-
-  // 1. TN
-  std::string normalized_text = processor.normalize(FLAGS_text);
-  // 2. G2P: char => pinyin => phones => ids
-  std::vector<std::string> pinyins;
-  std::vector<int> prosody;
-  g2p_prosody.Compute(normalized_text, &pinyins, &prosody);
-
-  std::vector<int64_t> inputs;
-  for (int i = 0; i < pinyins.size(); ++i) {
-    std::vector<std::string> phonemes;
-    wetts::SplitString(pinyins[i], &phonemes);
-    for (std::string phoneme : phonemes) {
-      inputs.emplace_back(std::stoi(phoneme));
-    }
-    if (prosody[i] != 0) {
-      inputs.emplace_back(prosody[i]);
-    }
-  }
+  auto processor = std::make_shared<wetext::Processor>(FLAGS_tagger_file,
+                                                       FLAGS_verbalizer_file);
+  auto g2p_prosody = std::make_shared<wetts::G2pProsody>(
+      FLAGS_g2p_prosody_model, FLAGS_phone_file, FLAGS_tokenizer_vocab_file,
+      FLAGS_lexicon_file);
+  auto model = std::make_shared<wetts::TtsModel>(FLAGS_e2e_model_file,
+                                                 processor, g2p_prosody);
 
   std::vector<float> audio;
-  model->Forward(&inputs, &audio);
-  for (size_t i = 0; i < audio.size(); i++) {
-    audio[i] *= 32767.0;
-  }
+  model->Synthesis(FLAGS_text, &audio);
 
   wetts::WavWriter wav_writer(audio.data(), audio.size(), 1, 22050, 16);
   wav_writer.Write(FLAGS_wav_path);
