@@ -621,7 +621,6 @@ class SynthesizerTrn(nn.Module):
               max_len=None):
         x, m_p, logs_p, x_mask = self.enc_p(x, x_lengths)
         if self.n_speakers > 0:
-            sid = torch.LongTensor([sid]).to(x.device)
             g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
         else:
             g = None
@@ -652,10 +651,11 @@ class SynthesizerTrn(nn.Module):
         o = self.dec((z * y_mask)[:, :, :max_len], g=g)
         return o, attn, y_mask, (z, z_p, m_p, logs_p)
 
-    def export_forward(self, x, x_lengths, scales):
+    def export_forward(self, x, x_lengths, scales, sid):
         # shape of scales: Bx3, make triton happy
         audio, *_ = self.infer(x,
                                x_lengths,
+                               sid,
                                noise_scale=scales[0][0],
                                length_scale=scales[0][1],
                                noise_scale_w=scales[0][2])
