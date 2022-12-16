@@ -72,3 +72,23 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     --speaker_table $data/speaker.txt \
     --test_file $data/test.txt
 fi
+
+
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+  mkdir -p $test_audio
+  python vits/export_onnx.py  \
+    --checkpoint $dir/G_950000.pth \
+    --cfg $config \
+    --onnx_model $dir/G_950000.onnx \
+    --phone_table $data/phones.txt \
+    --speaker_table $data/speaker.txt
+
+  python vits/inference_onnx.py  \
+    --onnx_model $dir/G_950000.onnx \
+    --cfg $config \
+    --outdir $test_audio \
+    --phone_table $data/phones.txt \
+    --speaker_table $data/speaker.txt \
+    --test_file $data/test.txt
+fi
+

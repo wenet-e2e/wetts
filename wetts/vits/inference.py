@@ -28,7 +28,9 @@ def get_args():
     parser.add_argument('--checkpoint', required=True, help='checkpoint')
     parser.add_argument('--cfg', required=True, help='config file')
     parser.add_argument('--outdir', required=True, help='ouput directory')
-    parser.add_argument('--phone_table', required=True, help='input phone dict')
+    parser.add_argument('--phone_table',
+                        required=True,
+                        help='input phone dict')
     parser.add_argument('--speaker_table', default=None, help='speaker table')
     parser.add_argument('--test_file', required=True, help='test file')
     args = parser.parse_args()
@@ -53,7 +55,8 @@ def main():
     hps = utils.get_hparams_from_file(args.cfg)
 
     net_g = SynthesizerTrn(
-        len(phone_dict) + 1, hps.data.filter_length // 2 + 1,
+        len(phone_dict) + 1,
+        hps.data.filter_length // 2 + 1,
         hps.train.segment_size // hps.data.hop_length,
         n_speakers=len(speaker_dict) + 1,  # 0 is kept for unknown speaker
         **hps.model).cuda()
@@ -77,6 +80,7 @@ def main():
             with torch.no_grad():
                 x = seq.cuda().unsqueeze(0)
                 x_length = torch.LongTensor([seq.size(0)]).cuda()
+                sid = torch.LongTensor([sid]).cuda()
                 audio = net_g.infer(
                     x,
                     x_length,

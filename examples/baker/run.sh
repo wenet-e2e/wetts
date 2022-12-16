@@ -57,7 +57,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     --checkpoint $dir/G_90000.pth \
     --cfg configs/base.json \
     --onnx_model $dir/G_90000.onnx \
-    --phone data/phones.txt
+    --phone_table data/phones.txt
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
@@ -66,7 +66,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     python vits/inference_onnx.py  \
       --onnx_model $dir/G_90000.onnx --cfg $config \
       --outdir $test_audio \
-      --phone $data/phones.txt \
+      --phone_table $data/phones.txt \
       --test_file $data/test.txt
   else
     python vits/inference.py  \
