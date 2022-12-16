@@ -14,6 +14,8 @@
 
 #include "http/http_server.h"
 
+#include <vector>
+
 #include "boost/beast/core.hpp"
 #include "boost/beast/version.hpp"
 #include "boost/url/src.hpp"

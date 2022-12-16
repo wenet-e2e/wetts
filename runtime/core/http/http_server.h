@@ -17,7 +17,8 @@
 
 #include <string>
 #include <thread>
-#include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include "boost/asio/ip/tcp.hpp"
 #include "boost/beast/http.hpp"
