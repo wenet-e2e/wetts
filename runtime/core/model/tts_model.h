@@ -36,7 +36,7 @@ class TtsModel : public OnnxModel {
 
  private:
   int sampling_rate_;
-  std::shared_ptr<wetext::Processor> processor_;
+  std::shared_ptr<wetext::Processor> tn_;
   std::shared_ptr<G2pProsody> g2p_prosody_;
 };
 
