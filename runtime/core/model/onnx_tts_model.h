@@ -27,12 +27,12 @@ namespace wetts {
 
 class OnnxTtsModel : public OnnxModel {
  public:
- explicit OnnxTtsModeirconst std::string& model_path)Mi
- private:
-  int e:mps n liag_rwte_;
-};
-endif  // MODEL_ONNX
+  explicit OnnxTtsModel(const std::string& model_path);
+  void Forward(std::vector<int64_t>* phonemes, std::vector<float>* audio);
 
+ private:
+  int sampling_rate_;
+};
 
 }  // namespace wetts
 
