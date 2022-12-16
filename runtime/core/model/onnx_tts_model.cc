@@ -22,7 +22,7 @@ namespace wetts {
 
 OnnxTtsModel::OnnxTtsModel(const std::string& model_path)
     : OnnxModel(model_path) {
-  // TODO: Read metadata
+  // TODO(zhendong.peng): Read metadata
   // auto model_metadata = session_->GetModelMetadata();
   // Ort::AllocatorWithDefaultOptions allocator;
   // sampling_rate_ =

@@ -26,7 +26,7 @@ namespace wetts {
 class OnnxModel {
  public:
   static void InitEngineThreads(int num_threads = 1);
-  OnnxModel(const std::string& model_path);
+  explicit OnnxModel(const std::string& model_path);
 
  protected:
   static Ort::Env env_;

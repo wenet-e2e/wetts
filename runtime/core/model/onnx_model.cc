@@ -18,7 +18,7 @@
 
 #include "glog/logging.h"
 
-#include "utils/string.cc"
+#include "utils/string.h"
 
 namespace wetts {
 
