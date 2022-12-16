@@ -4,6 +4,7 @@ project(wetts VERSION 0.1)
 
 set(CMAKE_VERBOSE_MAKEFILE OFF)
 option(BUILD_TESTING "whether to build unit test" OFF)
+option(BUILD_SERVER "whether to build server binaries" OFF)
 option(ONNX "whether to build with ONNX" ON)
 
 include(FetchContent)
@@ -16,7 +17,6 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -pthread")
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
-include(boost)
 include(glog)
 include(gflags)
 include(onnx)
@@ -25,5 +25,10 @@ include(wetextprocessing)
 add_subdirectory(utils)
 add_subdirectory(model)
 add_subdirectory(frontend)
-add_subdirectory(http)
+
+if(BUILD_SERVER)
+  include(boost)
+  add_subdirectory(http)
+endif()
+
 add_subdirectory(bin)
