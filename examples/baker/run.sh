@@ -72,7 +72,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     python vits/inference.py  \
       --checkpoint $dir/G_90000.pth --cfg $config \
       --outdir $test_audio \
-      --phone $data/phones.txt \
+      --phone_table $data/phones.txt \
       --test_file $data/test.txt
   fi
 fi

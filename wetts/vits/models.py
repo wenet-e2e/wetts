@@ -621,6 +621,7 @@ class SynthesizerTrn(nn.Module):
               max_len=None):
         x, m_p, logs_p, x_mask = self.enc_p(x, x_lengths)
         if self.n_speakers > 0:
+            sid = torch.LongTensor([sid]).to(x.device)
             g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
         else:
             g = None
