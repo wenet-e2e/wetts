@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef MODEL_ONNX_TTS_MODEL_H_
-#define MODEL_ONNX_TTS_MODEL_H_
+#ifndef MODEL_TTS_MODEL_H_
+#define MODEL_TTS_MODEL_H_
 
 #include <memory>
 #include <string>
@@ -25,9 +25,9 @@
 
 namespace wetts {
 
-class OnnxTtsModel : public OnnxModel {
+class TtsModel : public OnnxModel {
  public:
-  explicit OnnxTtsModel(const std::string& model_path);
+  explicit TtsModel(const std::string& model_path);
   void Forward(std::vector<int64_t>* phonemes, std::vector<float>* audio);
 
  private:
@@ -36,4 +36,4 @@ class OnnxTtsModel : public OnnxModel {
 
 }  // namespace wetts
 
-#endif  // MODEL_ONNX_TTS_MODEL_H_
+#endif  // MODEL_TTS_MODEL_H_

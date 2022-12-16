@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "model/onnx_tts_model.h"
+#include "model/tts_model.h"
 
 #include <utility>
 
@@ -20,8 +20,7 @@
 
 namespace wetts {
 
-OnnxTtsModel::OnnxTtsModel(const std::string& model_path)
-    : OnnxModel(model_path) {
+TtsModel::TtsModel(const std::string& model_path) : OnnxModel(model_path) {
   // TODO(zhendong.peng): Read metadata
   // auto model_metadata = session_->GetModelMetadata();
   // Ort::AllocatorWithDefaultOptions allocator;
@@ -32,7 +31,7 @@ OnnxTtsModel::OnnxTtsModel(const std::string& model_path)
   // LOG(INFO) << "\tsampling_rate " << sampling_rate_;
 }
 
-void OnnxTtsModel::Forward(std::vector<int64_t>* phonemes,
+void TtsModel::Forward(std::vector<int64_t>* phonemes,
                            std::vector<float>* audio) {
   int num_phones = phonemes->size();
   const int64_t inputs_shape[] = {1, num_phones};
