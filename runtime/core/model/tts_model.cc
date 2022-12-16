@@ -38,12 +38,13 @@ TtsModel::TtsModel(const std::string& model_path,
   // LOG(INFO) << "\tsampling_rate " << sampling_rate_;
 }
 
-void TtsModel::Forward(std::vector<int64_t>* phonemes,
+void TtsModel::Forward(const std::vector<int64_t>& phonemes,
                        std::vector<float>* audio) {
-  int num_phones = phonemes->size();
+  int num_phones = phonemes.size();
   const int64_t inputs_shape[] = {1, num_phones};
   auto inputs_ort = Ort::Value::CreateTensor<int64_t>(
-      memory_info_, phonemes->data(), num_phones, inputs_shape, 2);
+      memory_info_, const_cast<int64_t*>(phonemes.data()), num_phones,
+      inputs_shape, 2);
 
   std::vector<int64_t> inputs_len = {num_phones};
   const int64_t inputs_len_shape[] = {1};
@@ -88,7 +89,7 @@ void TtsModel::Synthesis(const std::string& text, std::vector<float>* audio) {
     }
   }
 
-  Forward(&inputs, audio);
+  Forward(inputs, audio);
   for (size_t i = 0; i < audio->size(); i++) {
     (*audio)[i] *= 32767.0;
   }
