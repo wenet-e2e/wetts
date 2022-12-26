@@ -75,9 +75,20 @@ void ConnectionHandler::operator()() {
     if (!params.contains("text")) break;
     std::string text = (*params.find("text")).value;
     LOG(INFO) << "input text: " << text;
+    // speaker id
+    std::string sid = "0";
+    if(params.contains("name"))
+    {
+      std::string name = (*params.find("name")).value;
+      sid = tts_model_->Getsid(name);
+      if(sid == ""){
+        LOG(INFO) << "Unsupported speaker: " << name <<", use default speaker!";
+        sid = "0";
+      }
+    }
     // 2. Synthesis audio from text
     std::vector<float> audio;
-    tts_model_->Synthesis(text, &audio);
+    tts_model_->Synthesis(text, sid, &audio);
     wetts::WavWriter wav_writer(audio.data(), audio.size(), 1, 22050, 16);
     // 3. Write samples to file named uuid.wav
     std::string wav_path =

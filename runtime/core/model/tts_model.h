@@ -18,6 +18,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <map>
 
 #include "onnxruntime_cxx_api.h"  // NOLINT
 #include "processor/processor.h"
@@ -29,13 +30,16 @@ namespace wetts {
 class TtsModel : public OnnxModel {
  public:
   explicit TtsModel(const std::string& model_path,
+                    const std::string& speaker_tabel_path,
                     std::shared_ptr<wetext::Processor> processor,
                     std::shared_ptr<G2pProsody> g2p_prosody);
-  void Forward(const std::vector<int64_t>& phonemes, std::vector<float>* audio);
-  void Synthesis(const std::string& text, std::vector<float>* audio);
+  void Forward(const std::vector<int64_t>& phonemes, const int sid, std::vector<float>* audio);
+  void Synthesis(const std::string& text, const std::string& sid, std::vector<float>* audio);
+  string Getsid(const std::string& name);
 
  private:
   int sampling_rate_;
+  std::map<string, string> speaker2id;
   std::shared_ptr<wetext::Processor> tn_;
   std::shared_ptr<G2pProsody> g2p_prosody_;
 };

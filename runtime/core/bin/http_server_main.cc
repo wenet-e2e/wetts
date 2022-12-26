@@ -25,6 +25,7 @@ DEFINE_string(phone_file, "", "phone list file");
 DEFINE_string(tokenizer_vocab_file, "", "tokenizer vocab file");
 DEFINE_string(lexicon_file, "", "lexicon file");
 DEFINE_string(e2e_model_file, "", "e2e tts model file");
+DEFINE_string(speaker_table, "", "speaker table");
 
 DEFINE_int32(port, 10086, "http listening port");
 
@@ -38,7 +39,7 @@ int main(int argc, char* argv[]) {
       FLAGS_g2p_prosody_model, FLAGS_phone_file, FLAGS_tokenizer_vocab_file,
       FLAGS_lexicon_file);
   auto tts_model =
-      std::make_shared<wetts::TtsModel>(FLAGS_e2e_model_file, tn, g2p_prosody);
+      std::make_shared<wetts::TtsModel>(FLAGS_e2e_model_file, FLAGS_speaker_table, tn, g2p_prosody);
 
   wetts::HttpServer server(FLAGS_port, tts_model);
   LOG(INFO) << "Listening at port " << FLAGS_port;

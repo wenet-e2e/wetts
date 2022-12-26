@@ -87,6 +87,12 @@ int UTF8StringLength(const std::string& str) {
   return len;
 }
 
+int StringToInt(const std::string& sid)
+{
+  int spk_id = std::stoi(sid);
+  return spk_id;
+}
+
 bool CheckEnglishChar(const std::string& ch) {
   // all english characters should be encoded in one byte
   if (ch.size() != 1) return false;
