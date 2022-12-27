@@ -77,12 +77,12 @@ void ConnectionHandler::operator()() {
     LOG(INFO) << "input text: " << text;
     // speaker id
     std::string sid = "0";
-    if(params.contains("name"))
-    {
+    if (params.contains("name")) {
       std::string name = (*params.find("name")).value;
       sid = tts_model_->Getsid(name);
-      if(sid == ""){
-        LOG(INFO) << "Unsupported speaker: " << name <<", use default speaker!";
+      if (sid == "") {
+        LOG(INFO) << "Unsupported speaker: " << name
+                  << ", use default speaker!";
         sid = "0";
       }
     }

@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "model/tts_model.h"
 #include <fstream>
 #include <string>
-#include "model/tts_model.h"
 
 #include <utility>
 
@@ -41,15 +41,13 @@ TtsModel::TtsModel(const std::string& model_path,
   // LOG(INFO) << "\tsampling_rate " << sampling_rate_;
   std::fstream infile(speaker_tabel_path);
   std::string name, id;
-  while(infile>>name>>id)
-  {
-        TtsModel::speaker2id[name] = id;
+  while (infile >> name >> id) {
+    TtsModel::speaker2id[name] = id;
   }
 }
 
-void TtsModel::Forward(const std::vector<int64_t>& phonemes,
-                      const int sid,
-                      std::vector<float>* audio) {
+void TtsModel::Forward(const std::vector<int64_t>& phonemes, const int sid,
+                       std::vector<float>* audio) {
   int num_phones = phonemes.size();
   const int64_t inputs_shape[] = {1, num_phones};
   auto inputs_ort = Ort::Value::CreateTensor<int64_t>(
@@ -85,9 +83,8 @@ void TtsModel::Forward(const std::vector<int64_t>& phonemes,
   audio->assign(outputs, outputs + len);
 }
 
-void TtsModel::Synthesis(const std::string& text, 
-                          const std::string& sid, 
-                          std::vector<float>* audio) {
+void TtsModel::Synthesis(const std::string& text, const std::string& sid,
+                         std::vector<float>* audio) {
   // 1. TN
   std::string norm_text = tn_->normalize(text);
   // 2. G2P: char => pinyin => phones => ids
@@ -106,18 +103,17 @@ void TtsModel::Synthesis(const std::string& text,
       inputs.emplace_back(prosody[i]);
     }
   }
-  
+
   // speaker id: str => int
   int spk_id = StringToInt(sid);
-  
+
   Forward(inputs, spk_id, audio);
   for (size_t i = 0; i < audio->size(); i++) {
     (*audio)[i] *= 32767.0;
   }
 }
 
-string TtsModel::Getsid(const std::string& name)
-{
+string TtsModel::Getsid(const std::string& name) {
   return TtsModel::speaker2id[name];
 }
 

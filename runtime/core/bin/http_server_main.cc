@@ -38,8 +38,8 @@ int main(int argc, char* argv[]) {
   auto g2p_prosody = std::make_shared<wetts::G2pProsody>(
       FLAGS_g2p_prosody_model, FLAGS_phone_file, FLAGS_tokenizer_vocab_file,
       FLAGS_lexicon_file);
-  auto tts_model =
-      std::make_shared<wetts::TtsModel>(FLAGS_e2e_model_file, FLAGS_speaker_table, tn, g2p_prosody);
+  auto tts_model = std::make_shared<wetts::TtsModel>(
+      FLAGS_e2e_model_file, FLAGS_speaker_table, tn, g2p_prosody);
 
   wetts::HttpServer server(FLAGS_port, tts_model);
   LOG(INFO) << "Listening at port " << FLAGS_port;

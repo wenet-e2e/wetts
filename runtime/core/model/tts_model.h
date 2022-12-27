@@ -15,10 +15,10 @@
 #ifndef MODEL_TTS_MODEL_H_
 #define MODEL_TTS_MODEL_H_
 
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
-#include <map>
 
 #include "onnxruntime_cxx_api.h"  // NOLINT
 #include "processor/processor.h"
@@ -33,8 +33,10 @@ class TtsModel : public OnnxModel {
                     const std::string& speaker_tabel_path,
                     std::shared_ptr<wetext::Processor> processor,
                     std::shared_ptr<G2pProsody> g2p_prosody);
-  void Forward(const std::vector<int64_t>& phonemes, const int sid, std::vector<float>* audio);
-  void Synthesis(const std::string& text, const std::string& sid, std::vector<float>* audio);
+  void Forward(const std::vector<int64_t>& phonemes, const int sid,
+               std::vector<float>* audio);
+  void Synthesis(const std::string& text, const std::string& sid,
+                 std::vector<float>* audio);
   string Getsid(const std::string& name);
 
  private:

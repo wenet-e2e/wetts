@@ -87,8 +87,7 @@ int UTF8StringLength(const std::string& str) {
   return len;
 }
 
-int StringToInt(const std::string& sid)
-{
+int StringToInt(const std::string& sid) {
   int spk_id = std::stoi(sid);
   return spk_id;
 }
@@ -109,7 +108,6 @@ bool IsChineseChar(const std::string& ch) {
     return false;
   }
 }
-
 
 std::string AddSpaceForChineseChar(const std::string& str) {
   std::string result;
@@ -135,7 +133,6 @@ std::string AddSpaceForChineseChar(const std::string& str) {
   }
   return result;
 }
-
 
 bool CheckEnglishWord(const std::string& word) {
   std::vector<std::string> chars;
