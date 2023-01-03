@@ -104,7 +104,6 @@ bool IsChineseChar(const std::string& ch) {
   }
 }
 
-
 std::string AddSpaceForChineseChar(const std::string& str) {
   std::string result;
   int bytes = 1;
@@ -129,7 +128,6 @@ std::string AddSpaceForChineseChar(const std::string& str) {
   }
   return result;
 }
-
 
 bool CheckEnglishWord(const std::string& word) {
   std::vector<std::string> chars;

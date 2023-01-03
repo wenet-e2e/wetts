@@ -13,6 +13,8 @@
 // limitations under the License.
 
 #include "model/tts_model.h"
+#include <fstream>
+#include <string>
 
 #include <utility>
 
@@ -23,6 +25,7 @@
 namespace wetts {
 
 TtsModel::TtsModel(const std::string& model_path,
+                   const std::string& speaker_tabel_path,
                    std::shared_ptr<wetext::Processor> tn,
                    std::shared_ptr<G2pProsody> g2p_prosody)
     : OnnxModel(model_path),
@@ -36,9 +39,15 @@ TtsModel::TtsModel(const std::string& model_path,
   //     allocator));
   // LOG(INFO) << "Onnx Model Info:";
   // LOG(INFO) << "\tsampling_rate " << sampling_rate_;
+  std::fstream infile(speaker_tabel_path);
+  std::string name;
+  int id;
+  while (infile >> name >> id) {
+    speaker2id_[name] = id;
+  }
 }
 
-void TtsModel::Forward(const std::vector<int64_t>& phonemes,
+void TtsModel::Forward(const std::vector<int64_t>& phonemes, const int sid,
                        std::vector<float>* audio) {
   int num_phones = phonemes.size();
   const int64_t inputs_shape[] = {1, num_phones};
@@ -56,10 +65,16 @@ void TtsModel::Forward(const std::vector<int64_t>& phonemes,
   auto scales_ort = Ort::Value::CreateTensor<float>(
       memory_info_, scales.data(), scales.size(), scales_shape, 2);
 
+  std::vector<int64_t> spk_id = {sid};
+  const int64_t spk_id_shape[] = {1};
+  auto sid_ort = Ort::Value::CreateTensor<int64_t>(
+      memory_info_, spk_id.data(), spk_id.size(), spk_id_shape, 1);
+
   std::vector<Ort::Value> ort_inputs;
   ort_inputs.push_back(std::move(inputs_ort));
   ort_inputs.push_back(std::move(inputs_len_ort));
   ort_inputs.push_back(std::move(scales_ort));
+  ort_inputs.push_back(std::move(sid_ort));
 
   auto outputs_ort = session_->Run(
       Ort::RunOptions{nullptr}, input_node_names_.data(), ort_inputs.data(),
@@ -69,7 +84,8 @@ void TtsModel::Forward(const std::vector<int64_t>& phonemes,
   audio->assign(outputs, outputs + len);
 }
 
-void TtsModel::Synthesis(const std::string& text, std::vector<float>* audio) {
+void TtsModel::Synthesis(const std::string& text, const int sid,
+                         std::vector<float>* audio) {
   // 1. TN
   std::string norm_text = tn_->normalize(text);
   // 2. G2P: char => pinyin => phones => ids
@@ -89,10 +105,19 @@ void TtsModel::Synthesis(const std::string& text, std::vector<float>* audio) {
     }
   }
 
-  Forward(inputs, audio);
+  Forward(inputs, sid, audio);
   for (size_t i = 0; i < audio->size(); i++) {
     (*audio)[i] *= 32767.0;
   }
 }
 
+int TtsModel::GetSid(const std::string& name) {
+  std::string default_sname = speaker2id_.begin()->first;
+  if (speaker2id_.find(name) == speaker2id_.end()) {
+    LOG(INFO) << "Invalid speaker name: " << name << ", ";
+    LOG(INFO) << "fallback to default speaker: " << default_sname;
+    return speaker2id_[default_sname];
+  }
+  return speaker2id_[name];
+}
 }  // namespace wetts

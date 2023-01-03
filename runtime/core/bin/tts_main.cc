@@ -22,7 +22,7 @@
 #include "utils/string.h"
 
 DEFINE_string(text, "", "input text");
-
+DEFINE_string(sname, "", "speaker name");
 DEFINE_string(tagger_file, "", "tagger fst file");
 DEFINE_string(verbalizer_file, "", "verbalizer fst file");
 
@@ -30,6 +30,7 @@ DEFINE_string(g2p_prosody_model, "", "g2p prosody model file");
 DEFINE_string(phone_file, "", "phone list file");
 DEFINE_string(tokenizer_vocab_file, "", "tokenizer vocab file");
 DEFINE_string(lexicon_file, "", "lexicon file");
+DEFINE_string(speaker_table, "", "speaker table");
 
 DEFINE_string(e2e_model_file, "", "e2e tts model file");
 DEFINE_string(wav_path, "", "output wave path");
@@ -43,11 +44,12 @@ int main(int argc, char* argv[]) {
   auto g2p_prosody = std::make_shared<wetts::G2pProsody>(
       FLAGS_g2p_prosody_model, FLAGS_phone_file, FLAGS_tokenizer_vocab_file,
       FLAGS_lexicon_file);
-  auto model =
-      std::make_shared<wetts::TtsModel>(FLAGS_e2e_model_file, tn, g2p_prosody);
+  auto model = std::make_shared<wetts::TtsModel>(
+      FLAGS_e2e_model_file, FLAGS_speaker_table, tn, g2p_prosody);
 
   std::vector<float> audio;
-  model->Synthesis(FLAGS_text, &audio);
+  int sid = model->GetSid(FLAGS_sname);
+  model->Synthesis(FLAGS_text, sid, &audio);
 
   wetts::WavWriter wav_writer(audio.data(), audio.size(), 1, 22050, 16);
   wav_writer.Write(FLAGS_wav_path);
