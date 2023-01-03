@@ -48,7 +48,7 @@ int main(int argc, char* argv[]) {
       FLAGS_e2e_model_file, FLAGS_speaker_table, tn, g2p_prosody);
 
   std::vector<float> audio;
-  int sid = model->Getsid(FLAGS_sname);
+  int sid = model->GetSid(FLAGS_sname);
   model->Synthesis(FLAGS_text, sid, &audio);
 
   wetts::WavWriter wav_writer(audio.data(), audio.size(), 1, 22050, 16);

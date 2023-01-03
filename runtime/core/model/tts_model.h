@@ -37,7 +37,7 @@ class TtsModel : public OnnxModel {
                std::vector<float>* audio);
   void Synthesis(const std::string& text, const int sid,
                  std::vector<float>* audio);
-  int Getsid(const std::string& name);
+  int GetSid(const std::string& name);
 
  private:
   int sampling_rate_;

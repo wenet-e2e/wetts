@@ -78,7 +78,7 @@ void ConnectionHandler::operator()() {
     // speaker id
     if (!params.contains("name")) break;
     std::string name = (*params.find("name")).value;
-    int sid = tts_model_->Getsid(name);
+    int sid = tts_model_->GetSid(name);
     // 2. Synthesis audio from text
     std::vector<float> audio;
     tts_model_->Synthesis(text, sid, &audio);

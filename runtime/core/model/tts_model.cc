@@ -111,11 +111,11 @@ void TtsModel::Synthesis(const std::string& text, const int sid,
   }
 }
 
-int TtsModel::Getsid(const std::string& name) {
+int TtsModel::GetSid(const std::string& name) {
   std::string default_sname = speaker2id_.begin()->first;
   if (speaker2id_.find(name) == speaker2id_.end()) {
     LOG(INFO) << "Invalid speaker name: " << name << ", ";
-    LOG(INFO) << "fallback to default speaker: " << default_sname << '\n';
+    LOG(INFO) << "fallback to default speaker: " << default_sname;
     return speaker2id_[default_sname];
   }
   return speaker2id_[name];
