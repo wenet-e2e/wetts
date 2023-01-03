@@ -22,7 +22,7 @@
 #include "utils/string.h"
 
 DEFINE_string(text, "", "input text");
-DEFINE_string(sid, "", "speaker id");
+DEFINE_string(sname, "", "speaker name");
 DEFINE_string(tagger_file, "", "tagger fst file");
 DEFINE_string(verbalizer_file, "", "verbalizer fst file");
 
@@ -48,7 +48,8 @@ int main(int argc, char* argv[]) {
       FLAGS_e2e_model_file, FLAGS_speaker_table, tn, g2p_prosody);
 
   std::vector<float> audio;
-  model->Synthesis(FLAGS_text, FLAGS_sid, &audio);
+  int sid = model->Getsid(FLAGS_sname);
+  model->Synthesis(FLAGS_text, sid, &audio);
 
   wetts::WavWriter wav_writer(audio.data(), audio.size(), 1, 22050, 16);
   wav_writer.Write(FLAGS_wav_path);

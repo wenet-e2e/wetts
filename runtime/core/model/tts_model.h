@@ -35,13 +35,13 @@ class TtsModel : public OnnxModel {
                     std::shared_ptr<G2pProsody> g2p_prosody);
   void Forward(const std::vector<int64_t>& phonemes, const int sid,
                std::vector<float>* audio);
-  void Synthesis(const std::string& text, const std::string& sid,
+  void Synthesis(const std::string& text, const int sid,
                  std::vector<float>* audio);
-  string Getsid(const std::string& name);
+  int Getsid(const std::string& name);
 
  private:
   int sampling_rate_;
-  std::map<string, string> speaker2id;
+  std::map<std::string, int> speaker2id_;
   std::shared_ptr<wetext::Processor> tn_;
   std::shared_ptr<G2pProsody> g2p_prosody_;
 };

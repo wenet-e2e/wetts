@@ -46,8 +46,6 @@ void SplitUTF8StringToChars(const std::string& str,
 
 int UTF8StringLength(const std::string& str);
 
-int StringToInt(const std::string& sid);
-
 // Check whether the UTF-8 char is alphabet or '.
 bool CheckEnglishChar(const std::string& ch);
 

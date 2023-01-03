@@ -40,9 +40,10 @@ TtsModel::TtsModel(const std::string& model_path,
   // LOG(INFO) << "Onnx Model Info:";
   // LOG(INFO) << "\tsampling_rate " << sampling_rate_;
   std::fstream infile(speaker_tabel_path);
-  std::string name, id;
+  std::string name;
+  int id;
   while (infile >> name >> id) {
-    TtsModel::speaker2id[name] = id;
+    speaker2id_[name] = id;
   }
 }
 
@@ -83,7 +84,7 @@ void TtsModel::Forward(const std::vector<int64_t>& phonemes, const int sid,
   audio->assign(outputs, outputs + len);
 }
 
-void TtsModel::Synthesis(const std::string& text, const std::string& sid,
+void TtsModel::Synthesis(const std::string& text, const int sid,
                          std::vector<float>* audio) {
   // 1. TN
   std::string norm_text = tn_->normalize(text);
@@ -104,17 +105,23 @@ void TtsModel::Synthesis(const std::string& text, const std::string& sid,
     }
   }
 
-  // speaker id: str => int
-  int spk_id = StringToInt(sid);
-
-  Forward(inputs, spk_id, audio);
+  Forward(inputs, sid, audio);
   for (size_t i = 0; i < audio->size(); i++) {
     (*audio)[i] *= 32767.0;
   }
 }
 
-string TtsModel::Getsid(const std::string& name) {
-  return TtsModel::speaker2id[name];
+int TtsModel::Getsid(const std::string& name) {
+  std::string default_sname = speaker2id_.begin()->first;
+  try {
+    if (speaker2id_.find(name) == speaker2id_.end()) {
+      throw name;
+    }
+  } catch (std::string invalid_name) {
+    LOG(INFO) << "Invalid speaker name: " << invalid_name << ", ";
+    LOG(INFO) << "fallback to default speaker: " << default_sname << '\n';
+    return speaker2id_[default_sname];
+  }
+  return speaker2id_[name];
 }
-
 }  // namespace wetts
