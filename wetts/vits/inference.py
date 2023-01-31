@@ -13,6 +13,9 @@
 # limitations under the License.
 
 import argparse
+import os
+import sys
+import time
 
 import numpy as np
 from scipy.io import wavfile
@@ -33,6 +36,10 @@ def get_args():
                         help='input phone dict')
     parser.add_argument('--speaker_table', default=None, help='speaker table')
     parser.add_argument('--test_file', required=True, help='test file')
+    parser.add_argument('--gpu',
+                        type=int,
+                        default=-1,
+                        help='gpu id for this local rank, -1 for cpu')
     args = parser.parse_args()
     return args
 
@@ -40,6 +47,12 @@ def get_args():
 def main():
     args = get_args()
     print(args)
+    torch.set_num_threads(1)
+    torch.set_num_interop_threads(1)
+    os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu)
+    use_cuda = args.gpu >= 0 and torch.cuda.is_available()
+    device = torch.device('cuda' if use_cuda else 'cpu')
+
     phone_dict = {}
     with open(args.phone_table) as p_f:
         for line in p_f:
@@ -59,7 +72,9 @@ def main():
         hps.data.filter_length // 2 + 1,
         hps.train.segment_size // hps.data.hop_length,
         n_speakers=len(speaker_dict) + 1,  # 0 is kept for unknown speaker
-        **hps.model).cuda()
+        **hps.model)
+    net_g = net_g.to(device)
+
     net_g.eval()
     utils.load_checkpoint(args.checkpoint, net_g, None)
 
@@ -77,10 +92,12 @@ def main():
             if hps.data.add_blank:
                 seq = commons.intersperse(seq, 0)
             seq = torch.LongTensor(seq)
+            print(audio_path)
             with torch.no_grad():
-                x = seq.cuda().unsqueeze(0)
-                x_length = torch.LongTensor([seq.size(0)]).cuda()
-                sid = torch.LongTensor([sid]).cuda()
+                x = seq.to(device).unsqueeze(0)
+                x_length = torch.LongTensor([seq.size(0)]).to(device)
+                sid = torch.LongTensor([sid]).to(device)
+                st = time.time()
                 audio = net_g.infer(
                     x,
                     x_length,
@@ -89,6 +106,8 @@ def main():
                     noise_scale_w=0.8,
                     length_scale=1)[0][0, 0].data.cpu().float().numpy()
                 audio *= 32767 / max(0.01, np.max(np.abs(audio))) * 0.6
+                print('RTF {}'.format((time.time() - st) / (audio.shape[0] / hps.data.sampling_rate)))
+                sys.stdout.flush()
                 audio = np.clip(audio, -32767.0, 32767.0)
                 wavfile.write(args.outdir + "/" + audio_path.split("/")[-1],
                               hps.data.sampling_rate, audio.astype(np.int16))

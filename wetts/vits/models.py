@@ -1,4 +1,5 @@
 import math
+import time
 
 import torch
 from torch import nn
@@ -619,12 +620,13 @@ class SynthesizerTrn(nn.Module):
               length_scale=1,
               noise_scale_w=1.,
               max_len=None):
+        t1 = time.time()
         x, m_p, logs_p, x_mask = self.enc_p(x, x_lengths)
         if self.n_speakers > 0:
             g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
         else:
             g = None
-
+        t2 = time.time()
         if self.use_sdp:
             logw = self.dp(x,
                            x_mask,
@@ -633,6 +635,7 @@ class SynthesizerTrn(nn.Module):
                            noise_scale=noise_scale_w)
         else:
             logw = self.dp(x, x_mask, g=g)
+        t3 = time.time()
         w = torch.exp(logw) * x_mask * length_scale
         w_ceil = torch.ceil(w)
         y_lengths = torch.clamp_min(torch.sum(w_ceil, [1, 2]), 1).long()
@@ -647,8 +650,13 @@ class SynthesizerTrn(nn.Module):
             1, 2)).transpose(1, 2)  # [b, t', t], [b, t, d] -> [b, d, t']
 
         z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
+        t4 = time.time()
         z = self.flow(z_p, y_mask, g=g, reverse=True)
+        print(z.size())
+        t5 = time.time()
         o = self.dec((z * y_mask)[:, :, :max_len], g=g)
+        t6 = time.time()
+        print('TextEncoder {} DurationPredictor {} Flow {} Decoder {}'.format(t2 - t1, t3 - t2, t5 - t4, t6 - t5))
         return o, attn, y_mask, (z, z_p, m_p, logs_p)
 
     def export_forward(self, x, x_lengths, scales, sid):
