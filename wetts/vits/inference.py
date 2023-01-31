@@ -106,7 +106,9 @@ def main():
                     noise_scale_w=0.8,
                     length_scale=1)[0][0, 0].data.cpu().float().numpy()
                 audio *= 32767 / max(0.01, np.max(np.abs(audio))) * 0.6
-                print('RTF {}'.format((time.time() - st) / (audio.shape[0] / hps.data.sampling_rate)))
+                print('RTF {}'.format(
+                    (time.time() - st) /
+                    (audio.shape[0] / hps.data.sampling_rate)))
                 sys.stdout.flush()
                 audio = np.clip(audio, -32767.0, 32767.0)
                 wavfile.write(args.outdir + "/" + audio_path.split("/")[-1],

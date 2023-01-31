@@ -656,7 +656,8 @@ class SynthesizerTrn(nn.Module):
         t5 = time.time()
         o = self.dec((z * y_mask)[:, :, :max_len], g=g)
         t6 = time.time()
-        print('TextEncoder {} DurationPredictor {} Flow {} Decoder {}'.format(t2 - t1, t3 - t2, t5 - t4, t6 - t5))
+        print('TextEncoder {} DurationPredictor {} Flow {} Decoder {}'.format(
+            t2 - t1, t3 - t2, t5 - t4, t6 - t5))
         return o, attn, y_mask, (z, z_p, m_p, logs_p)
 
     def export_forward(self, x, x_lengths, scales, sid):
