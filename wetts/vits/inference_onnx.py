@@ -83,8 +83,6 @@ def main():
             if hps.data.add_blank:
                 seq = commons.intersperse(seq, 0)
 
-            if hps.data.add_blank:
-                seq = commons.intersperse(seq, 0)
             x = torch.LongTensor([seq])
             x_len = torch.IntTensor([x.size(1)]).long()
             sid = torch.LongTensor([sid]).long()
