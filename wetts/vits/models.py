@@ -561,7 +561,7 @@ class SynthesizerTrn(nn.Module):
     def forward(self, x, x_lengths, y, y_lengths, sid=None):
 
         x, m_p, logs_p, x_mask = self.enc_p(x, x_lengths)
-        if self.n_speakers > 0:
+        if self.n_speakers > 1:
             g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
         else:
             g = None
