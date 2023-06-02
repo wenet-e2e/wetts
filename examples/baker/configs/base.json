@@ -44,6 +44,7 @@
     "upsample_initial_channel": 512,
     "upsample_kernel_sizes": [16,16,4,4],
     "n_layers_q": 3,
-    "use_spectral_norm": false
+    "use_spectral_norm": false,
+    "gin_channels": 256
   }
 }
