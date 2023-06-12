@@ -37,9 +37,16 @@ We mainly focus on end to end, production, and on-device TTS. We are going to us
 
 We plan to support a variaty of open source TTS datasets, include but not limited to:
 
-* [baker](https://www.data-baker.com/data/index/TNtts/), Chinese Standard Mandarin Speech corpus open sourced by Data Baker.
+* [Baker](https://www.data-baker.com/data/index/TNtts/), Chinese Standard Mandarin Speech corpus open sourced by Data Baker.
 * [AISHELL-3](https://openslr.org/93/), a large-scale and high-fidelity multi-speaker Mandarin speech corpus.
 * [Opencpop](https://wenet.org.cn/opencpop/), Mandarin singing voice synthesis (SVS) corpus open sourced by Netease Fuxi.
+
+## Pretrained Models
+
+| Dataset | Language | Checkpoint Model | Runtime Model |
+| ------- | -------- | ---------------- | ------------- |
+| Baker   | CN       | [BERT](https://pengzhendong.github.io/modelscope/?models=wetts&version=baker_bert_exp.tar.gz) | [BERT](https://pengzhendong.github.io/modelscope/?models=wetts&version=baker_bert_onnx.tar.gz) |
+| Baker   | CN       | [VITS](https://pengzhendong.github.io/modelscope/?models=wetts&version=baker_vits_v1_exp.tar.gz) | [VITS](https://pengzhendong.github.io/modelscope/?models=wetts&version=baker_vits_v1_onnx.tar.gz) |
 
 ## Runtime
 
