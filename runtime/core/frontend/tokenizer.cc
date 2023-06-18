@@ -14,8 +14,8 @@
 
 #include "frontend/tokenizer.h"
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <string>
 
 #include "utils/string.h"
@@ -32,41 +32,25 @@ Tokenizer::Tokenizer(const std::string& vocab_file) {
   }
 }
 
-
 void Tokenizer::Tokenize(const std::string& str,
                          std::vector<std::string>* tokens,
                          std::vector<int64_t>* token_ids) const {
-  std::string space_str = AddSpaceForChineseChar(str);
-  std::vector<std::string> split_strs;
-  SplitString(space_str, &split_strs);
+  std::vector<std::string> chars;
+  SplitUTF8StringToChars(str, &chars);
 
-  tokens->clear();
   tokens->emplace_back(cls_token_);
-  for (const std::string& token : split_strs) {
+  for (int i = 0; i < chars.size(); ++i) {
+    std::string& token = chars[i];
+    if (token == " ") {
+      continue;
+    }
     if (IsChineseChar(token)) {
-      // TODO(Binbin Zhang): Chinese OOV
       tokens->emplace_back(token);
-    } else {
-      // TODO(Binbin Zhang): Normal to lower case? Or we already done it in TN
-      // Word piece Encoding, greedy match
-      for (int start = 0; start < token.size();) {
-        bool oov = true;
-        for (int end = token.size(); end > start; end--) {
-          std::string substr = token.substr(start, end - start);
-          if (start > 0) {
-            substr = "##" + substr;
-          }
-          if (vocab_.find(substr) != vocab_.end()) {
-            tokens->emplace_back(substr);
-            start = end;
-            oov = false;
-            break;
-          }
-        }
-        if (oov) {
-          tokens->emplace_back("[UNK]");
-          start++;
-        }
+    } else if (IsAlpha(token)) {
+      tokens->emplace_back(token);
+      while (i + 1 < chars.size() && IsAlpha(chars[i + 1])) {
+        ++i;
+        tokens->back() += chars[i];
       }
     }
   }

@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 #include "frontend/lexicon.h"
 
 #include <fstream>
@@ -27,6 +26,8 @@
 
 namespace wetts {
 
+const char Lexicon::UNK[] = "<UNK>";
+
 Lexicon::Lexicon(const std::string& lexicon_file) {
   std::ifstream is(lexicon_file);
   std::string line;
@@ -34,31 +35,27 @@ Lexicon::Lexicon(const std::string& lexicon_file) {
     size_t pos = line.find(' ');
     CHECK(pos != std::string::npos);
     std::string word = line.substr(0, pos);
-    std::string prons = line.substr(pos + 1);
-    int num_prons = 0;
-    while (pos != std::string::npos) {
-      pos = line.find(',', pos + 1);
-      num_prons++;
-    }
-    lexicon_[word] = std::make_pair(num_prons, prons);
+    std::string prons_str = line.substr(pos + 1);
+    std::vector<std::string> prons;
+    SplitStringToVector(prons_str, ",", true, &prons);
+    lexicon_[word] = std::move(prons);
   }
+  unk_.emplace_back(UNK);
 }
-
 
 int Lexicon::NumProns(const std::string& word) {
   if (lexicon_.find(word) != lexicon_.end()) {
-    return lexicon_[word].first;
+    return lexicon_[word].size();
   } else {
     return 0;
   }
 }
 
-
-std::string Lexicon::Prons(const std::string& word) {
+const std::vector<std::string>& Lexicon::Prons(const std::string& word) {
   if (lexicon_.find(word) != lexicon_.end()) {
-    return lexicon_[word].second;
+    return lexicon_[word];
   } else {
-    return "<UNK>";
+    return unk_;
   }
 }
 

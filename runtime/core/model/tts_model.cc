@@ -21,30 +21,19 @@
 #include "glog/logging.h"
 
 #include "utils/string.h"
+#include "utils/utils.h"
 
 namespace wetts {
 
-TtsModel::TtsModel(const std::string& model_path,
-                   const std::string& speaker_tabel_path,
+TtsModel::TtsModel(const std::string& model_path, const std::string& speaker2id,
+                   const std::string& phone2id,
                    std::shared_ptr<wetext::Processor> tn,
                    std::shared_ptr<G2pProsody> g2p_prosody)
     : OnnxModel(model_path),
       tn_(std::move(tn)),
       g2p_prosody_(std::move(g2p_prosody)) {
-  // TODO(zhendong.peng): Read metadata
-  // auto model_metadata = session_->GetModelMetadata();
-  // Ort::AllocatorWithDefaultOptions allocator;
-  // sampling_rate_ =
-  //     atoi(model_metadata.LookupCustomMetadataMap("sampling_rate",
-  //     allocator));
-  // LOG(INFO) << "Onnx Model Info:";
-  // LOG(INFO) << "\tsampling_rate " << sampling_rate_;
-  std::fstream infile(speaker_tabel_path);
-  std::string name;
-  int id;
-  while (infile >> name >> id) {
-    speaker2id_[name] = id;
-  }
+  ReadTableFile(phone2id, &phone2id_);
+  ReadTableFile(speaker2id, &speaker2id_);
 }
 
 void TtsModel::Forward(const std::vector<int64_t>& phonemes, const int sid,
@@ -89,20 +78,16 @@ void TtsModel::Synthesis(const std::string& text, const int sid,
   // 1. TN
   std::string norm_text = tn_->normalize(text);
   // 2. G2P: char => pinyin => phones => ids
-  std::vector<std::string> pinyins;
-  std::vector<int> prosody;
-  g2p_prosody_->Compute(norm_text, &pinyins, &prosody);
+  std::vector<std::string> phonemes;
+  g2p_prosody_->Compute(norm_text, &phonemes);
 
   std::vector<int64_t> inputs;
-  for (int i = 0; i < pinyins.size(); ++i) {
-    std::vector<std::string> phonemes;
-    SplitString(pinyins[i], &phonemes);
-    for (std::string phoneme : phonemes) {
-      inputs.emplace_back(std::stoi(phoneme));
+  for (const auto& phone : phonemes) {
+    if (phone2id_.count(phone) == 0) {
+      LOG(ERROR) << "Can't find `" << phone << "` in phone2id.";
+      continue;
     }
-    if (prosody[i] != 0) {
-      inputs.emplace_back(prosody[i]);
-    }
+    inputs.emplace_back(phone2id_[phone]);
   }
 
   Forward(inputs, sid, audio);

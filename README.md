@@ -57,6 +57,23 @@ We plan to support a variaty of hardwares and platforms, including:
 * Raspberry Pi
 * Other on-device platforms
 
+``` bash
+./build/bin/tts_main \
+  --tagger baker_bert_onnx/zh_tn_tagger.fst \
+  --verbalizer baker_bert_onnx/zh_tn_verbalizer.fst \
+  --vocab baker_bert_onnx/vocab.txt \
+  --char2pinyin baker_bert_onnx/pinyin_dict.txt \
+  --pinyin2id baker_bert_onnx/polyphone_phone.txt \
+  --pinyin2phones baker_bert_onnx/lexicon.txt \
+  --g2p_prosody_model baker_bert_onnx/19.onnx \
+  --speaker2id baker_vits_v1_onnx/speaker.txt \
+  --sname baker \
+  --phone2id baker_vits_v1_onnx/phones.txt \
+  --vits_model baker_vits_v1_onnx/G_250000.onnx \
+  --text "你好，我是小明。" \
+  --wav_path audio.wav
+```
+
 ## Discussion & Communication
 
 For Chinese users, you can aslo scan the QR code on the left to follow our offical account of WeNet.

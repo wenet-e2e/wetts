@@ -15,9 +15,9 @@
 #ifndef MODEL_TTS_MODEL_H_
 #define MODEL_TTS_MODEL_H_
 
-#include <map>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "onnxruntime_cxx_api.h"  // NOLINT
@@ -30,7 +30,7 @@ namespace wetts {
 class TtsModel : public OnnxModel {
  public:
   explicit TtsModel(const std::string& model_path,
-                    const std::string& speaker_tabel_path,
+                    const std::string& speaker2id, const std::string& phone2id,
                     std::shared_ptr<wetext::Processor> processor,
                     std::shared_ptr<G2pProsody> g2p_prosody);
   void Forward(const std::vector<int64_t>& phonemes, const int sid,
@@ -41,7 +41,8 @@ class TtsModel : public OnnxModel {
 
  private:
   int sampling_rate_;
-  std::map<std::string, int> speaker2id_;
+  std::unordered_map<std::string, int> phone2id_;
+  std::unordered_map<std::string, int> speaker2id_;
   std::shared_ptr<wetext::Processor> tn_;
   std::shared_ptr<G2pProsody> g2p_prosody_;
 };
