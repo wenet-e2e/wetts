@@ -21,31 +21,34 @@
 #include "model/tts_model.h"
 #include "utils/string.h"
 
-DEFINE_string(text, "", "input text");
-DEFINE_string(sname, "", "speaker name");
-DEFINE_string(tagger_file, "", "tagger fst file");
-DEFINE_string(verbalizer_file, "", "verbalizer fst file");
+DEFINE_string(tagger, "", "tagger fst file");
+DEFINE_string(verbalizer, "", "verbalizer fst file");
 
+DEFINE_string(vocab, "", "tokenizer vocab file");
+
+DEFINE_string(char2pinyin, "", "chinese character to pinyin");
+DEFINE_string(pinyin2id, "", "pinyin to id");
+DEFINE_string(pinyin2phones, "", "pinyin to phones");
 DEFINE_string(g2p_prosody_model, "", "g2p prosody model file");
-DEFINE_string(phone_file, "", "phone list file");
-DEFINE_string(tokenizer_vocab_file, "", "tokenizer vocab file");
-DEFINE_string(lexicon_file, "", "lexicon file");
-DEFINE_string(speaker_table, "", "speaker table");
 
-DEFINE_string(e2e_model_file, "", "e2e tts model file");
+DEFINE_string(speaker2id, "", "speaker to id");
+DEFINE_string(phone2id, "", "phone to id");
+DEFINE_string(sname, "", "speaker name");
+DEFINE_string(vits_model, "", "e2e tts model file");
+
+DEFINE_string(text, "", "input text");
 DEFINE_string(wav_path, "", "output wave path");
 
 int main(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, false);
   google::InitGoogleLogging(argv[0]);
 
-  auto tn = std::make_shared<wetext::Processor>(FLAGS_tagger_file,
-                                                FLAGS_verbalizer_file);
+  auto tn = std::make_shared<wetext::Processor>(FLAGS_tagger, FLAGS_verbalizer);
   auto g2p_prosody = std::make_shared<wetts::G2pProsody>(
-      FLAGS_g2p_prosody_model, FLAGS_phone_file, FLAGS_tokenizer_vocab_file,
-      FLAGS_lexicon_file);
+      FLAGS_g2p_prosody_model, FLAGS_vocab, FLAGS_char2pinyin, FLAGS_pinyin2id,
+      FLAGS_pinyin2phones);
   auto model = std::make_shared<wetts::TtsModel>(
-      FLAGS_e2e_model_file, FLAGS_speaker_table, tn, g2p_prosody);
+      FLAGS_vits_model, FLAGS_speaker2id, FLAGS_phone2id, tn, g2p_prosody);
 
   std::vector<float> audio;
   int sid = model->GetSid(FLAGS_sname);

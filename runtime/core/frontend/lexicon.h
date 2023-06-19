@@ -18,6 +18,7 @@
 #include <string>
 #include <unordered_map>
 #include <utility>
+#include <vector>
 
 namespace wetts {
 
@@ -25,17 +26,17 @@ namespace wetts {
 // 今 jin1
 // 天 tian1
 // 好 hao3,hao4
-// TODAY T AH D EY
-// DESERT D EH1 Z ER0 T,D IH0 Z ER1 T
 
 class Lexicon {
  public:
+  static const char UNK[];
   explicit Lexicon(const std::string& lexicon_file);
   int NumProns(const std::string& word);
-  std::string Prons(const std::string& word);
+  const std::vector<std::string>& Prons(const std::string& word);
 
  private:
-  std::unordered_map<std::string, std::pair<int, std::string>> lexicon_;
+  std::unordered_map<std::string, std::vector<std::string>> lexicon_;
+  std::vector<std::string> unk_;
 };
 
 }  // namespace wetts

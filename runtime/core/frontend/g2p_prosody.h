@@ -17,6 +17,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "onnxruntime_cxx_api.h"  // NOLINT
@@ -31,16 +32,16 @@ namespace wetts {
 class G2pProsody : public OnnxModel {
  public:
   explicit G2pProsody(const std::string& g2p_prosody_model,
-                      const std::string& phone_file,
-                      const std::string& tokenizer_vocab_file,
-                      const std::string& lexicon_file);
-  void Compute(const std::string& str, std::vector<std::string>* phonemes,
-               std::vector<int>* prosody);
+                      const std::string& vocab, const std::string& char2pinyin,
+                      const std::string& pinyin2id,
+                      const std::string& pinyin2phones);
+  void Compute(const std::string& str, std::vector<std::string>* phonemes);
 
  private:
-  std::vector<std::string> phones_;
+  std::unordered_map<std::string, int> phones_;
   std::shared_ptr<Tokenizer> tokenizer_;
   std::shared_ptr<Lexicon> lexicon_;
+  std::unordered_map<std::string, std::vector<std::string>> pinyin2phones_;
 };
 
 }  // namespace wetts

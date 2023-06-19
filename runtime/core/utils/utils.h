@@ -1,4 +1,4 @@
-// Copyright (c) 2022, Binbin Zhang (binbzha@qq.com)
+// Copyright (c) 2023 Zhendong Peng (pzd17@tsinghua.org.cn)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,26 +12,31 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifndef UTILS_UTILS_H_
+#define UTILS_UTILS_H_
+
 #include <fstream>
-#include <iostream>
 #include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 #include "glog/logging.h"
-#include "gflags/gflags.h"
 
-#include "frontend/lexicon.h"
+#include "utils/string.h"
 
-DEFINE_string(lexicon_file, "", "lexicon file");
+namespace wetts {
 
-int main(int argc, char* argv[]) {
-  gflags::ParseCommandLineFlags(&argc, &argv, false);
-  google::InitGoogleLogging(argv[0]);
+void ReadTableFile(const std::string& file,
+                   std::unordered_map<std::string, int>* map);
 
-  wetts::Lexicon lexicon(FLAGS_lexicon_file);
-  std::cout << lexicon.NumProns("和");
-  std::cout << lexicon.Prons("和");
+void ReadTableFile(const std::string& file,
+                   std::unordered_map<std::string, std::string>* map);
 
-  std::cout << lexicon.NumProns("我");
-  std::cout << lexicon.Prons("我");
-  return 0;
-}
+void ReadTableFile(
+    const std::string& file,
+    std::unordered_map<std::string, std::vector<std::string>>* map);
+
+}  // namespace wetts
+
+#endif  // UTILS_UTILS_H_
