@@ -156,6 +156,9 @@ def rule(C, V, R, T):
 
 def generate_lexicon(with_tone=False, with_erhua=False):
     """Generate lexicon for Mandarin Chinese."""
+    print(f"[generate_lexicon] with_tone = {with_tone}")
+    print(f"[generate_lexicon] with_erhua = {with_erhua}")
+
     syllables = OrderedDict()
 
     for C in [''] + INITIALS:
@@ -183,17 +186,22 @@ def generate_symbols(lexicon):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Generate lexicon for Chinese pinyin to phoneme for MFA")
-    parser.add_argument("lexicon", type=str, help="Path to save lexicon.")
-    parser.add_argument("phones", type=str, help="Path to save lexicon.")
+    parser.add_argument("lexicon", type=str, default="./lexicon.txt", help="Path to save lexicon.")
+    parser.add_argument("phones", type=str, default="./phones.txt", help="Path to save lexicon.")
     parser.add_argument("--with-tone",
                         action="store_true",
+                        default=False,
                         help="whether to consider tone.")
     parser.add_argument("--with-r",
                         action="store_true",
+                        default=False,
                         help="whether to consider erhua.")
     args = parser.parse_args()
+    # args.lexicon = "./lexicon.txt"
+    # args.phones = "./phones.list"
 
     lexicon = generate_lexicon(args.with_tone, args.with_r)
+    # lexicon = generate_lexicon(True, True)
     symbols = generate_symbols(lexicon)
 
     with open(args.lexicon, 'wt') as f:
