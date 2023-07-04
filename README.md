@@ -45,8 +45,8 @@ We plan to support a variaty of open source TTS datasets, include but not limite
 
 | Dataset | Language | Checkpoint Model | Runtime Model |
 | ------- | -------- | ---------------- | ------------- |
-| Baker   | CN       | [BERT](https://pengzhendong.github.io/modelscope/?models=wetts&version=baker_bert_exp.tar.gz) | [BERT](https://pengzhendong.github.io/modelscope/?models=wetts&version=baker_bert_onnx.tar.gz) |
-| Baker   | CN       | [VITS](https://pengzhendong.github.io/modelscope/?models=wetts&version=baker_vits_v1_exp.tar.gz) | [VITS](https://pengzhendong.github.io/modelscope/?models=wetts&version=baker_vits_v1_onnx.tar.gz) |
+| Baker   | CN       | [BERT](https://wenet.org.cn/downloads?models=wetts&version=baker_bert_exp.tar.gz) | [BERT](https://wenet.org.cn/downloads?models=wetts&version=baker_bert_onnx.tar.gz) |
+| Baker   | CN       | [VITS](https://wenet.org.cn/downloads?models=wetts&version=baker_vits_v1_exp.tar.gz) | [VITS](https://wenet.org.cn/downloads?models=wetts&version=baker_vits_v1_onnx.tar.gz) |
 
 ## Runtime
 
