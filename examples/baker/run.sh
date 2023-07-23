@@ -24,7 +24,7 @@ use_onnx=false
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
   # Prepare data for training/validation
   mkdir -p $data
-  python tools/gen_pinyin_lexicon.py --with-tone --with-r \
+  python tools/gen_pinyin_lexicon.py --with-zero-initial --with-tone --with-r \
       $data/lexicon.txt $data/phones.list
   python local/prepare_data.py $data/lexicon.txt \
       $raw_data_dir/ProsodyLabeling/000001-010000.txt \

@@ -32,7 +32,7 @@ fi
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
   # Prepare data for training/validation
   mkdir -p $data
-  python tools/gen_pinyin_lexicon.py --with-tone --with-r \
+  python tools/gen_pinyin_lexicon.py --with-zero-initial --with-tone --with-r \
       $data/lexicon.txt $data/phones.list
   python local/prepare_data.py $data/lexicon.txt \
       $dataset_dir/data_aishell3 $data/all.txt
