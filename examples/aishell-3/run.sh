@@ -13,8 +13,8 @@ stop_stage=1
 dataset_url=https://openslr.magicdatatech.com/resources/93/data_aishell3.tgz
 dataset_dir=. # path to dataset directory
 
-config=configs/base.json
-dir=exp/base  # training dir
+config=configs/v1.json
+dir=exp/v1  # training dir
 test_audio=test_audio
 
 data=data

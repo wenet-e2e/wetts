@@ -9,8 +9,8 @@ export CUDA_VISIBLE_DEVICES="0,1,2,3"  # specify your gpu id for training
 stage=0  # start from -1 if you need to download data
 stop_stage=3
 
-config=configs/base.json  #
-dir=exp/base  # training dir
+config=configs/v1.json  #
+dir=exp/v1  # training dir
 test_audio=test_audio
 
 # Please download data from https://www.data-baker.com/data/index/TNtts/, and
