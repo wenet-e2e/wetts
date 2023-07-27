@@ -74,9 +74,16 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
                     text) <= self.max_text_len:
                 audiopaths_sid_text_new.append(item)
                 lengths.append(
-                    int(
-                        os.path.getsize(audiopath) * self.sampling_rate /
-                        self.src_sampling_rate) // (2 * self.hop_length))
+                    int(os.path.getsize(audiopath) * self.sampling_rate /
+                        self.src_sampling_rate)
+                    // (2 * self.hop_length)
+                )
+                # print(f"audiopath = {audiopath}\n"
+                #       f"os.path.getsize(audiopath) = {os.path.getsize(audiopath)}\n"
+                #       f"self.sampling_rate = {self.sampling_rate}\n"
+                #       f"self.src_sampling_rate = {self.src_sampling_rate}\n"
+                #       f"self.hop_length = {self.hop_length}\n"
+                #       f"\n")
         self.audiopaths_sid_text = audiopaths_sid_text_new
         self.lengths = lengths
 

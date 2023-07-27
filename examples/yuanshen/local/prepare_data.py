@@ -31,7 +31,7 @@ with open(sys.argv[2], encoding='utf8') as fin, \
             continue
 
         # 跳过含英文的case
-        skip_cases = ["UP", "B", "O", "live"]
+        skip_cases = ["UP", "B", "O", "live", "8"]
         skip = False
         for case in skip_cases:
             if case in text:

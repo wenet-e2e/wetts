@@ -3,17 +3,18 @@
 
 export CUDA_VISIBLE_DEVICES="0"
 
-stage=1
-stop_stage=2
+stage=3
+stop_stage=3
 
-config="configs/base.json"
+config="configs/demo.json"
 data="data/yuanshen"
-exp_dir="exp/base"
+exp_dir="G:\Yuanshen\exp\ft1"
 
-checkpoint="${exp_dir}/G_90000.pth"
-test_output="test_output"
+checkpoint="${exp_dir}/G_31000.pth"
+test_output="${exp_dir}/test_output"
 
 tools="../../tools"
+vits="../../wetts/vits"
 . ${tools}/parse_options.sh || exit 1;
 
 # stage 0: make lexicon and phones.
@@ -27,7 +28,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 fi
 
 # stage 1: load ori data and make train.txt val.txt and test.txt
-ori_label_file="G:\Yuanshen\2.jiaba_cut_label.txt"
+ori_label_file="G:\Yuanshen\3.jiaba_cut_22K_cersion-0.3_label.txt"
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
   # test 10 pieces, valid 100 pieces
   python local/prepare_data.py \
@@ -52,9 +53,10 @@ fi
 
 # stage 3: train
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+  echo "starting training... ${vits}/train.py"
   export MASTER_ADDR=localhost
   export MASTER_PORT=10086
-  python vits/train.py \
+  python ${vits}/train.py \
     -c ${config} \
     -m ${exp_dir} \
     --train_data     "${data}/train.txt" \
@@ -66,7 +68,7 @@ fi
 # stage 4: test
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   [ ! -d ${test_output} ] && mkdir ${test_output}
-  python vits/inference.py  \
+  python ${vits}/inference.py  \
     --checkpoint     ${checkpoint} \
     --cfg            ${config} \
     --outdir         ${test_output} \

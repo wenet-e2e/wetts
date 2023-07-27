@@ -111,7 +111,7 @@ def main():
                     (audio.shape[0] / hps.data.sampling_rate)))
                 sys.stdout.flush()
                 audio = np.clip(audio, -32767.0, 32767.0)
-                wavfile.write(args.outdir + "/" + audio_path.split("/")[-1],
+                wavfile.write(args.outdir + "/" + os.path.basename(audio_path),
                               hps.data.sampling_rate, audio.astype(np.int16))
 
 

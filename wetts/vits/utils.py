@@ -62,6 +62,22 @@ def save_checkpoint(model, optimizer, learning_rate, iteration,
         }, checkpoint_path)
 
 
+def delete_extra_checkpoint(model_dir, max_cnt=5):
+    """删除多余的 ckpt 文件，节省磁盘空间；liutiexin, 20230706；"""
+    ckpt_list = []
+    for file in os.listdir(model_dir):
+        if file.endswith(".pth") and file.startswith("G_"):
+            steps = file.replace("G_", "").replace(".pth", "")
+            ckpt_list.append(int(steps))
+
+    ckpt_list.sort(reverse=True)
+
+    if len(ckpt_list) > max_cnt:
+        for steps in ckpt_list[max_cnt:]:
+            os.remove(os.path.join(model_dir, "G_" + str(steps) + ".pth"))
+            os.remove(os.path.join(model_dir, "D_" + str(steps) + ".pth"))
+
+
 def summarize(
         writer,
         global_step,

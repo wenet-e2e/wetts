@@ -26,10 +26,13 @@ global_step = 0
 
 def main():
     """Assume Single Node Multi GPUs Training Only"""
+    print(f"starting training...")
     assert torch.cuda.is_available(), "CPU training is not allowed."
 
     n_gpus = torch.cuda.device_count()
     hps = utils.get_hparams()
+    print(hps)
+
     mp.spawn(run, nprocs=n_gpus, args=(
         n_gpus,
         hps,
@@ -46,16 +49,26 @@ def run(rank, n_gpus, hps):
         writer_eval = SummaryWriter(
             log_dir=os.path.join(hps.model_dir, "eval"))
 
-    dist.init_process_group(backend='nccl',
+    dist.init_process_group(backend='gloo',
                             init_method='env://',
                             world_size=n_gpus,
-                            rank=rank)
+                            rank=rank)  # backend = nccl -> gloo for windows, liutiexin 20230705
     torch.manual_seed(hps.train.seed)
     torch.cuda.set_device(rank)
     train_dataset = TextAudioSpeakerLoader(hps.data.training_files, hps.data)
+
+    length = train_dataset.lengths
+    length.sort()
+    print(f"train_dataset.length (frame) = {length}")
+    print(f"train_dataset.total_length (minutes) = {sum(length) * 11.6 / 1000 // 60}")
+
+    # 音频长度最大是 1,000 帧 * 11.6 毫秒/帧 = 11.6 秒；
+    # 音频长度最小是 1 帧 * 11.6 毫秒/帧 = 0.0116 秒；
+    # 11.6 毫秒/帧 ~= hop_size 256 / tgt_sample_rate 22050 * 1000；
+    # liutiexin, 20230708；
     train_sampler = DistributedBucketSampler(
         train_dataset,
-        hps.train.batch_size, [32, 300, 400, 500, 600, 700, 800, 900, 1000],
+        hps.train.batch_size, [1, 300, 400, 500, 600, 700, 800, 900, 1000],
         num_replicas=n_gpus,
         rank=rank,
         shuffle=True)
@@ -66,6 +79,7 @@ def run(rank, n_gpus, hps):
                               pin_memory=True,
                               collate_fn=collate_fn,
                               batch_sampler=train_sampler)
+
     if rank == 0:
         eval_dataset = TextAudioSpeakerLoader(hps.data.validation_files,
                                               hps.data)
@@ -267,6 +281,8 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler,
                     net_d, optim_d, hps.train.learning_rate, epoch,
                     os.path.join(hps.model_dir,
                                  "D_{}.pth".format(global_step)))
+                utils.delete_extra_checkpoint(hps.model_dir)
+
         global_step += 1
 
     if rank == 0:

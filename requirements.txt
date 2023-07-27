@@ -8,9 +8,10 @@ mccabe
 pycodestyle==2.6.0
 pyflakes==2.2.0
 tensorboard
-sklearn
-WeTextProcessing
-monotonic_align
+# sklearn
+scikit-learn
+# WeTextProcessing
+# monotonic_align
 matplotlib
 librosa==0.8.0
 scipy==1.5.2

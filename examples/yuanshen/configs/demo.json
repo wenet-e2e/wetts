@@ -7,18 +7,19 @@
     "learning_rate": 2e-4,
     "betas": [0.8, 0.99],
     "eps": 1e-9,
-    "batch_size": 32,
+    "batch_size": 1,
     "fp16_run": false,
     "lr_decay": 0.999875,
     "segment_size": 8192,
     "init_lr_ratio": 1,
-    "warmup_epochs": 0,
+    "warmup_epochs": 100,
     "c_mel": 45,
     "c_kl": 1.0
   },
   "data": {
+    "max_text_len": 19000,
     "max_wav_value": 32768.0,
-    "src_sampling_rate": 48000,
+    "src_sampling_rate": 22050,
     "sampling_rate": 22050,
     "filter_length": 1024,
     "hop_length": 256,
@@ -27,7 +28,7 @@
     "mel_fmin": 0.0,
     "mel_fmax": null,
     "add_blank": false,
-    "n_speakers": 0
+    "n_speakers": 42
   },
   "model": {
     "inter_channels": 192,
