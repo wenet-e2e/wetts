@@ -6,12 +6,12 @@ export CUDA_VISIBLE_DEVICES="0"
 stage=3
 stop_stage=3
 
-config="configs/demo.json"
+config="configs/ft1.json"
 data="data/yuanshen"
 exp_dir="G:\Yuanshen\exp\ft1"
 
-checkpoint="${exp_dir}/G_31000.pth"
-test_output="${exp_dir}/test_output"
+checkpoint="${exp_dir}/G_23000.pth"
+test_output="${exp_dir}/test_23Ksteps"
 
 tools="../../tools"
 vits="../../wetts/vits"

@@ -62,13 +62,13 @@ def run(rank, n_gpus, hps):
     print(f"train_dataset.length (frame) = {length}")
     print(f"train_dataset.total_length (minutes) = {sum(length) * 11.6 / 1000 // 60}")
 
-    # 音频长度最大是 1,000 帧 * 11.6 毫秒/帧 = 11.6 秒；
+    # 音频长度最大是 1,100 帧 * 11.6 毫秒/帧 = 12.76 秒；
     # 音频长度最小是 1 帧 * 11.6 毫秒/帧 = 0.0116 秒；
     # 11.6 毫秒/帧 ~= hop_size 256 / tgt_sample_rate 22050 * 1000；
     # liutiexin, 20230708；
     train_sampler = DistributedBucketSampler(
         train_dataset,
-        hps.train.batch_size, [1, 300, 400, 500, 600, 700, 800, 900, 1000],
+        hps.train.batch_size, [1, 300, 400, 500, 600, 700, 800, 900, 1000, 1100],
         num_replicas=n_gpus,
         rank=rank,
         shuffle=True)
