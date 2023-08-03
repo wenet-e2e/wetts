@@ -6,12 +6,13 @@ export CUDA_VISIBLE_DEVICES="0"
 stage=3
 stop_stage=3
 
-config="configs/ft1.json"
-data="data/yuanshen"
-exp_dir="G:\Yuanshen\exp\ft1"
+config="configs/ft2.json"
+exp_dir="G:\Yuanshen\exp\ft2"
+data="data/yuanshen_version-0.35"
+ori_label_file="G:\Yuanshen\3.jiaba_cut_22K_cersion-0.35_label.txt"
 
-checkpoint="${exp_dir}/G_23000.pth"
-test_output="${exp_dir}/test_23Ksteps"
+checkpoint="${exp_dir}/G_276000.pth"
+test_output="${exp_dir}/test_276Ksteps"
 
 tools="../../tools"
 vits="../../wetts/vits"
@@ -28,7 +29,6 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 fi
 
 # stage 1: load ori data and make train.txt val.txt and test.txt
-ori_label_file="G:\Yuanshen\3.jiaba_cut_22K_cersion-0.3_label.txt"
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
   # test 10 pieces, valid 100 pieces
   python local/prepare_data.py \

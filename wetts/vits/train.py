@@ -45,9 +45,10 @@ def run(rank, n_gpus, hps):
         logger = utils.get_logger(hps.model_dir)
         logger.info(hps)
         utils.check_git_hash(hps.model_dir)
-        writer = SummaryWriter(log_dir=hps.model_dir)
+        writer = SummaryWriter(
+            log_dir=os.path.join(hps.model_dir, "logs_train"))
         writer_eval = SummaryWriter(
-            log_dir=os.path.join(hps.model_dir, "eval"))
+            log_dir=os.path.join(hps.model_dir, "logs_eval"))
 
     dist.init_process_group(backend='gloo',
                             init_method='env://',
