@@ -6,13 +6,13 @@ export CUDA_VISIBLE_DEVICES="0"
 stage=3
 stop_stage=3
 
-config="configs/ft2.json"
-exp_dir="G:\Yuanshen\exp\ft2"
+config="configs/ft3.json"
+exp_dir="G:\Yuanshen\exp\ft3"
 data="data/yuanshen_version-0.35"
 ori_label_file="G:\Yuanshen\3.jiaba_cut_22K_cersion-0.35_label.txt"
 
-checkpoint="${exp_dir}/G_276000.pth"
-test_output="${exp_dir}/test_276Ksteps"
+checkpoint="${exp_dir}/G_67000.pth"
+test_output="${exp_dir}/test_67Ksteps"
 
 tools="../../tools"
 vits="../../wetts/vits"

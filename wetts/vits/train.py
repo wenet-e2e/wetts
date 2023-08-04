@@ -61,7 +61,8 @@ def run(rank, n_gpus, hps):
     length = train_dataset.lengths
     length.sort()
     print(f"train_dataset.length (frame) = {length}")
-    print(f"train_dataset.total_length (minutes) = {sum(length) * 11.6 / 1000 // 60}")
+    print(f"train_dataset.total_length (minutes) = {round(sum(length) * 11.6 / 1000 / 60, 1)}")
+    print(f"train_dataset.total_length (hours) = {round(sum(length) * 11.6 / 1000 / 3600, 1)}")
 
     # 音频长度最大是 1,100 帧 * 11.6 毫秒/帧 = 12.76 秒；
     # 音频长度最小是 1 帧 * 11.6 毫秒/帧 = 0.0116 秒；
