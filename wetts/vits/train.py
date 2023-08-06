@@ -11,6 +11,7 @@ from torch.cuda.amp import autocast, GradScaler
 
 import commons
 import utils
+import logging
 from data_utils import (TextAudioSpeakerLoader, TextAudioSpeakerCollate,
                         DistributedBucketSampler)
 from models import (
@@ -110,17 +111,48 @@ def run(rank, n_gpus, hps):
     net_g = DDP(net_g, device_ids=[rank])
     net_d = DDP(net_d, device_ids=[rank])
 
-    try:
+    # 加载生成器
+    last_generator = utils.latest_checkpoint_path(hps.model_dir, "G_*.pth")
+    if len(last_generator) > 0:
         _, _, _, epoch_str = utils.load_checkpoint(
-            utils.latest_checkpoint_path(hps.model_dir, "G_*.pth"), net_g,
+            last_generator,
+            net_g,
             optim_g)
-        _, _, _, epoch_str = utils.load_checkpoint(
-            utils.latest_checkpoint_path(hps.model_dir, "D_*.pth"), net_d,
-            optim_d)
         global_step = (epoch_str - 1) * len(train_loader)
-    except Exception as e:
+        logging.info(f"load checkpoint: {last_generator}")
+    elif os.path.exists(hps.pretrain_generator):
+        _, _, _, epoch_str = utils.load_checkpoint(
+            hps.pretrain_generator,
+            net_g,
+            None,
+            pretrain=True)
+        global_step = (epoch_str - 1) * len(train_loader)  # epoch will be "1"
+        logging.info(f"load pretrain: {hps.pretrain_generator}")
+    else:
         epoch_str = 1
         global_step = 0
+        logging.info(f"load no checkpoint or pretrain of generator.")
+    # 加载判别器
+    last_discriminator = utils.latest_checkpoint_path(hps.model_dir, "D_*.pth")
+    if len(last_discriminator) > 0:
+        _, _, _, epoch_str = utils.load_checkpoint(
+            last_discriminator,
+            net_g,
+            optim_g)
+        global_step = (epoch_str - 1) * len(train_loader)
+        logging.info(f"load checkpoint: {last_discriminator}")
+    elif os.path.exists(hps.pretrain_discriminator):
+        _, _, _, epoch_str = utils.load_checkpoint(
+            hps.pretrain_discriminator,
+            net_g,
+            None,
+            pretrain=True)
+        global_step = (epoch_str - 1) * len(train_loader)  # epoch will be "1"
+        logging.info(f"load pretrain: {hps.pretrain_discriminator}")
+    else:
+        epoch_str = 1
+        global_step = 0
+        logging.info(f"load no checkpoint or pretrain of discriminator.")
 
     scheduler_g = torch.optim.lr_scheduler.ExponentialLR(
         optim_g, gamma=hps.train.lr_decay, last_epoch=epoch_str - 2)
@@ -273,21 +305,20 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler,
                                 images=image_dict,
                                 scalars=scalar_dict)
 
-            if global_step % hps.train.eval_interval == 0:
-                evaluate(hps, net_g, eval_loader, writer_eval)
-                utils.save_checkpoint(
-                    net_g, optim_g, hps.train.learning_rate, epoch,
-                    os.path.join(hps.model_dir,
-                                 "G_{}.pth".format(global_step)))
-                utils.save_checkpoint(
-                    net_d, optim_d, hps.train.learning_rate, epoch,
-                    os.path.join(hps.model_dir,
-                                 "D_{}.pth".format(global_step)))
-                utils.delete_extra_checkpoint(hps.model_dir)
-
         global_step += 1
 
     if rank == 0:
+        evaluate(hps, net_g, eval_loader, writer_eval)
+        utils.save_checkpoint(
+            net_g, optim_g, hps.train.learning_rate, epoch,
+            os.path.join(hps.model_dir,
+                         "G_{}.pth".format(epoch)))
+        utils.save_checkpoint(
+            net_d, optim_d, hps.train.learning_rate, epoch,
+            os.path.join(hps.model_dir,
+                         "D_{}.pth".format(epoch)))
+        utils.delete_extra_checkpoint(hps.model_dir)
+
         logger.info('====> Epoch: {}'.format(epoch))
 
 

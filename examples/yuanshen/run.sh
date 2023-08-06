@@ -3,16 +3,25 @@
 
 export CUDA_VISIBLE_DEVICES="0"
 
-stage=3
-stop_stage=3
+stage=0
+stop_stage=2
 
-config="configs/ft3.json"
-exp_dir="G:\Yuanshen\exp\ft3"
-data="data/yuanshen_version-0.35"
-ori_label_file="G:\Yuanshen\3.jiaba_cut_22K_cersion-0.35_label.txt"
+# 训练参数
+train_version="ft3"
+pretrain_generator="G:\Yuanshen\exp\ft3\pretrain_G_75000.pth"
+pretrain_discriminator="G:\Yuanshen\exp\ft3\pretrain_D_75000.pth"
+data="data/yuanshen_version-0.35"  # data.list 存储路径
+ori_label_file="G:\Yuanshen\3.jiaba_cut_22K_cersion-0.35_label.txt"  # 原始数据
+baker_phones="G:\Yuanshen\exp\baker_vits_v1_exp\phones.txt"
 
-checkpoint="${exp_dir}/G_67000.pth"
-test_output="${exp_dir}/test_67Ksteps"
+# 测试参数
+test_epochs="1"
+
+# 一般不需要改的参数
+config="configs/${train_version}.json"
+exp_dir="G:\Yuanshen\exp\\${train_version}"
+test_checkpoint="${exp_dir}/G_${test_epochs}.pth"
+test_output="${exp_dir}/test_${test_epochs}_epochs"
 
 tools="../../tools"
 vits="../../wetts/vits"
@@ -43,12 +52,19 @@ fi
 # stage 2: make phones.txt
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
   # phone with 0 is kept for <blank>
-  cat "${data}/all.txt" | awk -F '|' '{print $3}' | \
-    awk '{ for (i=1;i<=NF;i++) print $i}' | \
-    sort | uniq | awk '{print $0, NR}' \
-    > "${data}/phones.txt"
+  if [ -e ${baker_phones} ]; then {
+    cp ${baker_phones} \
+      "${data}/phones.txt"
+    echo "Use baker phones_dict."
+  } else {
+    cat "${data}/all.txt" | awk -F '|' '{print $3}' | \
+      awk '{ for (i=1;i<=NF;i++) print $i}' | \
+      sort | uniq | awk '{print $0, NR}' \
+      > "${data}/phones.txt"
+    echo "Use self phones_dict."
+  } fi
   cat "${data}/all.txt" | awk -F '|' '{print $2}' | \
-    sort | uniq | awk '{print $0, NR}' > "${data}/speaker.txt"
+    sort | uniq | awk '{print $0, NR-1}' > "${data}/speaker.txt"
 fi
 
 # stage 3: train
@@ -59,17 +75,19 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   python ${vits}/train.py \
     -c ${config} \
     -m ${exp_dir} \
-    --train_data     "${data}/train.txt" \
-    --val_data       "${data}/val.txt" \
-    --phone_table    "${data}/phones.txt" \
-    --speaker_table  "${data}/speaker.txt"
+    --train_data              "${data}/train.txt" \
+    --val_data                "${data}/val.txt" \
+    --phone_table             "${data}/phones.txt" \
+    --speaker_table           "${data}/speaker.txt" \
+    --pretrain_generator      "${pretrain_generator}" \
+    --pretrain_discriminator  "${pretrain_discriminator}"
 fi
 
 # stage 4: test
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   [ ! -d ${test_output} ] && mkdir ${test_output}
   python ${vits}/inference.py  \
-    --checkpoint     ${checkpoint} \
+    --checkpoint     ${test_checkpoint} \
     --cfg            ${config} \
     --outdir         ${test_output} \
     --phone_table    "${data}/phones.txt" \
