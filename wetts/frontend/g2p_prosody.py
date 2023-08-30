@@ -14,7 +14,6 @@
 
 import argparse
 import os
-import sys
 
 import onnxruntime as ort
 from transformers import AutoTokenizer
