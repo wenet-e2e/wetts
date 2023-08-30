@@ -23,7 +23,6 @@
 #include "onnxruntime_cxx_api.h"  // NOLINT
 
 #include "frontend/lexicon.h"
-#include "frontend/tokenizer.h"
 #include "model/onnx_model.h"
 
 namespace wetts {
@@ -35,11 +34,16 @@ class G2pProsody : public OnnxModel {
                       const std::string& vocab, const std::string& char2pinyin,
                       const std::string& pinyin2id,
                       const std::string& pinyin2phones);
+  void Tokenize(const std::string& text, std::vector<std::string>* tokens,
+                std::vector<int64_t>* token_ids);
   void Compute(const std::string& str, std::vector<std::string>* phonemes);
 
  private:
+  const std::string CLS_ = "[CLS]";
+  const std::string SEP_ = "[SEP]";
+  const std::string UNK_ = "[UNK]";
+  std::unordered_map<std::string, int> vocab_;
   std::unordered_map<std::string, int> phones_;
-  std::shared_ptr<Tokenizer> tokenizer_;
   std::shared_ptr<Lexicon> lexicon_;
   std::unordered_map<std::string, std::vector<std::string>> pinyin2phones_;
 };

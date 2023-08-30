@@ -161,6 +161,16 @@ bool IsAlpha(const std::string& str) {
   return true;
 }
 
+bool IsAlphaOrDigit(const std::string& str) {
+  for (size_t i = 0; i < str.size(); i++) {
+    if (!(isalpha(str[i]) || isdigit(str[i]) || str[i] == '\'' ||
+          str[i] == '-')) {
+      return false;
+    }
+  }
+  return true;
+}
+
 std::string ProcessBlank(const std::string& str, bool lowercase) {
   std::string result;
   if (!str.empty()) {

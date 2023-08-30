@@ -33,13 +33,18 @@ G2pProsody::G2pProsody(const std::string& g2p_prosody_model,
                        const std::string& pinyin2id,
                        const std::string& pinyin2phones)
     : OnnxModel(g2p_prosody_model) {
-  // Load tokenizer
-  tokenizer_ = std::make_shared<Tokenizer>(vocab);
+  std::ifstream in(vocab);
+  std::string line;
+  int id = 0;
+  while (getline(in, line)) {
+    vocab_[line] = id;
+    id++;
+  }
+
   lexicon_ = std::make_shared<Lexicon>(char2pinyin);
 
   // Load phone list file
   std::ifstream is(pinyin2id);
-  std::string line;
   int idx = 0;
   while (getline(is, line)) {
     phones_[line] = idx;
@@ -48,12 +53,49 @@ G2pProsody::G2pProsody(const std::string& g2p_prosody_model,
   ReadTableFile(pinyin2phones, &pinyin2phones_);
 }
 
+void G2pProsody::Tokenize(const std::string& text,
+                          std::vector<std::string>* tokens,
+                          std::vector<int64_t>* token_ids) {
+  // Split text into single utf8 chars
+  std::vector<std::string> chars;
+  SplitUTF8StringToChars(text, &chars);
+
+  tokens->emplace_back(CLS_);
+  token_ids->emplace_back(vocab_.at(CLS_));
+  for (int i = 0; i < chars.size(); ++i) {
+    std::string& token = chars[i];
+    if (token == " ") {
+      continue;
+    }
+    if (lexicon_->NumProns(token) > 0) {
+      if (vocab_.count(token) > 0) {
+        tokens->emplace_back(token);
+        token_ids->emplace_back(vocab_.at(token));
+      } else {
+        LOG(ERROR) << "Can't find token `" << token << "` in vocab.";
+      }
+    } else if (IsAlpha(token)) {
+      tokens->emplace_back(token);
+      // Convert english word to UNK
+      token_ids->emplace_back(vocab_.at(UNK_));
+      while (i + 1 < chars.size() && IsAlphaOrDigit(chars[i + 1])) {
+        ++i;
+        tokens->back() += chars[i];
+      }
+    } else {
+      LOG(INFO) << "Skip unknown token: " << token;
+    }
+  }
+  tokens->emplace_back(SEP_);
+  token_ids->emplace_back(vocab_.at(SEP_));
+}
+
 void G2pProsody::Compute(const std::string& str,
                          std::vector<std::string>* phonemes) {
   CHECK(phonemes != nullptr);
   std::vector<int64_t> token_ids;
   std::vector<std::string> tokens;
-  tokenizer_->Tokenize(str, &tokens, &token_ids);
+  Tokenize(str, &tokens, &token_ids);
   int num_tokens = token_ids.size();
   const int64_t inputs_shape[] = {1, num_tokens};
   auto inputs_ort = Ort::Value::CreateTensor<int64_t>(

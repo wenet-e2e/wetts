@@ -61,6 +61,8 @@ std::string JoinString(const std::string& c,
 
 bool IsAlpha(const std::string& str);
 
+bool IsAlphaOrDigit(const std::string& str);
+
 // Replace ▁ with space, then remove head, tail and consecutive space.
 std::string ProcessBlank(const std::string& str, bool lowercase);
 

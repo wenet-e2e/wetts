@@ -58,6 +58,9 @@ We plan to support a variaty of hardwares and platforms, including:
 * Other on-device platforms
 
 ``` bash
+export GLOG_logtostderr=1
+export GLOG_v=2
+
 ./build/bin/tts_main \
   --tagger baker_bert_onnx/zh_tn_tagger.fst \
   --verbalizer baker_bert_onnx/zh_tn_verbalizer.fst \
