@@ -31,8 +31,9 @@ namespace wetts {
 G2pProsody::G2pProsody(const std::string& g2p_prosody_model,
                        const std::string& vocab, const std::string& char2pinyin,
                        const std::string& pinyin2id,
-                       const std::string& pinyin2phones)
-    : OnnxModel(g2p_prosody_model) {
+                       const std::string& pinyin2phones,
+                       std::shared_ptr<G2pEn> g2p_en)
+    : g2p_en_(std::move(g2p_en)), OnnxModel(g2p_prosody_model) {
   std::ifstream in(vocab);
   std::string line;
   int id = 0;
@@ -153,6 +154,11 @@ void G2pProsody::Compute(const std::string& str,
     transform(pinyin.begin(), pinyin.end(), pinyin.begin(), ::tolower);
     if (pinyin2phones_.count(pinyin) > 0) {
       std::vector<std::string>& phones = pinyin2phones_[pinyin];
+      phonemes->insert(phonemes->end(), phones.begin(), phones.end());
+      phonemes->emplace_back(prosody);
+    } else if (g2p_en_) {
+      std::vector<std::string> phones;
+      g2p_en_->Convert(pinyin, &phones);
       phonemes->insert(phonemes->end(), phones.begin(), phones.end());
       phonemes->emplace_back(prosody);
     } else {

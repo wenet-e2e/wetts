@@ -48,6 +48,8 @@ We plan to support a variaty of open source TTS datasets, include but not limite
 | Baker   | CN       | [BERT](https://wenet.org.cn/downloads?models=wetts&version=baker_bert_exp.tar.gz) | [BERT](https://wenet.org.cn/downloads?models=wetts&version=baker_bert_onnx.tar.gz) |
 | Baker   | CN       | [VITS](https://wenet.org.cn/downloads?models=wetts&version=baker_vits_v1_exp.tar.gz) | [VITS](https://wenet.org.cn/downloads?models=wetts&version=baker_vits_v1_onnx.tar.gz) |
 
+English G2P model: [english_us_arpa v2.0.0a](https://wenet.org.cn/downloads?models=wetts&version=g2p_en.tar.gz), powered by [MFA](https://github.com/MontrealCorpusTools/mfa-models/releases/download/g2p-english_us_arpa-v2.0.0a).
+
 ## Runtime
 
 We plan to support a variaty of hardwares and platforms, including:
@@ -74,6 +76,9 @@ export GLOG_v=2
   --phone2id baker_vits_v1_onnx/phones.txt \
   --vits_model baker_vits_v1_onnx/G_250000.onnx \
   --text "你好，我是小明。" \
+  --cmudict g2p_en/cmudict.dict \  # optional
+  --g2p_en_model g2p_en/model.fst \  # optional
+  --g2p_en_sym g2p_en/phones.sym \  # optional
   --wav_path audio.wav
 ```
 

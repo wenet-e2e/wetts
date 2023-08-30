@@ -22,6 +22,7 @@
 
 #include "onnxruntime_cxx_api.h"  // NOLINT
 
+#include "frontend/g2p_en.h"
 #include "frontend/lexicon.h"
 #include "model/onnx_model.h"
 
@@ -33,7 +34,8 @@ class G2pProsody : public OnnxModel {
   explicit G2pProsody(const std::string& g2p_prosody_model,
                       const std::string& vocab, const std::string& char2pinyin,
                       const std::string& pinyin2id,
-                      const std::string& pinyin2phones);
+                      const std::string& pinyin2phones,
+                      std::shared_ptr<G2pEn> g2p_en = nullptr);
   void Tokenize(const std::string& text, std::vector<std::string>* tokens,
                 std::vector<int64_t>* token_ids);
   void Compute(const std::string& str, std::vector<std::string>* phonemes);
@@ -44,6 +46,7 @@ class G2pProsody : public OnnxModel {
   const std::string UNK_ = "[UNK]";
   std::unordered_map<std::string, int> vocab_;
   std::unordered_map<std::string, int> phones_;
+  std::shared_ptr<G2pEn> g2p_en_;
   std::shared_ptr<Lexicon> lexicon_;
   std::unordered_map<std::string, std::vector<std::string>> pinyin2phones_;
 };

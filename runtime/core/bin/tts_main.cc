@@ -16,21 +16,31 @@
 #include "glog/logging.h"
 #include "processor/processor.h"
 
+#include "frontend/g2p_en.h"
 #include "frontend/g2p_prosody.h"
 #include "frontend/wav.h"
 #include "model/tts_model.h"
 #include "utils/string.h"
 
+// Text Normalization
 DEFINE_string(tagger, "", "tagger fst file");
 DEFINE_string(verbalizer, "", "verbalizer fst file");
 
+// Tokenizer
 DEFINE_string(vocab, "", "tokenizer vocab file");
 
+// G2P for English
+DEFINE_string(cmudict, "", "cmudict for english words");
+DEFINE_string(g2p_en_model, "", "english g2p fst model for oov");
+DEFINE_string(g2p_en_sym, "", "english g2p symbol table for oov");
+
+// G2P for Chinese
 DEFINE_string(char2pinyin, "", "chinese character to pinyin");
 DEFINE_string(pinyin2id, "", "pinyin to id");
 DEFINE_string(pinyin2phones, "", "pinyin to phones");
 DEFINE_string(g2p_prosody_model, "", "g2p prosody model file");
 
+// VITS
 DEFINE_string(speaker2id, "", "speaker to id");
 DEFINE_string(phone2id, "", "phone to id");
 DEFINE_string(sname, "", "speaker name");
@@ -44,9 +54,11 @@ int main(int argc, char* argv[]) {
   google::InitGoogleLogging(argv[0]);
 
   auto tn = std::make_shared<wetext::Processor>(FLAGS_tagger, FLAGS_verbalizer);
+  auto g2p_en = std::make_shared<wetts::G2pEn>(
+      FLAGS_cmudict, FLAGS_g2p_en_model, FLAGS_g2p_en_sym);
   auto g2p_prosody = std::make_shared<wetts::G2pProsody>(
       FLAGS_g2p_prosody_model, FLAGS_vocab, FLAGS_char2pinyin, FLAGS_pinyin2id,
-      FLAGS_pinyin2phones);
+      FLAGS_pinyin2phones, g2p_en);
   auto model = std::make_shared<wetts::TtsModel>(
       FLAGS_vits_model, FLAGS_speaker2id, FLAGS_phone2id, tn, g2p_prosody);
 
