@@ -19,7 +19,7 @@ class Hanzi2Pinyin:
         with open(dict_file) as f:
             for line in f.readlines():
                 line = line.strip()
-                self.pinyin_dict[line[0]] = line[2:].split(',')
+                self.pinyin_dict[line[0]] = line[2:].split(",")
 
     def get(self, x):
         assert x in self.pinyin_dict
@@ -31,13 +31,14 @@ class Hanzi2Pinyin:
             pinyin.append(self.pinyin_dict.get(char, "UNK"))
         return pinyin
 
+
 def main():
-    hanzi2pinyin = Hanzi2Pinyin("./local/pinyin_dict.txt")
+    hanzi2pinyin = Hanzi2Pinyin("local/pinyin_dict.txt")
     string = "汉字转拼音实验"
     pinyin = hanzi2pinyin.convert(string)
     print(string)
     print(pinyin)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

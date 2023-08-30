@@ -12,13 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 def read_table(dict_file):
-    """ Each line of `dict_file` has two fields, in <str> <int>
-    """
     table = {}
-    with open(dict_file, 'r', encoding='utf8') as fin:
-        for line in fin:
-            arr = line.strip().split()
-            assert len(arr) == 2
-            table[arr[0]] = int(arr[1])
+    lines = open(dict_file, "r", encoding="utf8").readlines()
+    for idx, line in enumerate(lines):
+        table[line.strip()] = idx
     return table

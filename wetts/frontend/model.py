@@ -15,28 +15,25 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
 from transformers import AutoModel
 
 
 class FrontendModel(nn.Module):
-    def __init__(self, num_phones: int, num_prosody: int):
+    def __init__(self, num_polyphones: int, num_prosody: int):
         super(FrontendModel, self).__init__()
-        self.bert = AutoModel.from_pretrained('bert-base-chinese')
+        self.bert = AutoModel.from_pretrained("bert-base-chinese")
         for param in self.bert.parameters():
             param.requires_grad_(False)
-        self.transform = nn.TransformerEncoderLayer(d_model=768,
-                                                    nhead=8,
-                                                    dim_feedforward=2048,
-                                                    batch_first=True)
-        self.phone_classifier = nn.Linear(768, num_phones)
+        self.transform = nn.TransformerEncoderLayer(
+            d_model=768, nhead=8, dim_feedforward=2048, batch_first=True
+        )
+        self.phone_classifier = nn.Linear(768, num_polyphones)
         self.prosody_classifier = nn.Linear(768, num_prosody)
 
     def _forward(self, x):
-        mask = x['attention_mask'] == 0
+        mask = x["attention_mask"] == 0
         bert_output = self.bert(**x)
-        x = self.transform(bert_output.last_hidden_state,
-                           src_key_padding_mask=mask)
+        x = self.transform(bert_output.last_hidden_state, src_key_padding_mask=mask)
         phone_pred = self.phone_classifier(x)
         prosody_pred = self.prosody_classifier(x)
         return phone_pred, prosody_pred
@@ -47,9 +44,9 @@ class FrontendModel(nn.Module):
     def export_forward(self, x):
         assert x.size(0) == 1
         x = {
-            'input_ids': x,
-            'token_type_ids': torch.zeros(1, x.size(1), dtype=torch.int64),
-            'attention_mask': torch.ones(1, x.size(1), dtype=torch.int64)
+            "input_ids": x,
+            "token_type_ids": torch.zeros(1, x.size(1), dtype=torch.int64),
+            "attention_mask": torch.ones(1, x.size(1), dtype=torch.int64),
         }
         phone_logits, prosody_logits = self._forward(x)
         phone_pred = F.softmax(phone_logits, dim=-1)

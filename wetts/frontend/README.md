@@ -31,6 +31,6 @@ The polyphone is surrounded with `▁` in training corpus.
 
 ```
 宋代出现了▁le5▁燕乐音阶的记载
-2011年9月17日，爆发了▁le5▁占领华尔街示威活动
+爆发了▁le5▁占领华尔街示威活动
 ```
 
