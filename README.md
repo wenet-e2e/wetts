@@ -48,7 +48,7 @@ We plan to support a variaty of open source TTS datasets, include but not limite
 | Baker   | CN       | [BERT](https://wenet.org.cn/downloads?models=wetts&version=baker_bert_exp.tar.gz) | [BERT](https://wenet.org.cn/downloads?models=wetts&version=baker_bert_onnx.tar.gz) |
 | Baker   | CN       | [VITS](https://wenet.org.cn/downloads?models=wetts&version=baker_vits_v1_exp.tar.gz) | [VITS](https://wenet.org.cn/downloads?models=wetts&version=baker_vits_v1_onnx.tar.gz) |
 
-English G2P model: [english_us_arpa v2.0.0a](https://wenet.org.cn/downloads?models=wetts&version=g2p_en.tar.gz), powered by [MFA](https://github.com/MontrealCorpusTools/mfa-models/releases/download/g2p-english_us_arpa-v2.0.0a).
+English G2P model: [english_us_arpa v2.0.0a](https://wenet.org.cn/downloads?models=wetts&version=g2p_en.tar.gz), powered by [MFA](https://github.com/MontrealCorpusTools/mfa-models/releases/tag/g2p-english_us_arpa-v2.0.0a).
 
 ## Runtime
 
