@@ -147,7 +147,8 @@ def main():
     model = FrontendModel(num_polyphones, num_prosody)
     print(model)
     use_cuda = args.gpu >= 0 and torch.cuda.is_available()
-    device = torch.device("cuda" if use_cuda else "cpu")
+    device = torch.device("cuda" if use_cuda else "mps")
+    print(device)
     model = model.to(device)
     optimizer = AdamW(model.parameters(), lr=args.lr)
     lr_scheduler = get_scheduler(

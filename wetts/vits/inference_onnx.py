@@ -24,20 +24,21 @@ import utils
 
 
 def to_numpy(tensor):
-    return tensor.detach().cpu().numpy() if tensor.requires_grad \
+    return (
+        tensor.detach().cpu().numpy()
+        if tensor.requires_grad
         else tensor.detach().numpy()
+    )
 
 
 def get_args():
-    parser = argparse.ArgumentParser(description='inference')
-    parser.add_argument('--onnx_model', required=True, help='onnx model')
-    parser.add_argument('--cfg', required=True, help='config file')
-    parser.add_argument('--outdir', required=True, help='ouput directory')
-    parser.add_argument('--phone_table',
-                        required=True,
-                        help='input phone dict')
-    parser.add_argument('--speaker_table', default=None, help='speaker table')
-    parser.add_argument('--test_file', required=True, help='test file')
+    parser = argparse.ArgumentParser(description="inference")
+    parser.add_argument("--onnx_model", required=True, help="onnx model")
+    parser.add_argument("--cfg", required=True, help="config file")
+    parser.add_argument("--outdir", required=True, help="ouput directory")
+    parser.add_argument("--phone_table", required=True, help="input phone dict")
+    parser.add_argument("--speaker_table", default=None, help="speaker table")
+    parser.add_argument("--test_file", required=True, help="test file")
     args = parser.parse_args()
     return args
 
@@ -82,17 +83,20 @@ def main():
             x_len = torch.IntTensor([x.size(1)]).long()
             sid = torch.LongTensor([sid]).long()
             ort_inputs = {
-                'input': to_numpy(x),
-                'input_lengths': to_numpy(x_len),
-                'scales': to_numpy(scales),
-                'sid': to_numpy(sid)
+                "input": to_numpy(x),
+                "input_lengths": to_numpy(x_len),
+                "scales": to_numpy(scales),
+                "sid": to_numpy(sid),
             }
             audio = np.squeeze(ort_sess.run(None, ort_inputs))
             audio *= 32767.0 / max(0.01, np.max(np.abs(audio))) * 0.6
             audio = np.clip(audio, -32767.0, 32767.0)
-            wavfile.write(args.outdir + "/" + audio_path.split("/")[-1],
-                          hps.data.sampling_rate, audio.astype(np.int16))
+            wavfile.write(
+                args.outdir + "/" + audio_path.split("/")[-1],
+                hps.data.sampling_rate,
+                audio.astype(np.int16),
+            )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -27,19 +27,16 @@ import utils
 
 
 def get_args():
-    parser = argparse.ArgumentParser(description='inference')
-    parser.add_argument('--checkpoint', required=True, help='checkpoint')
-    parser.add_argument('--cfg', required=True, help='config file')
-    parser.add_argument('--outdir', required=True, help='ouput directory')
-    parser.add_argument('--phone_table',
-                        required=True,
-                        help='input phone dict')
-    parser.add_argument('--speaker_table', default=None, help='speaker table')
-    parser.add_argument('--test_file', required=True, help='test file')
-    parser.add_argument('--gpu',
-                        type=int,
-                        default=-1,
-                        help='gpu id for this local rank, -1 for cpu')
+    parser = argparse.ArgumentParser(description="inference")
+    parser.add_argument("--checkpoint", required=True, help="checkpoint")
+    parser.add_argument("--cfg", required=True, help="config file")
+    parser.add_argument("--outdir", required=True, help="ouput directory")
+    parser.add_argument("--phone_table", required=True, help="input phone dict")
+    parser.add_argument("--speaker_table", default=None, help="speaker table")
+    parser.add_argument("--test_file", required=True, help="test file")
+    parser.add_argument(
+        "--gpu", type=int, default=-1, help="gpu id for this local rank, -1 for cpu"
+    )
     args = parser.parse_args()
     return args
 
@@ -49,9 +46,9 @@ def main():
     print(args)
     torch.set_num_threads(1)
     torch.set_num_interop_threads(1)
-    os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu)
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
     use_cuda = args.gpu >= 0 and torch.cuda.is_available()
-    device = torch.device('cuda' if use_cuda else 'cpu')
+    device = torch.device("cuda" if use_cuda else "cpu")
 
     phone_dict = {}
     with open(args.phone_table) as p_f:
@@ -72,7 +69,8 @@ def main():
         hps.data.filter_length // 2 + 1,
         hps.train.segment_size // hps.data.hop_length,
         n_speakers=len(speaker_dict) + 1,  # 0 is kept for unknown speaker
-        **hps.model)
+        **hps.model
+    )
     net_g = net_g.to(device)
 
     net_g.eval()
@@ -98,22 +96,33 @@ def main():
                 x_length = torch.LongTensor([seq.size(0)]).to(device)
                 sid = torch.LongTensor([sid]).to(device)
                 st = time.time()
-                audio = net_g.infer(
-                    x,
-                    x_length,
-                    sid=sid,
-                    noise_scale=.667,
-                    noise_scale_w=0.8,
-                    length_scale=1)[0][0, 0].data.cpu().float().numpy()
+                audio = (
+                    net_g.infer(
+                        x,
+                        x_length,
+                        sid=sid,
+                        noise_scale=0.667,
+                        noise_scale_w=0.8,
+                        length_scale=1,
+                    )[0][0, 0]
+                    .data.cpu()
+                    .float()
+                    .numpy()
+                )
                 audio *= 32767 / max(0.01, np.max(np.abs(audio))) * 0.6
-                print('RTF {}'.format(
-                    (time.time() - st) /
-                    (audio.shape[0] / hps.data.sampling_rate)))
+                print(
+                    "RTF {}".format(
+                        (time.time() - st) / (audio.shape[0] / hps.data.sampling_rate)
+                    )
+                )
                 sys.stdout.flush()
                 audio = np.clip(audio, -32767.0, 32767.0)
-                wavfile.write(args.outdir + "/" + audio_path.split("/")[-1],
-                              hps.data.sampling_rate, audio.astype(np.int16))
+                wavfile.write(
+                    args.outdir + "/" + audio_path.split("/")[-1],
+                    hps.data.sampling_rate,
+                    audio.astype(np.int16),
+                )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
