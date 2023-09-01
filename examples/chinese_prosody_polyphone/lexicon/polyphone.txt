@@ -10,8 +10,6 @@ ba3
 ba4
 ba5
 bai3
-bai4
-ban1
 bang3
 bang4
 bao1
@@ -19,7 +17,6 @@ bao2
 bao4
 bei1
 bei4
-bei5
 ben1
 ben4
 bi4
@@ -42,7 +39,6 @@ cha4
 chai1
 chan2
 chang2
-chang3
 chao2
 che1
 chen4
