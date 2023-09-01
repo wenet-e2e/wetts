@@ -19,7 +19,6 @@ import onnxruntime as ort
 from transformers import AutoTokenizer
 
 from hanzi2pinyin import Hanzi2Pinyin
-from tn.chinese.normalizer import Normalizer
 
 
 tokenizer = AutoTokenizer.from_pretrained("bert-base-chinese")
@@ -46,7 +45,6 @@ class Frontend(object):
     ):
         self.hanzi2pinyin = Hanzi2Pinyin(hanzi2pinyin_file)
         self.ppm_sess = ort.InferenceSession(polyphone_prosody_model)
-        self.tn = Normalizer()
         self.polyphone_dict = []
         self.polyphone_character_dict = []
         with open(polyphone_file) as pp_f:
@@ -54,8 +52,6 @@ class Frontend(object):
                 self.polyphone_dict.append(line.strip())
 
     def g2p(self, x):
-        # text normalization
-        x = self.tn.normalize(x)
         # polyphone disambiguation & prosody prediction
         tokens = tokenizer(
             list(x),

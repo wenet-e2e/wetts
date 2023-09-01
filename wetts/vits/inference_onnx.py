@@ -15,17 +15,12 @@
 import argparse
 
 import numpy as np
+import onnxruntime as ort
 from scipy.io import wavfile
 import torch
 
 import commons
 import utils
-
-try:
-    import onnxruntime as ort
-except ImportError:
-    print('Please install onnxruntime!')
-    sys.exit(1)
 
 
 def to_numpy(tensor):

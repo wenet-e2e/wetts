@@ -14,18 +14,12 @@
 
 import argparse
 import os
-import sys
 
+import onnxruntime as ort
 import torch
 
 from models import SynthesizerTrn
 import utils
-
-try:
-    import onnxruntime as ort
-except ImportError:
-    print('Please install onnxruntime!')
-    sys.exit(1)
 
 
 def to_numpy(tensor):

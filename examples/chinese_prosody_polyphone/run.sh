@@ -78,11 +78,11 @@ fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   # g2p
-  # text: 8方財寶進
+  # text: 八方财宝进
   # pinyin ['ba1', 'fang1', 'cai2', 'bao3', 'jin4']
   # prosody [0 1 0 0 4]
   python wetts/frontend/g2p_prosody.py \
-    --text "8方財寶進" \
+    --text "八方财宝进" \
     --hanzi2pinyin_file lexicon/pinyin_dict.txt \
     --polyphone_file lexicon/polyphone.txt \
     --polyphone_prosody_model $dir/9.onnx
