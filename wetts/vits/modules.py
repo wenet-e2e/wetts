@@ -115,8 +115,7 @@ class DDSConv(nn.Module):
             self.norms_2.append(LayerNorm(channels))
 
     def forward(self, x, x_mask, g=None):
-        if g is not None:
-            x = x + g
+        x = x + g
         for i in range(self.n_layers):
             y = self.convs_sep[i](x * x_mask)
             y = self.norms_1[i](y)
@@ -136,7 +135,7 @@ class WN(torch.nn.Module):
         kernel_size,
         dilation_rate,
         n_layers,
-        gin_channels=0,
+        gin_channels,
         p_dropout=0,
     ):
         super(WN, self).__init__()
@@ -152,11 +151,10 @@ class WN(torch.nn.Module):
         self.res_skip_layers = torch.nn.ModuleList()
         self.drop = nn.Dropout(p_dropout)
 
-        if gin_channels != 0:
-            cond_layer = torch.nn.Conv1d(
-                gin_channels, 2 * hidden_channels * n_layers, 1
-            )
-            self.cond_layer = torch.nn.utils.weight_norm(cond_layer, name="weight")
+        cond_layer = torch.nn.Conv1d(
+            gin_channels, 2 * hidden_channels * n_layers, 1
+        )
+        self.cond_layer = torch.nn.utils.weight_norm(cond_layer, name="weight")
 
         for i in range(n_layers):
             dilation = dilation_rate**i
@@ -185,16 +183,12 @@ class WN(torch.nn.Module):
         output = torch.zeros_like(x)
         n_channels_tensor = torch.IntTensor([self.hidden_channels])
 
-        if g is not None:
-            g = self.cond_layer(g)
+        g = self.cond_layer(g)
 
         for i in range(self.n_layers):
             x_in = self.in_layers[i](x)
-            if g is not None:
-                cond_offset = i * 2 * self.hidden_channels
-                g_l = g[:, cond_offset : cond_offset + 2 * self.hidden_channels, :]
-            else:
-                g_l = torch.zeros_like(x_in)
+            cond_offset = i * 2 * self.hidden_channels
+            g_l = g[:, cond_offset : cond_offset + 2 * self.hidden_channels, :]
 
             acts = commons.fused_add_tanh_sigmoid_multiply(x_in, g_l, n_channels_tensor)
             acts = self.drop(acts)
@@ -209,8 +203,7 @@ class WN(torch.nn.Module):
         return output * x_mask
 
     def remove_weight_norm(self):
-        if self.gin_channels != 0:
-            torch.nn.utils.remove_weight_norm(self.cond_layer)
+        torch.nn.utils.remove_weight_norm(self.cond_layer)
         for l in self.in_layers:
             torch.nn.utils.remove_weight_norm(l)
         for l in self.res_skip_layers:
@@ -407,7 +400,7 @@ class ResidualCouplingLayer(nn.Module):
         dilation_rate,
         n_layers,
         p_dropout=0,
-        gin_channels=0,
+        gin_channels=256,
         mean_only=False,
     ):
         assert channels % 2 == 0, "channels should be divisible by 2"

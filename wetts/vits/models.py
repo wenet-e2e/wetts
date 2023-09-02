@@ -22,7 +22,7 @@ class StochasticDurationPredictor(nn.Module):
         kernel_size,
         p_dropout,
         n_flows=4,
-        gin_channels=0,
+        gin_channels=256,
     ):
         super().__init__()
         filter_channels = in_channels  # it needs to be removed from future version.
@@ -60,15 +60,13 @@ class StochasticDurationPredictor(nn.Module):
         self.convs = modules.DDSConv(
             filter_channels, kernel_size, n_layers=3, p_dropout=p_dropout
         )
-        if gin_channels != 0:
-            self.cond = nn.Conv1d(gin_channels, filter_channels, 1)
+        self.cond = nn.Conv1d(gin_channels, filter_channels, 1)
 
     def forward(self, x, x_mask, w=None, g=None, reverse=False, noise_scale=1.0):
         x = torch.detach(x)
         x = self.pre(x)
-        if g is not None:
-            g = torch.detach(g)
-            x = x + self.cond(g)
+        g = torch.detach(g)
+        x = x + self.cond(g)
         x = self.convs(x, x_mask)
         x = self.proj(x) * x_mask
 
@@ -127,7 +125,7 @@ class StochasticDurationPredictor(nn.Module):
 
 class DurationPredictor(nn.Module):
     def __init__(
-        self, in_channels, filter_channels, kernel_size, p_dropout, gin_channels=0
+        self, in_channels, filter_channels, kernel_size, p_dropout, gin_channels
     ):
         super().__init__()
 
@@ -147,15 +145,12 @@ class DurationPredictor(nn.Module):
         )
         self.norm_2 = modules.LayerNorm(filter_channels)
         self.proj = nn.Conv1d(filter_channels, 1, 1)
-
-        if gin_channels != 0:
-            self.cond = nn.Conv1d(gin_channels, in_channels, 1)
+        self.cond = nn.Conv1d(gin_channels, in_channels, 1)
 
     def forward(self, x, x_mask, g=None):
         x = torch.detach(x)
-        if g is not None:
-            g = torch.detach(g)
-            x = x + self.cond(g)
+        g = torch.detach(g)
+        x = x + self.cond(g)
         x = self.conv_1(x * x_mask)
         x = torch.relu(x)
         x = self.norm_1(x)
@@ -221,7 +216,7 @@ class ResidualCouplingBlock(nn.Module):
         dilation_rate,
         n_layers,
         n_flows=4,
-        gin_channels=0,
+        gin_channels=256,
     ):
         super().__init__()
         self.channels = channels
@@ -266,7 +261,7 @@ class PosteriorEncoder(nn.Module):
         kernel_size,
         dilation_rate,
         n_layers,
-        gin_channels=0,
+        gin_channels,
     ):
         super().__init__()
         self.in_channels = in_channels
@@ -309,7 +304,7 @@ class Generator(torch.nn.Module):
         upsample_rates,
         upsample_initial_channel,
         upsample_kernel_sizes,
-        gin_channels=0,
+        gin_channels,
     ):
         super(Generator, self).__init__()
         self.num_kernels = len(resblock_kernel_sizes)
@@ -344,13 +339,11 @@ class Generator(torch.nn.Module):
         self.conv_post = Conv1d(ch, 1, 7, 1, padding=3, bias=False)
         self.ups.apply(init_weights)
 
-        if gin_channels != 0:
-            self.cond = nn.Conv1d(gin_channels, upsample_initial_channel, 1)
+        self.cond = nn.Conv1d(gin_channels, upsample_initial_channel, 1)
 
     def forward(self, x, g=None):
         x = self.conv_pre(x)
-        if g is not None:
-            x = x + self.cond(g)
+        x = x + self.cond(g)
 
         for i in range(self.num_upsamples):
             x = F.leaky_relu(x, modules.LRELU_SLOPE)
@@ -535,8 +528,8 @@ class SynthesizerTrn(nn.Module):
         upsample_rates,
         upsample_initial_channel,
         upsample_kernel_sizes,
-        n_speakers=0,
-        gin_channels=0,
+        n_speakers=1,
+        gin_channels=256,
         use_sdp=True,
         **kwargs
     ):
@@ -559,10 +552,6 @@ class SynthesizerTrn(nn.Module):
         self.segment_size = segment_size
         self.n_speakers = n_speakers
         self.gin_channels = gin_channels
-        if self.n_speakers != 0:
-            message = "gin_channels must be none zero for multiple speakers"
-            assert gin_channels != 0, message
-
         self.use_sdp = use_sdp
 
         self.enc_p = TextEncoder(
@@ -607,15 +596,11 @@ class SynthesizerTrn(nn.Module):
                 hidden_channels, 256, 3, 0.5, gin_channels=gin_channels
             )
 
-        if n_speakers > 1:
-            self.emb_g = nn.Embedding(n_speakers, gin_channels)
+        self.emb_g = nn.Embedding(n_speakers, gin_channels)
 
     def forward(self, x, x_lengths, y, y_lengths, sid=None):
         x, m_p, logs_p, x_mask = self.enc_p(x, x_lengths)
-        if self.n_speakers > 1:
-            g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
-        else:
-            g = None
+        g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
 
         z, m_q, logs_q, y_mask = self.enc_q(y, y_lengths, g=g)
         z_p = self.flow(z, y_mask, g=g)
@@ -685,10 +670,7 @@ class SynthesizerTrn(nn.Module):
     ):
         t1 = time.time()
         x, m_p, logs_p, x_mask = self.enc_p(x, x_lengths)
-        if self.n_speakers > 0:
-            g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
-        else:
-            g = None
+        g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
         t2 = time.time()
         if self.use_sdp:
             logw = self.dp(x, x_mask, g=g, reverse=True, noise_scale=noise_scale_w)
@@ -738,7 +720,6 @@ class SynthesizerTrn(nn.Module):
         return audio
 
     def voice_conversion(self, y, y_lengths, sid_src, sid_tgt):
-        assert self.n_speakers > 0, "n_speakers have to be larger than 0."
         g_src = self.emb_g(sid_src).unsqueeze(-1)
         g_tgt = self.emb_g(sid_tgt).unsqueeze(-1)
         z, m_q, logs_q, y_mask = self.enc_q(y, y_lengths, g=g_src)
