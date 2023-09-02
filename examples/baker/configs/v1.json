@@ -18,7 +18,6 @@
   },
   "data": {
     "max_wav_value": 32768.0,
-    "src_sampling_rate": 48000,
     "sampling_rate": 22050,
     "filter_length": 1024,
     "hop_length": 256,
