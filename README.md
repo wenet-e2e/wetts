@@ -17,7 +17,6 @@ Create environment:
 conda create -n wetts python=3.8 -y
 conda activate wetts
 pip install -r requirements.txt
-conda install -n wetts pytorch=1.11 torchaudio cudatoolkit=10.2 -c pytorch -c conda-forge -y
 ```
 
 Please note you should use `cudatoolkit=11.3` for CUDA 11.3.

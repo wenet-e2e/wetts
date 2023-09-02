@@ -10,7 +10,7 @@ jobs:
   quick-checks:
     runs-on: ubuntu-latest
     steps:
-      - name: Fetch Wenet
+      - name: Fetch WeTTS
         uses: actions/checkout@v1
       - name: Checkout PR tip
         run: |
@@ -37,7 +37,7 @@ jobs:
         with:
           python-version: 3.x
           architecture: x64
-      - name: Fetch Wenet
+      - name: Fetch WeTTS
         uses: actions/checkout@v1
       - name: Checkout PR tip
         run: |
@@ -65,7 +65,7 @@ jobs:
         with:
           python-version: 3.x
           architecture: x64
-      - name: Fetch Wenet
+      - name: Fetch WeTTS
         uses: actions/checkout@v1
       - name: Checkout PR tip
         run: |
