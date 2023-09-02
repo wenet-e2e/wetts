@@ -32,19 +32,25 @@ fi
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
   # Prepare data for training/validation
   mkdir -p $data
-  python tools/gen_pinyin_lexicon.py --with-zero-initial --with-tone --with-r \
-      $data/lexicon.txt $data/phones.list
-  python local/prepare_data.py $data/lexicon.txt \
-      $dataset_dir/data_aishell3 $data/all.txt
+  python tools/gen_pinyin_lexicon.py \
+    --with-zero-initial --with-tone --with-r \
+    $data/lexicon.txt \
+    $data/phones.list
+  python local/prepare_data.py \
+    $data/lexicon.txt \
+    $dataset_dir/data_aishell3 \
+    $data/all.txt
+
   cat $data/all.txt | awk -F '|' '{print $2}' | \
-      sort | uniq | awk '{print $0, NR}' > $data/speaker.txt
-  # phone with 0 is kept for <blank>
+    sort | uniq | awk '{print $0, NR}' > $data/speaker.txt
+  echo 'sil 0' > $data/phones.txt
   cat $data/all.txt | awk -F '|' '{print $3}' | \
-      awk '{ for (i=1;i<=NF;i++) print $i}' | \
-      sort | uniq | awk '{print $0, NR}' > $data/phones.txt
+    awk '{ for (i=1;i<=NF;i++) print $i}' | \
+    sort | uniq | awk '{print $0, NR}' >> $data/phones.txt
+
   # Split train/validation
   cat $data/all.txt | shuf --random-source=<(yes 777) | head -n 110 | \
-      awk -F '|' '{print $1}' > $data/val.key
+    awk -F '|' '{print $1}' > $data/val.key
   cat $data/all.txt | grep -f $data/val.key > $data/val.txt
   head -10 $data/val.txt > $data/test.txt
   sed -i '1,10d' $data/val.txt

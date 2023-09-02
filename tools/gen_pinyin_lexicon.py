@@ -37,8 +37,6 @@ FINALS = [
     'ueng', 'v', 've', 'van', 'vn'
 ]
 
-SPECIALS = ['sil']
-
 
 def rule(C, V, R, T):
     """Generate a syllable given the initial, the final, erhua indicator,
@@ -176,8 +174,6 @@ def generate_lexicon(with_zero_initial=False,
 def generate_symbols(lexicon):
     """Generate phoneme list for a lexicon."""
     symbols = set()
-    for p in SPECIALS:
-        symbols.add(p)
     for _, phonemes in lexicon.items():
         phonemes = phonemes.split()
         for p in phonemes:
