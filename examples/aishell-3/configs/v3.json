@@ -23,11 +23,7 @@
     "filter_length": 1024,
     "hop_length": 256,
     "win_length": 1024,
-    "n_mel_channels": 80,
-    "mel_fmin": 0.0,
-    "mel_fmax": null,
-    "add_blank": false,
-    "n_speakers": 0
+    "n_mel_channels": 80
   },
   "model": {
     "inter_channels": 192,

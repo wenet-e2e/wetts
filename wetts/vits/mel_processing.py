@@ -69,7 +69,7 @@ def spectrogram_torch(y, n_fft, sampling_rate, hop_size, win_size, center=False)
         pad_mode="reflect",
         normalized=False,
         onesided=True,
-        return_complex=True
+        return_complex=True,
     )
     spec = torch.view_as_real(spec)
 
@@ -77,26 +77,23 @@ def spectrogram_torch(y, n_fft, sampling_rate, hop_size, win_size, center=False)
     return spec
 
 
-def spec_to_mel_torch(spec, n_fft, n_mels, sampling_rate, fmin, fmax):
+def spec_to_mel_torch(spec, n_fft, n_mels, sampling_rate):
     global mel_basis
     dtype_device = str(spec.dtype) + "_" + str(spec.device)
-    fmax_dtype_device = str(fmax) + "_" + dtype_device
-    if fmax_dtype_device not in mel_basis:
-        mel = librosa_mel_fn(
-            sr=sampling_rate, n_fft=n_fft, n_mels=n_mels, fmin=fmin, fmax=fmax
-        )
-        mel_basis[fmax_dtype_device] = torch.from_numpy(mel).to(
+    if dtype_device not in mel_basis:
+        mel = librosa_mel_fn(sr=sampling_rate, n_fft=n_fft, n_mels=n_mels)
+        mel_basis[dtype_device] = torch.from_numpy(mel).to(
             dtype=spec.dtype, device=spec.device
         )
-    spec = torch.matmul(mel_basis[fmax_dtype_device], spec)
+    spec = torch.matmul(mel_basis[dtype_device], spec)
     spec = spectral_normalize_torch(spec)
     return spec
 
 
 def mel_spectrogram_torch(
-    y, n_fft, n_mels, sampling_rate, hop_size, win_size, fmin, fmax, center=False
+    y, n_fft, n_mels, sampling_rate, hop_size, win_size, center=False
 ):
     spec = spectrogram_torch(y, n_fft, sampling_rate, hop_size, win_size, center)
-    spec = spec_to_mel_torch(spec, n_fft, n_mels, sampling_rate, fmin, fmax)
+    spec = spec_to_mel_torch(spec, n_fft, n_mels, sampling_rate)
 
     return spec

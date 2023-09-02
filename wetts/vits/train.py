@@ -213,8 +213,6 @@ def train_and_evaluate(
                 hps.data.filter_length,
                 hps.data.n_mel_channels,
                 hps.data.sampling_rate,
-                hps.data.mel_fmin,
-                hps.data.mel_fmax,
             )
             y_mel = commons.slice_segments(
                 mel, ids_slice, hps.train.segment_size // hps.data.hop_length
@@ -226,8 +224,6 @@ def train_and_evaluate(
                 hps.data.sampling_rate,
                 hps.data.hop_length,
                 hps.data.win_length,
-                hps.data.mel_fmin,
-                hps.data.mel_fmax,
             )
 
             y = commons.slice_segments(
@@ -380,8 +376,6 @@ def evaluate(hps, generator, eval_loader, writer_eval):
             hps.data.filter_length,
             hps.data.n_mel_channels,
             hps.data.sampling_rate,
-            hps.data.mel_fmin,
-            hps.data.mel_fmax,
         )
         y_hat_mel = mel_spectrogram_torch(
             y_hat.squeeze(1).float(),
@@ -390,8 +384,6 @@ def evaluate(hps, generator, eval_loader, writer_eval):
             hps.data.sampling_rate,
             hps.data.hop_length,
             hps.data.win_length,
-            hps.data.mel_fmin,
-            hps.data.mel_fmax,
         )
     image_dict = {
         "gen/mel": utils.plot_spectrogram_to_numpy(y_hat_mel[0].cpu().numpy())
