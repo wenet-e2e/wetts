@@ -2,25 +2,23 @@
 
 Production First and Production Ready End-to-End Text-to-Speech Toolkit
 
-Note: This project is at its early statge now.
-Its design and implementation are subjected to change.
-
 ## Install
 
-We suggest installing WeTTS with Anaconda or Miniconda.
+We suggest to install WeTTS with Anaconda or Miniconda.
+
 Clone this repo:
+
 ```sh
 git clone https://github.com/wenet-e2e/wetts.git
 ```
-Create environment:
+
+Create the environment:
+
 ```bash
 conda create -n wetts python=3.8 -y
 conda activate wetts
 pip install -r requirements.txt
 ```
-
-Please note you should use `cudatoolkit=11.3` for CUDA 11.3.
-
 
 ## Roadmap
 
@@ -36,9 +34,9 @@ We mainly focus on end to end, production, and on-device TTS. We are going to us
 
 We plan to support a variaty of open source TTS datasets, include but not limited to:
 
-* [Baker](https://www.data-baker.com/data/index/TNtts/), Chinese Standard Mandarin Speech corpus open sourced by Data Baker.
-* [AISHELL-3](https://openslr.org/93/), a large-scale and high-fidelity multi-speaker Mandarin speech corpus.
-* [Opencpop](https://wenet.org.cn/opencpop/), Mandarin singing voice synthesis (SVS) corpus open sourced by Netease Fuxi.
+* [Baker](https://www.data-baker.com/data/index/TNtts), Chinese Standard Mandarin Speech corpus open sourced by Data Baker.
+* [AISHELL-3](https://openslr.org/93), a large-scale and high-fidelity multi-speaker Mandarin speech corpus.
+* [Opencpop](https://wenet.org.cn/opencpop), Mandarin singing voice synthesis (SVS) corpus open sourced by Netease Fuxi.
 
 ## Pretrained Models
 
@@ -62,6 +60,9 @@ We plan to support a variaty of hardwares and platforms, including:
 export GLOG_logtostderr=1
 export GLOG_v=2
 
+cd runtime
+cmake -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
 ./build/bin/tts_main \
   --tagger baker_bert_onnx/zh_tn_tagger.fst \
   --verbalizer baker_bert_onnx/zh_tn_verbalizer.fst \
