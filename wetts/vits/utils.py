@@ -201,14 +201,11 @@ def get_hparams(init=True):
     config["data"]["training_files"] = args.train_data
     config["data"]["validation_files"] = args.val_data
     config["data"]["phone_table"] = args.phone_table
-    # 0 is kept for blank
-    config["data"]["num_phones"] = len(open(args.phone_table).readlines()) + 1
-    if args.speaker_table is not None:
-        config["data"]["speaker_table"] = args.speaker_table
-        # 0 is kept for unknown speaker
-        config["data"]["n_speakers"] = len(open(args.speaker_table).readlines()) + 1
-    else:
-        config["data"]["n_speakers"] = 0
+    phones = [line for line in open(args.phone_table).readlines() if line.strip()]
+    config["data"]["num_phones"] = len(phones)
+    config["data"]["speaker_table"] = args.speaker_table
+    speakers = [line for line in open(args.speaker_table).readlines() if line.strip()]
+    config["data"]["n_speakers"] = len(speakers)
 
     hparams = HParams(**config)
     hparams.model_dir = model_dir
