@@ -19,7 +19,6 @@ import onnxruntime as ort
 from scipy.io import wavfile
 import torch
 
-import commons
 import utils
 
 
@@ -76,8 +75,6 @@ def main():
                 sid = speaker_dict[arr[1]]
                 text = arr[2]
             seq = [phone_dict[symbol] for symbol in text.split()]
-            if hps.data.add_blank:
-                seq = commons.intersperse(seq, 0)
 
             x = torch.LongTensor([seq])
             x_len = torch.IntTensor([x.size(1)]).long()

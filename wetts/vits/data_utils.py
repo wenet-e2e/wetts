@@ -5,7 +5,6 @@ import torch
 import torchaudio
 import torch.utils.data
 
-import commons
 from mel_processing import spectrogram_torch
 from utils import load_filepaths_and_text
 

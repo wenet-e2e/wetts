@@ -21,7 +21,6 @@ import numpy as np
 from scipy.io import wavfile
 import torch
 
-import commons
 from models import SynthesizerTrn
 import utils
 
@@ -87,8 +86,6 @@ def main():
                 sid = speaker_dict[arr[1]]
                 text = arr[2]
             seq = [phone_dict[symbol] for symbol in text.split()]
-            if hps.data.add_blank:
-                seq = commons.intersperse(seq, 0)
             seq = torch.LongTensor(seq)
             print(audio_path)
             with torch.no_grad():
