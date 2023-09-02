@@ -26,7 +26,6 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         self.win_length = hparams.win_length
         self.sampling_rate = hparams.sampling_rate
         self.cleaned_text = getattr(hparams, "cleaned_text", False)
-        self.add_blank = hparams.add_blank
         self.min_text_len = getattr(hparams, "min_text_len", 1)
         self.max_text_len = getattr(hparams, "max_text_len", 190)
 
@@ -113,8 +112,6 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
 
     def get_text(self, text):
         text_norm = [self.phone_dict[phone] for phone in text.split()]
-        if self.add_blank:
-            text_norm = commons.intersperse(text_norm, 0)
         text_norm = torch.LongTensor(text_norm)
         return text_norm
 
