@@ -19,19 +19,13 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
 
     def __init__(self, audiopaths_sid_text, hparams):
         self.audiopaths_sid_text = load_filepaths_and_text(audiopaths_sid_text)
-        # self.text_cleaners = hparams.text_cleaners
         self.max_wav_value = hparams.max_wav_value
         self.sampling_rate = hparams.sampling_rate
         self.filter_length = hparams.filter_length
         self.hop_length = hparams.hop_length
         self.win_length = hparams.win_length
         self.sampling_rate = hparams.sampling_rate
-        self.src_sampling_rate = getattr(
-            hparams, "src_sampling_rate", self.sampling_rate
-        )
-
         self.cleaned_text = getattr(hparams, "cleaned_text", False)
-
         self.add_blank = hparams.add_blank
         self.min_text_len = getattr(hparams, "min_text_len", 1)
         self.max_text_len = getattr(hparams, "max_text_len", 190)
@@ -62,14 +56,11 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         """
         Filter text & store spec lengths
         """
-        # Store spectrogram lengths for Bucketing
-        # wav_length ~= file_size / (wav_channels * Bytes per dim) = file_size / (1 * 2)
-        # spec_length = wav_length // hop_length
-
         audiopaths_sid_text_new = []
         lengths = []
         for item in self.audiopaths_sid_text:
             audiopath = item[0]
+            src_sampling_rate = torchaudio.info(audiopath).sample_rate
             # filename|text or filename|speaker|text
             text = item[1] if len(item) == 2 else item[2]
             if self.min_text_len <= len(text) and len(text) <= self.max_text_len:
@@ -78,7 +69,7 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
                     int(
                         os.path.getsize(audiopath)
                         * self.sampling_rate
-                        / self.src_sampling_rate
+                        / src_sampling_rate
                     )
                     // (2 * self.hop_length)
                 )
