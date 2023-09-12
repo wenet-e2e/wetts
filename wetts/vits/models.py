@@ -362,7 +362,6 @@ class Generator(torch.nn.Module):
         return x
 
     def remove_weight_norm(self):
-        print("Removing weight norm...")
         for l in self.ups:
             remove_weight_norm(l)
         for l in self.resblocks:
@@ -696,13 +695,15 @@ class SynthesizerTrn(nn.Module):
         z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
         t4 = time.time()
         z = self.flow(z_p, y_mask, g=g, reverse=True)
-        print(z.size())
         t5 = time.time()
         o = self.dec((z * y_mask)[:, :, :max_len], g=g)
         t6 = time.time()
         print(
-            "TextEncoder {} DurationPredictor {} Flow {} Decoder {}".format(
-                t2 - t1, t3 - t2, t5 - t4, t6 - t5
+            "TextEncoder: {}s DurationPredictor: {}s Flow: {}s Decoder: {}s".format(
+                round(t2 - t1, 3),
+                round(t3 - t2, 3),
+                round(t5 - t4, 3),
+                round(t6 - t5, 3),
             )
         )
         return o, attn, y_mask, (z, z_p, m_p, logs_p)

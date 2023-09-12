@@ -3,7 +3,6 @@ import glob
 import json
 import logging
 import os
-import sys
 
 import numpy as np
 from scipy.io.wavfile import read
@@ -11,7 +10,12 @@ import torch
 
 MATPLOTLIB_FLAG = False
 
-logging.basicConfig(stream=sys.stdout, level=logging.INFO)
+
+logging.basicConfig(
+    format="%(asctime)s %(levelname)-8s %(message)s",
+    level=logging.INFO,
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 logger = logging
 
 
@@ -88,7 +92,6 @@ def latest_checkpoint_path(dir_path, regex="G_*.pth"):
     f_list = glob.glob(os.path.join(dir_path, regex))
     f_list.sort(key=lambda f: int("".join(filter(str.isdigit, f))))
     x = f_list[-1]
-    print(x)
     return x
 
 

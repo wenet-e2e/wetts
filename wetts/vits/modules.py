@@ -151,9 +151,7 @@ class WN(torch.nn.Module):
         self.res_skip_layers = torch.nn.ModuleList()
         self.drop = nn.Dropout(p_dropout)
 
-        cond_layer = torch.nn.Conv1d(
-            gin_channels, 2 * hidden_channels * n_layers, 1
-        )
+        cond_layer = torch.nn.Conv1d(gin_channels, 2 * hidden_channels * n_layers, 1)
         self.cond_layer = torch.nn.utils.weight_norm(cond_layer, name="weight")
 
         for i in range(n_layers):
