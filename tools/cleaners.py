@@ -1,21 +1,7 @@
 """ from https://github.com/keithito/tacotron """
 
-"""
-Cleaners are transformations that run over the input text at both training and eval time.
-
-Cleaners can be selected by passing a comma-delimited list of cleaner names as the "cleaners"
-hyperparameter. Some cleaners are English-specific. You'll typically want to use:
-  1. "english_cleaners" for English text
-  2. "transliteration_cleaners" for non-English text that can be transliterated to ASCII using
-     the Unidecode library (https://pypi.python.org/pypi/Unidecode)
-  3. "basic_cleaners" if you do not want to transliterate (in this case, you should also update
-     the symbols in symbols.py to match your data).
-"""
-
 import re
 from g2p_en import G2p
-import nltk
-from unidecode import unidecode
 
 
 g2p = G2p()
@@ -54,19 +40,15 @@ def expand_abbreviations(text):
     return text
 
 
-def expand_numbers(text):
-    return normalize_numbers(text)
-
-
-def lowercase(text):
-    return text.lower()
-
-
 def filter(phonemes, use_prosody=False):
-    if not use_prosody:
-        return [phoneme for phoneme in phonemes if not re.match("^[-,!?.' ]+$", phoneme)]
-
     phones = []
+    if not use_prosody:
+        for phoneme in phonemes:
+            is_symbol = re.match("^[-,!?.' ]+$", phoneme)
+            if not is_symbol:
+                phones.append(phoneme)
+        return phones
+
     for phoneme in phonemes:
         if phoneme == " " and len(phones) > 0 and "#" not in phones[-1]:
             phones.append(_prosodies[1])
@@ -86,7 +68,7 @@ def filter(phonemes, use_prosody=False):
 
 def english_cleaners(text, use_prosody=False):
     """Pipeline for English text, including abbreviation expansion."""
-    text = lowercase(text)
+    text = text.lower()
     text = expand_abbreviations(text)
     phonemes = g2p(text)
     phonemes = filter(phonemes, use_prosody)
