@@ -251,6 +251,11 @@ class ResidualCouplingBlock(nn.Module):
                 x = flow(x, x_mask, g=g, reverse=reverse)
         return x
 
+    def remove_weight_norm(self):
+        for i, l in enumerate(self.flows):
+            if i % 2 == 0:
+                l.remove_weight_norm()
+
 
 class PosteriorEncoder(nn.Module):
     def __init__(

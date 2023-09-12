@@ -15,19 +15,10 @@
 import argparse
 import os
 
-import onnxruntime as ort
 import torch
 
 from models import SynthesizerTrn
 import utils
-
-
-def to_numpy(tensor):
-    return (
-        tensor.detach().cpu().numpy()
-        if tensor.requires_grad
-        else tensor.detach().numpy()
-    )
 
 
 def get_args():
@@ -53,11 +44,8 @@ def main():
     os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
     hps = utils.get_hparams_from_file(args.cfg)
-    with open(args.phone_table) as p_f:
-        phone_num = len(p_f.readlines()) + 1
-    num_speakers = 1
-    if args.speaker_table is not None:
-        num_speakers = len(open(args.speaker_table).readlines()) + 1
+    phone_num = len(open(args.phone_table).readlines())
+    num_speakers = len(open(args.speaker_table).readlines())
 
     net_g = SynthesizerTrn(
         phone_num,
@@ -67,6 +55,8 @@ def main():
         **hps.model
     )
     utils.load_checkpoint(args.checkpoint, net_g, None)
+    net_g.flow.remove_weight_norm()
+    net_g.dec.remove_weight_norm()
     net_g.forward = net_g.export_forward
     net_g.eval()
 
@@ -75,7 +65,7 @@ def main():
     scales = torch.FloatTensor([0.667, 1.0, 0.8])
     # make triton dynamic shape happy
     scales = scales.unsqueeze(0)
-    sid = torch.IntTensor([1]).long()
+    sid = torch.IntTensor([0]).long()
 
     dummy_input = (seq, seq_len, scales, sid)
     torch.onnx.export(
@@ -94,18 +84,6 @@ def main():
         opset_version=13,
         verbose=False,
     )
-
-    # Verify onnx precision
-    torch_output = net_g(seq, seq_len, scales, sid)
-    providers = [args.providers]
-    ort_sess = ort.InferenceSession(args.onnx_model, providers=providers)
-    ort_inputs = {
-        "input": to_numpy(seq),
-        "input_lengths": to_numpy(seq_len),
-        "scales": to_numpy(scales),
-        "sid": to_numpy(sid),
-    }
-    onnx_output = ort_sess.run(None, ort_inputs)
 
 
 if __name__ == "__main__":

@@ -31,7 +31,7 @@ def get_args():
     parser.add_argument("--cfg", required=True, help="config file")
     parser.add_argument("--outdir", required=True, help="ouput directory")
     parser.add_argument("--phone_table", required=True, help="input phone dict")
-    parser.add_argument("--speaker_table", default=None, help="speaker table")
+    parser.add_argument("--speaker_table", default=True, help="speaker table")
     parser.add_argument("--test_file", required=True, help="test file")
     parser.add_argument(
         "--gpu", type=int, default=-1, help="gpu id for this local rank, -1 for cpu"
@@ -50,21 +50,19 @@ def main():
     device = torch.device("cuda" if use_cuda else "cpu")
 
     phone_dict = {}
-    with open(args.phone_table) as p_f:
-        for line in p_f:
-            phone_id = line.strip().split()
-            phone_dict[phone_id[0]] = int(phone_id[1])
+    for line in open(args.phone_table):
+        phone_id = line.strip().split()
+        phone_dict[phone_id[0]] = int(phone_id[1])
+
     speaker_dict = {}
-    if args.speaker_table is not None:
-        with open(args.speaker_table) as p_f:
-            for line in p_f:
-                arr = line.strip().split()
-                assert len(arr) == 2
-                speaker_dict[arr[0]] = int(arr[1])
+    for line in open(args.speaker_table):
+        arr = line.strip().split()
+        assert len(arr) == 2
+        speaker_dict[arr[0]] = int(arr[1])
     hps = utils.get_hparams_from_file(args.cfg)
 
     net_g = SynthesizerTrn(
-        len(phone_dict) + 1,
+        len(phone_dict),
         hps.data.filter_length // 2 + 1,
         hps.train.segment_size // hps.data.hop_length,
         n_speakers=len(speaker_dict),
@@ -75,50 +73,42 @@ def main():
     net_g.eval()
     utils.load_checkpoint(args.checkpoint, net_g, None)
 
-    with open(args.test_file) as fin:
-        for line in fin:
-            arr = line.strip().split("|")
-            audio_path = arr[0]
-            if len(arr) == 2:
-                sid = 0
-                text = arr[1]
-            else:
-                sid = speaker_dict[arr[1]]
-                text = arr[2]
-            seq = [phone_dict[symbol] for symbol in text.split()]
-            seq = torch.LongTensor(seq)
-            print(audio_path)
-            with torch.no_grad():
-                x = seq.to(device).unsqueeze(0)
-                x_length = torch.LongTensor([seq.size(0)]).to(device)
-                sid = torch.LongTensor([sid]).to(device)
-                st = time.time()
-                audio = (
-                    net_g.infer(
-                        x,
-                        x_length,
-                        sid=sid,
-                        noise_scale=0.667,
-                        noise_scale_w=0.8,
-                        length_scale=1,
-                    )[0][0, 0]
-                    .data.cpu()
-                    .float()
-                    .numpy()
+    for line in open(args.test_file):
+        audio_path, sid, text = line.strip().split("|")
+        seq = [phone_dict[symbol] for symbol in text.split()]
+        seq = torch.LongTensor(seq)
+        print(audio_path)
+        with torch.no_grad():
+            x = seq.to(device).unsqueeze(0)
+            x_length = torch.LongTensor([seq.size(0)]).to(device)
+            sid = torch.LongTensor([sid]).to(device)
+            st = time.time()
+            audio = (
+                net_g.infer(
+                    x,
+                    x_length,
+                    sid=sid,
+                    noise_scale=0.667,
+                    noise_scale_w=0.8,
+                    length_scale=1,
+                )[0][0, 0]
+                .data.cpu()
+                .float()
+                .numpy()
+            )
+            audio *= 32767 / max(0.01, np.max(np.abs(audio))) * 0.6
+            print(
+                "RTF {}".format(
+                    (time.time() - st) / (audio.shape[0] / hps.data.sampling_rate)
                 )
-                audio *= 32767 / max(0.01, np.max(np.abs(audio))) * 0.6
-                print(
-                    "RTF {}".format(
-                        (time.time() - st) / (audio.shape[0] / hps.data.sampling_rate)
-                    )
-                )
-                sys.stdout.flush()
-                audio = np.clip(audio, -32767.0, 32767.0)
-                wavfile.write(
-                    args.outdir + "/" + audio_path.split("/")[-1],
-                    hps.data.sampling_rate,
-                    audio.astype(np.int16),
-                )
+            )
+            sys.stdout.flush()
+            audio = np.clip(audio, -32767.0, 32767.0)
+            wavfile.write(
+                args.outdir + "/" + audio_path.split("/")[-1],
+                hps.data.sampling_rate,
+                audio.astype(np.int16),
+            )
 
 
 if __name__ == "__main__":

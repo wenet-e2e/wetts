@@ -445,6 +445,9 @@ class ResidualCouplingLayer(nn.Module):
             x = torch.cat([x0, x1], 1)
             return x
 
+    def remove_weight_norm(self):
+        self.enc.remove_weight_norm()
+
 
 class ConvFlow(nn.Module):
     def __init__(
