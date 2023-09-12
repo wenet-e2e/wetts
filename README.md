@@ -60,7 +60,7 @@ We plan to support a variaty of hardwares and platforms, including:
 export GLOG_logtostderr=1
 export GLOG_v=2
 
-cd runtime
+cd runtime/onnxruntime
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ./build/bin/tts_main \

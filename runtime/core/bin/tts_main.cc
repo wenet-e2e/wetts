@@ -46,6 +46,7 @@ DEFINE_string(phone2id, "", "phone to id");
 DEFINE_string(sname, "", "speaker name");
 DEFINE_string(vits_model, "", "e2e tts model file");
 
+DEFINE_int32(sampling_rate, 22050, "sampling rate of pcm");
 DEFINE_string(text, "", "input text");
 DEFINE_string(wav_path, "", "output wave path");
 
@@ -54,8 +55,14 @@ int main(int argc, char* argv[]) {
   google::InitGoogleLogging(argv[0]);
 
   auto tn = std::make_shared<wetext::Processor>(FLAGS_tagger, FLAGS_verbalizer);
-  auto g2p_en = std::make_shared<wetts::G2pEn>(
-      FLAGS_cmudict, FLAGS_g2p_en_model, FLAGS_g2p_en_sym);
+
+  bool has_en = !FLAGS_g2p_en_model.empty() && !FLAGS_g2p_en_sym.empty() &&
+                !FLAGS_g2p_en_sym.empty();
+  std::shared_ptr<wetts::G2pEn> g2p_en =
+      has_en ? std::make_shared<wetts::G2pEn>(FLAGS_cmudict, FLAGS_g2p_en_model,
+                                              FLAGS_g2p_en_sym)
+             : nullptr;
+
   auto g2p_prosody = std::make_shared<wetts::G2pProsody>(
       FLAGS_g2p_prosody_model, FLAGS_vocab, FLAGS_char2pinyin, FLAGS_pinyin2id,
       FLAGS_pinyin2phones, g2p_en);
@@ -66,7 +73,8 @@ int main(int argc, char* argv[]) {
   int sid = model->GetSid(FLAGS_sname);
   model->Synthesis(FLAGS_text, sid, &audio);
 
-  wetts::WavWriter wav_writer(audio.data(), audio.size(), 1, 22050, 16);
+  wetts::WavWriter wav_writer(audio.data(), audio.size(), 1,
+                              FLAGS_sampling_rate, 16);
   wav_writer.Write(FLAGS_wav_path);
   return 0;
 }
