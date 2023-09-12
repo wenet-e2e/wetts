@@ -1,5 +1,7 @@
+g2p_en
 librosa
 monotonic_align
+nltk
 onnx
 onnxruntime
 scikit-learn
