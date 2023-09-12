@@ -29,6 +29,6 @@ fi
 
 cd $dir
 if ! tar -xvzf data_aishell3.tgz; then
-  echo "$0: error un-tarring archive $dir/$data_aishell3.tgz"
+  echo "$0: error un-tarring archive $dir/data_aishell3.tgz"
   exit 1;
 fi

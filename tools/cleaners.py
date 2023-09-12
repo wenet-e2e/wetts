@@ -40,7 +40,7 @@ def expand_abbreviations(text):
     return text
 
 
-def filter(phonemes, use_prosody=False):
+def filter(phonemes, use_prosody):
     phones = []
     if not use_prosody:
         for phoneme in phonemes:
@@ -50,8 +50,11 @@ def filter(phonemes, use_prosody=False):
         return phones
 
     for phoneme in phonemes:
-        if phoneme == " " and len(phones) > 0 and "#" not in phones[-1]:
-            phones.append(_prosodies[1])
+        if re.match("^[']+$", phoneme):
+            continue
+        elif re.match("^[- ]+$", phoneme):
+            if len(phones) > 0 and "#" not in phones[-1]:
+                phones.append(_prosodies[1])
         elif re.match("^[,!?.]+$", phoneme):
             if len(phones) > 0 and "#" in phones[-1]:
                 phones[-1] = max(phones[-1], _prosodies[3])
@@ -66,7 +69,7 @@ def filter(phonemes, use_prosody=False):
     return phones
 
 
-def english_cleaners(text, use_prosody=False):
+def english_cleaners(text, use_prosody):
     """Pipeline for English text, including abbreviation expansion."""
     text = text.lower()
     text = expand_abbreviations(text)

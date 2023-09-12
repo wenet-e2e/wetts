@@ -14,19 +14,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import argparse
 import csv
 import os
-import sys
 
 from tools.cleaners import english_cleaners
 
-if len(sys.argv) != 3:
-    print("Usage: prepare_data.py in_data_dir out_data")
-    sys.exit(-1)
 
-metadata = os.path.join(sys.argv[1], "metadata.csv")
-with open(metadata) as fin, open(sys.argv[2], "w", encoding="utf8") as fout:
-    for row in csv.reader(fin, delimiter="|"):
-        wav_path = os.path.join(sys.argv[1], f"wavs/{row[0]}.wav")
-        phones = english_cleaners(row[-1], use_prosody=False)
-        fout.write("{}|ljspeech|sil {} sil\n".format(wav_path, " ".join(phones)))
+def get_args():
+    parser = argparse.ArgumentParser(description="prepare data")
+    parser.add_argument("--data_dir", required=True, help="input data dir")
+    parser.add_argument("--output", required=True, help="output file")
+    parser.add_argument("--use_prosody", default=True, help="whether use prosody")
+    args = parser.parse_args()
+    return args
+
+
+def main():
+    args = get_args()
+
+    metadata = os.path.join(args.data_dir, "metadata.csv")
+    with open(metadata) as fin, open(args.output, "w", encoding="utf8") as fout:
+        for row in csv.reader(fin, delimiter="|"):
+            wav_path = os.path.join(args.data_dir, f"wavs/{row[0]}.wav")
+            phones = english_cleaners(row[-1], args.use_prosody)
+            fout.write("{}|ljspeech|sil {} sil\n".format(wav_path, " ".join(phones)))
+
+
+if __name__ == "__main__":
+    main()

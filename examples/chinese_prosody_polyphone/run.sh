@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 # Copyright 2022 Binbin Zhang(binbzha@qq.com)
 
-stage=-1
-stop_stage=100
-url=https://wetts-1256283475.cos.ap-shanghai.myqcloud.com/data/
+stage=0
+stop_stage=4
+url=https://wetts-1256283475.cos.ap-shanghai.myqcloud.com/data
+
+dir=exp
 
 . tools/parse_options.sh
 
-dir=exp
 
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
   # Download prosody and polyphone
@@ -16,7 +17,9 @@ if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
   wget -c $url/polyphone.tar.gz && tar zxf polyphone.tar.gz
   wget -c $url/prosody.tar.gz && tar zxf prosody.tar.gz
   popd
+fi
 
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
   # Combine prosody data
   mkdir -p data/prosody
   cat data/download/prosody/biaobei/train.txt > data/prosody/train.txt
@@ -29,9 +32,9 @@ if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
 fi
 
 
-if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
   mkdir -p $dir
-  python wetts/frontend/train.py \
+  python frontend/train.py \
     --gpu 2 \
     --lr 0.001 \
     --num_epochs 10 \
@@ -48,9 +51,9 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 fi
 
 
-if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
   # Test polyphone, metric: accuracy
-  python wetts/frontend/test_polyphone.py \
+  python frontend/test_polyphone.py \
     --polyphone_dict lexicon/polyphone.txt \
     --prosody_dict lexicon/prosody.txt \
     --test_data data/polyphone/test.txt \
@@ -58,7 +61,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     --checkpoint $dir/9.pt
 
   # Test prosody, metric: F1-score
-  python wetts/frontend/test_prosody.py \
+  python frontend/test_prosody.py \
     --polyphone_dict lexicon/polyphone.txt \
     --prosody_dict lexicon/prosody.txt \
     --test_data data/prosody/cv.txt \
@@ -67,21 +70,21 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 
-if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   # export onnx model
-  python wetts/frontend/export_onnx.py \
+  python frontend/export_onnx.py \
     --polyphone_dict lexicon/polyphone.txt \
     --prosody_dict lexicon/prosody.txt \
     --checkpoint $dir/9.pt \
     --onnx_model $dir/9.onnx
 fi
 
-if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   # g2p
   # text: 八方财宝进
   # pinyin ['ba1', 'fang1', 'cai2', 'bao3', 'jin4']
   # prosody [0 1 0 0 4]
-  python wetts/frontend/g2p_prosody.py \
+  python frontend/g2p_prosody.py \
     --text "八方财宝进" \
     --hanzi2pinyin_file lexicon/pinyin_dict.txt \
     --polyphone_file lexicon/polyphone.txt \

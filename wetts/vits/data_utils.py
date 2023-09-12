@@ -24,7 +24,6 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         self.hop_length = hparams.hop_length
         self.win_length = hparams.win_length
         self.sampling_rate = hparams.sampling_rate
-        self.cleaned_text = getattr(hparams, "cleaned_text", False)
         self.min_text_len = getattr(hparams, "min_text_len", 1)
         self.max_text_len = getattr(hparams, "max_text_len", 190)
 
@@ -59,8 +58,8 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         for item in self.audiopaths_sid_text:
             audiopath = item[0]
             src_sampling_rate = torchaudio.info(audiopath).sample_rate
-            # filename|text or filename|speaker|text
-            text = item[1] if len(item) == 2 else item[2]
+            # filename|speaker|text
+            text = item[2]
             if self.min_text_len <= len(text) and len(text) <= self.max_text_len:
                 audiopaths_sid_text_new.append(item)
                 lengths.append(
@@ -76,12 +75,8 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
 
     def get_audio_text_speaker_pair(self, audiopath_sid_text):
         audiopath = audiopath_sid_text[0]
-        if len(audiopath_sid_text) == 2:  # filename|text
-            sid = 0
-            text = audiopath_sid_text[1]
-        else:  # filename|speaker|text
-            sid = self.speaker_dict[audiopath_sid_text[1]]
-            text = audiopath_sid_text[2]
+        sid = self.speaker_dict[audiopath_sid_text[1]]
+        text = audiopath_sid_text[2]
         text = self.get_text(text)
         spec, wav = self.get_audio(audiopath)
         sid = self.get_sid(sid)
@@ -234,7 +229,7 @@ class DistributedBucketSampler(torch.utils.data.distributed.DistributedSampler):
             if idx_bucket != -1:
                 buckets[idx_bucket].append(i)
 
-        for i in range(len(buckets) - 1, 0, -1):
+        for i in range(len(buckets) - 1, -1, -1):
             if len(buckets[i]) == 0:
                 buckets.pop(i)
                 self.boundaries.pop(i + 1)
