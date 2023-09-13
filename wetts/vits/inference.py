@@ -74,7 +74,8 @@ def main():
     utils.load_checkpoint(args.checkpoint, net_g, None)
 
     for line in open(args.test_file):
-        audio_path, sid, text = line.strip().split("|")
+        audio_path, speaker, text = line.strip().split("|")
+        sid = speaker_dict[speaker]
         seq = [phone_dict[symbol] for symbol in text.split()]
         seq = torch.LongTensor(seq)
         print(audio_path)
