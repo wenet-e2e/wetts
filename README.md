@@ -40,12 +40,10 @@ We plan to support a variaty of open source TTS datasets, include but not limite
 
 ## Pretrained Models
 
-| Dataset | Language | Checkpoint Model | Runtime Model |
-| ------- | -------- | ---------------- | ------------- |
-| Baker   | CN       | [BERT](https://wenet.org.cn/downloads?models=wetts&version=baker_bert_exp.tar.gz) | [BERT](https://wenet.org.cn/downloads?models=wetts&version=baker_bert_onnx.tar.gz) |
-| Baker   | CN       | [VITS](https://wenet.org.cn/downloads?models=wetts&version=baker_vits_v1_exp.tar.gz) | [VITS](https://wenet.org.cn/downloads?models=wetts&version=baker_vits_v1_onnx.tar.gz) |
-
-English G2P model: [english_us_arpa v2.0.0a](https://wenet.org.cn/downloads?models=wetts&version=g2p_en.tar.gz), powered by [MFA](https://github.com/MontrealCorpusTools/mfa-models/releases/tag/g2p-english_us_arpa-v2.0.0a).
+| Dataset        | Language | Checkpoint Model | Runtime Model |
+| -------------- | -------- | ---------------- | ------------- |
+| Baker          | CN       | [BERT](https://wenet.org.cn/downloads?models=wetts&version=baker_bert_exp.tar.gz) | [BERT](https://wenet.org.cn/downloads?models=wetts&version=baker_bert_onnx.tar.gz) |
+| Multilingual   | CN       | [VITS](https://wenet.org.cn/downloads?models=wetts&version=multilingual_vits_v3_exp.tar.gz) | [VITS](https://wenet.org.cn/downloads?models=wetts&version=multilingual_vits_v3_onnx.tar.gz) |
 
 ## Runtime
 
@@ -64,21 +62,10 @@ cd runtime/onnxruntime
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ./build/bin/tts_main \
-  --tagger baker_bert_onnx/zh_tn_tagger.fst \
-  --verbalizer baker_bert_onnx/zh_tn_verbalizer.fst \
-  --vocab baker_bert_onnx/vocab.txt \
-  --char2pinyin baker_bert_onnx/pinyin_dict.txt \
-  --pinyin2id baker_bert_onnx/polyphone_phone.txt \
-  --pinyin2phones baker_bert_onnx/lexicon.txt \
-  --g2p_prosody_model baker_bert_onnx/19.onnx \
-  --speaker2id baker_vits_v1_onnx/speaker.txt \
+  --frontend_flags baker_bert_onnx/frontend.flags \
+  --vits_flags multilingual_vits_v3_onnx/vits.flags \
   --sname baker \
-  --phone2id baker_vits_v1_onnx/phones.txt \
-  --vits_model baker_vits_v1_onnx/G_250000.onnx \
-  --text "你好，我是小明。" \
-  --cmudict g2p_en/cmudict.dict \  # optional
-  --g2p_en_model g2p_en/model.fst \  # optional
-  --g2p_en_sym g2p_en/phones.sym \  # optional
+  --text "hello我是小明。" \
   --wav_path audio.wav
 ```
 

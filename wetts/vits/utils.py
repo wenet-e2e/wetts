@@ -4,8 +4,6 @@ import json
 import logging
 import os
 
-import numpy as np
-from scipy.io.wavfile import read
 import torch
 
 MATPLOTLIB_FLAG = False
@@ -152,11 +150,6 @@ def plot_alignment_to_numpy(alignment, info=None):
     return data
 
 
-def load_wav_to_torch(full_path):
-    sampling_rate, data = read(full_path)
-    return torch.FloatTensor(data.astype(np.float32)), sampling_rate
-
-
 def load_filepaths_and_text(filename, split="|"):
     with open(filename, encoding="utf-8") as f:
         filepaths_and_text = [line.strip().split(split) for line in f]
@@ -217,8 +210,7 @@ def get_hparams(init=True):
 def get_hparams_from_dir(model_dir):
     config_save_path = os.path.join(model_dir, "config.json")
     with open(config_save_path, "r") as f:
-        data = f.read()
-    config = json.loads(data)
+        config = json.load(f)
 
     hparams = HParams(**config)
     hparams.model_dir = model_dir
@@ -227,8 +219,7 @@ def get_hparams_from_dir(model_dir):
 
 def get_hparams_from_file(config_path):
     with open(config_path, "r") as f:
-        data = f.read()
-    config = json.loads(data)
+        config = json.load(f)
 
     hparams = HParams(**config)
     return hparams

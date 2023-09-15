@@ -62,7 +62,8 @@ def main():
     scales = scales.unsqueeze(0)
 
     for line in open(args.test_file):
-        audio_path, sid, text = line.strip().split("|")
+        audio_path, speaker, text = line.strip().split("|")
+        sid = speaker_dict[speaker]
         seq = [phone_dict[symbol] for symbol in text.split()]
 
         x = torch.LongTensor([seq])

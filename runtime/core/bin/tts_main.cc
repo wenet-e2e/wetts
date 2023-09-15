@@ -22,6 +22,10 @@
 #include "model/tts_model.h"
 #include "utils/string.h"
 
+// Flags
+DEFINE_string(frontend_flags, "", "frontend flags file");
+DEFINE_string(vits_flags, "", "vits flags file");
+
 // Text Normalization
 DEFINE_string(tagger, "", "tagger fst file");
 DEFINE_string(verbalizer, "", "verbalizer fst file");
@@ -43,16 +47,18 @@ DEFINE_string(g2p_prosody_model, "", "g2p prosody model file");
 // VITS
 DEFINE_string(speaker2id, "", "speaker to id");
 DEFINE_string(phone2id, "", "phone to id");
-DEFINE_string(sname, "", "speaker name");
 DEFINE_string(vits_model, "", "e2e tts model file");
-
 DEFINE_int32(sampling_rate, 22050, "sampling rate of pcm");
+
+DEFINE_string(sname, "", "speaker name");
 DEFINE_string(text, "", "input text");
 DEFINE_string(wav_path, "", "output wave path");
 
 int main(int argc, char* argv[]) {
   gflags::ParseCommandLineFlags(&argc, &argv, false);
   google::InitGoogleLogging(argv[0]);
+  gflags::ReadFromFlagsFile(FLAGS_frontend_flags, "", false);
+  gflags::ReadFromFlagsFile(FLAGS_vits_flags, "", false);
 
   auto tn = std::make_shared<wetext::Processor>(FLAGS_tagger, FLAGS_verbalizer);
 
