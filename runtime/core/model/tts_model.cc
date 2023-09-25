@@ -76,12 +76,13 @@ void TtsModel::Forward(const std::vector<int64_t>& phonemes, const int sid,
 void TtsModel::Synthesis(const std::string& text, const int sid,
                          std::vector<float>* audio) {
   // 1. TN
-  std::string norm_text = tn_->normalize(text);
+  std::string norm_text = tn_->Normalize(text);
   // 2. G2P: char => pinyin => phones => ids
   std::vector<std::string> phonemes;
   g2p_prosody_->Compute(norm_text, &phonemes);
 
   std::vector<int64_t> inputs;
+  inputs.emplace_back(phone2id_["sil"]);
   for (const auto& phone : phonemes) {
     if (phone2id_.count(phone) == 0) {
       LOG(ERROR) << "Can't find `" << phone << "` in phone2id.";

@@ -14,7 +14,7 @@
 
 #include "gflags/gflags.h"
 #include "glog/logging.h"
-#include "processor/processor.h"
+#include "processor/wetext_processor.h"
 
 #include "frontend/g2p_en.h"
 #include "frontend/g2p_prosody.h"

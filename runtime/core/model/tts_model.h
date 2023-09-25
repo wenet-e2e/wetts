@@ -21,7 +21,7 @@
 #include <vector>
 
 #include "onnxruntime_cxx_api.h"  // NOLINT
-#include "processor/processor.h"
+#include "processor/wetext_processor.h"
 
 #include "frontend/g2p_prosody.h"
 
