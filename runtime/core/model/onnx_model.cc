@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <sstream>
+#include <utility>
 
 #include "model/onnx_model.h"
 
@@ -45,7 +46,9 @@ OnnxModel::OnnxModel(const std::string& model_path) {
   int num_nodes = session_->GetInputCount();
   input_node_names_.resize(num_nodes);
   for (int i = 0; i < num_nodes; ++i) {
-    input_node_names_[i] = session_->GetInputName(i, allocator);
+    auto input_name = session_->GetInputNameAllocated(i, allocator);
+    input_allocated_strings_.push_back(std::move(input_name));
+    input_node_names_[i] = input_allocated_strings_[i].get();
     Ort::TypeInfo type_info = session_->GetInputTypeInfo(i);
     auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
     ONNXTensorElementDataType type = tensor_info.GetElementType();
@@ -63,7 +66,9 @@ OnnxModel::OnnxModel(const std::string& model_path) {
   num_nodes = session_->GetOutputCount();
   output_node_names_.resize(num_nodes);
   for (int i = 0; i < num_nodes; ++i) {
-    output_node_names_[i] = session_->GetOutputName(i, allocator);
+    auto output_name = session_->GetOutputNameAllocated(i, allocator);
+    output_allocated_strings_.push_back(std::move(output_name));
+    output_node_names_[i] = output_allocated_strings_[i].get();
     Ort::TypeInfo type_info = session_->GetOutputTypeInfo(i);
     auto tensor_info = type_info.GetTensorTypeAndShapeInfo();
     ONNXTensorElementDataType type = tensor_info.GetElementType();

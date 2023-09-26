@@ -38,6 +38,8 @@ class OnnxModel {
 
   std::vector<const char*> input_node_names_;
   std::vector<const char*> output_node_names_;
+  std::vector<Ort::AllocatedStringPtr> input_allocated_strings_;
+  std::vector<Ort::AllocatedStringPtr> output_allocated_strings_;
 };
 
 }  // namespace wetts

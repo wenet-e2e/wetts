@@ -19,7 +19,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 include(glog)
 include(gflags)
-include(onnx)
+include(onnxruntime)
 include(wetextprocessing)
 
 add_subdirectory(utils)
