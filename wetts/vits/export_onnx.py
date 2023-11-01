@@ -44,6 +44,8 @@ def main():
     os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
     hps = utils.get_hparams_from_file(args.cfg)
+    hps['model']['is_onnx'] = True
+
     phone_num = len(open(args.phone_table).readlines())
     num_speakers = len(open(args.speaker_table).readlines())
 

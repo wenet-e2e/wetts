@@ -6,12 +6,14 @@ from torch import nn
 from torch.nn import functional as F
 from torch.nn import Conv1d, ConvTranspose1d, Conv2d
 from torch.nn.utils import weight_norm, remove_weight_norm, spectral_norm
+from torchaudio.transforms import InverseSpectrogram
 import monotonic_align
 
 import commons
 import modules
 import attentions
 from commons import init_weights, get_padding
+from stft import OnnxSTFT
 
 
 class StochasticDurationPredictor(nn.Module):
@@ -372,6 +374,85 @@ class Generator(torch.nn.Module):
         for l in self.resblocks:
             l.remove_weight_norm()
 
+class ConvNeXtLayer(nn.Module):
+    def __init__(self, channels, h_channels, scale):
+        super().__init__()
+        self.dw_conv = nn.Conv1d(
+            channels,
+            channels,
+            kernel_size=3,
+            padding=1,
+            groups=channels,
+        )
+        self.norm = modules.LayerNorm(channels)
+        self.pw_conv1 = nn.Conv1d(channels, h_channels, 1)
+        self.pw_conv2 = nn.Conv1d(h_channels, channels, 1)
+        self.scale = nn.Parameter(
+            torch.full(size=(1, channels, 1), fill_value=scale), requires_grad=True
+        )
+
+    def forward(self, x):
+        res = x
+        x = self.dw_conv(x)
+        x = self.norm(x)
+        x = self.pw_conv1(x)
+        x = F.gelu(x)
+        x = self.pw_conv2(x)
+        x = self.scale * x
+        x = res + x
+        return x
+
+class VocosGenerator(nn.Module):
+    def __init__(
+        self,
+        in_channels,
+        channels,
+        h_channels,
+        out_channels,
+        num_layers,
+        istft_config,
+        gin_channels,
+        is_onnx=False
+    ):
+        super().__init__()
+
+        self.pad = nn.ReflectionPad1d([1, 0])
+        self.in_conv = nn.Conv1d(in_channels, channels, kernel_size=1, padding=0)
+        self.cond = Conv1d(gin_channels, channels, 1)
+        self.norm_pre = modules.LayerNorm(channels)
+        scale = 1 / num_layers
+        self.layers = nn.ModuleList(
+            [ConvNeXtLayer(channels, h_channels, scale) for _ in range(num_layers)]
+        )
+        self.norm_post = modules.LayerNorm(channels)
+        self.out_conv = nn.Conv1d(channels, out_channels, kernel_size=1)
+        self.is_onnx = is_onnx
+
+        if self.is_onnx == True:
+            self.stft = OnnxSTFT(filter_length=istft_config['n_fft'], hop_length=istft_config['hop_length'],
+                                 win_length=istft_config['win_length'])
+        else:
+            self.istft = InverseSpectrogram(**istft_config)
+
+    def forward(self, x, g=None):
+        x = self.pad(x)
+        x = self.in_conv(x) + self.cond(g)
+        x = self.norm_pre(x)
+        for layer in self.layers:
+            x = layer(x)
+        x = self.norm_post(x)
+        x = self.out_conv(x)
+        mag, phase = x.chunk(2, dim=1)
+        mag = mag.exp().clamp_max(max=1e2)
+        if self.is_onnx:
+            o = self.stft.inverse(mag, phase).to(x.device)
+        else:
+            s = mag * (phase.cos() + 1j * phase.sin())
+            o = self.istft(s).unsqueeze(1)
+        return o
+
+    def remove_weight_norm(self):
+        pass
 
 class DiscriminatorP(torch.nn.Module):
     def __init__(self, period, kernel_size=5, stride=3, use_spectral_norm=False):
@@ -519,22 +600,34 @@ class SynthesizerTrn(nn.Module):
         n_vocab,
         spec_channels,
         segment_size,
-        inter_channels,
-        hidden_channels,
-        filter_channels,
-        n_heads,
-        n_layers,
-        kernel_size,
-        p_dropout,
-        resblock,
-        resblock_kernel_sizes,
-        resblock_dilation_sizes,
-        upsample_rates,
-        upsample_initial_channel,
-        upsample_kernel_sizes,
+        inter_channels=192,
+        hidden_channels=192,
+        filter_channels=768,
+        n_heads=2,
+        n_layers=6,
+        kernel_size=3,
+        p_dropout=0.1,
+        resblock="1",
+        resblock_kernel_sizes=[3, 7, 11],
+        resblock_dilation_sizes=[[1, 3, 5], [1, 3, 5], [1, 3, 5]],
+        upsample_rates=[8, 8, 2, 2],
+        upsample_initial_channel=512,
+        upsample_kernel_sizes=[16, 16, 4, 4],
         n_speakers=1,
         gin_channels=256,
         use_sdp=True,
+        vocoder_type="hifigan",
+        vocos_channels=512,
+        vocos_h_channels=1536,
+        vocos_out_channels=1026,
+        vocos_num_layers=8,
+        vocos_istft_config={
+            "n_fft": 1024,
+            "hop_length": 256,
+            "win_length": 1024,
+            "center": True,
+        },
+        is_onnx=False,
         **kwargs
     ):
         super().__init__()
@@ -568,16 +661,28 @@ class SynthesizerTrn(nn.Module):
             kernel_size,
             p_dropout,
         )
-        self.dec = Generator(
-            inter_channels,
-            resblock,
-            resblock_kernel_sizes,
-            resblock_dilation_sizes,
-            upsample_rates,
-            upsample_initial_channel,
-            upsample_kernel_sizes,
-            gin_channels=gin_channels,
-        )
+        if vocoder_type == "vocos":
+            self.dec = VocosGenerator(
+                inter_channels,
+                vocos_channels,
+                vocos_h_channels,
+                vocos_out_channels,
+                vocos_num_layers,
+                vocos_istft_config,
+                gin_channels,
+                is_onnx,
+            )
+        else:
+            self.dec = Generator(
+                inter_channels,
+                resblock,
+                resblock_kernel_sizes,
+                resblock_dilation_sizes,
+                upsample_rates,
+                upsample_initial_channel,
+                upsample_kernel_sizes,
+                gin_channels=gin_channels,
+            )
         self.enc_q = PosteriorEncoder(
             spec_channels,
             inter_channels,
