@@ -428,8 +428,9 @@ class VocosGenerator(nn.Module):
         self.out_conv = nn.Conv1d(channels, out_channels, kernel_size=1)
         self.is_onnx = is_onnx
 
-        if self.is_onnx == True:
-            self.stft = OnnxSTFT(filter_length=istft_config['n_fft'], hop_length=istft_config['hop_length'],
+        if self.is_onnx:
+            self.stft = OnnxSTFT(filter_length=istft_config['n_fft'],
+                                 hop_length=istft_config['hop_length'],
                                  win_length=istft_config['win_length'])
         else:
             self.istft = InverseSpectrogram(**istft_config)
