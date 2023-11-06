@@ -115,7 +115,8 @@ class DDSConv(nn.Module):
             self.norms_2.append(LayerNorm(channels))
 
     def forward(self, x, x_mask, g=None):
-        x = x + g
+        if g is not None:
+            x = x + g
         for i in range(self.n_layers):
             y = self.convs_sep[i](x * x_mask)
             y = self.norms_1[i](y)
