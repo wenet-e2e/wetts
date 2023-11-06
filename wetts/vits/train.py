@@ -4,7 +4,6 @@ import torch
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-import torch.multiprocessing as mp
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.cuda.amp import autocast, GradScaler
@@ -28,40 +27,25 @@ global_step = 0
 
 
 def main():
-    """Assume Single Node Multi GPUs Training Only"""
-    assert torch.cuda.is_available(), "CPU training is not allowed."
-
-    n_gpus = torch.cuda.device_count()
     hps = utils.get_hparams()
-    mp.spawn(
-        run,
-        nprocs=n_gpus,
-        args=(
-            n_gpus,
-            hps,
-        ),
-    )
-
-
-def run(rank, n_gpus, hps):
+    torch.manual_seed(hps.train.seed)
     global global_step
+    world_size = int(os.environ.get('WORLD_SIZE', 1))
+    local_rank = int(os.environ.get('LOCAL_RANK', 0))
+    rank = int(os.environ.get('RANK', 0))
+    torch.torch.cuda.set_device(local_rank)
+    dist.init_process_group("nccl")
     if rank == 0:
         logger = utils.get_logger(hps.model_dir)
         logger.info(hps)
         writer = SummaryWriter(log_dir=hps.model_dir)
         writer_eval = SummaryWriter(log_dir=os.path.join(hps.model_dir, "eval"))
-
-    dist.init_process_group(
-        backend="nccl", init_method="env://", world_size=n_gpus, rank=rank
-    )
-    torch.manual_seed(hps.train.seed)
-    torch.cuda.set_device(rank)
     train_dataset = TextAudioSpeakerLoader(hps.data.training_files, hps.data)
     train_sampler = DistributedBucketSampler(
         train_dataset,
         hps.train.batch_size,
         [32, 300, 400, 500, 600, 700, 800, 900, 1000],
-        num_replicas=n_gpus,
+        num_replicas=world_size,
         rank=rank,
         shuffle=True,
     )
