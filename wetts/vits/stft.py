@@ -315,7 +315,7 @@ class OnnxSTFT(torch.nn.Module):
 
     def inverse(self, magnitude, phase):
         recombine_magnitude_phase = torch.cat(
-            [magnitude*torch.cos(phase), magnitude*torch.sin(phase)], dim=1)
+            [magnitude * torch.cos(phase), magnitude * torch.sin(phase)], dim=1)
 
         inverse_transform = F.conv_transpose1d(
             recombine_magnitude_phase,
@@ -323,8 +323,8 @@ class OnnxSTFT(torch.nn.Module):
             stride=self.hop_length,
             padding=0)
 
-        inverse_transform = inverse_transform[:, :, int(self.filter_length/2):]
-        inverse_transform = inverse_transform[:, :, :-int(self.filter_length/2):]
+        inverse_transform = inverse_transform[:, :, int(self.filter_length / 2):]
+        inverse_transform = inverse_transform[:, :, :-int(self.filter_length / 2):]
 
         return inverse_transform
 
