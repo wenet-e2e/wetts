@@ -60,7 +60,7 @@ class Frontend:
 
     def compute(self, text: str):
         # TODO(Binbin Zhang): Support English/Mix Code
-        tokens = ['[CLS]'] + [x for x in text] + ['[SEP]']
+        tokens = ['[CLS]'] + [str(x) for x in text] + ['[SEP]']
         token_ids = [self.token2id[x] for x in tokens]
         outputs = self.session.run(
             None, {'input': np.expand_dims(np.array(token_ids), axis=0)})
