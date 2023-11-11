@@ -15,17 +15,21 @@
 import argparse
 
 from wetts.cli.hub import Hub
+from wetts.cli.frontend import Frontend
 
 
 def get_args():
     parser = argparse.ArgumentParser(description='')
+    parser.add_argument('text', help='text to synthesis')
     args = parser.parse_args()
     return args
 
 
 def main():
     args = get_args()
-    m = Hub.get_model("baker")
+    front_dir = Hub.get_model("frontend")
+    frontend = Frontend(front_dir)
+    print(frontend.compute(args.text))
 
 
 if __name__ == '__main__':

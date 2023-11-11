@@ -72,7 +72,7 @@ def download(url: str, dest: str):
 
 class Hub(object):
     Assets = {
-        "baker": "baker_bert_onnx.tar.gz",
+        "frontend": "baker_bert_onnx.tar.gz",
     }
 
     def __init__(self) -> None:
