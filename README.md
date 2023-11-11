@@ -4,6 +4,26 @@ Production First and Production Ready End-to-End Text-to-Speech Toolkit
 
 ## Install
 
+### Install python package
+``` sh
+pip install git+https://github.com/wenet-e2e/wetts.git
+```
+**Command-line usage** (use `-h` for parameters):
+
+``` sh
+wetts --text "今天天气怎么样" --wav output.wav
+```
+
+**Python programming usage**:
+
+``` python
+import wetts
+
+# TODO
+```
+
+### Install for development & deployment
+
 We suggest to install WeTTS with Anaconda or Miniconda.
 
 Clone this repo:

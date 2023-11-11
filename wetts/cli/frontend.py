@@ -78,8 +78,9 @@ class Frontend:
             else:
                 pinyins.append(arr[0])
         prosodys = prosody_prob.argmax(axis=1).tolist()
-        outputs = []
+        outputs = ['sil']
         for i in range(len(pinyins)):
             outputs.extend(self.pinyin2phones[pinyins[i]])
             outputs.append('#{}'.format(prosodys[i]))
+        outputs[-1] = '#4'
         return outputs

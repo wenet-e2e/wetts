@@ -14,22 +14,26 @@
 
 import argparse
 
-from wetts.cli.hub import Hub
-from wetts.cli.frontend import Frontend
+import scipy.io.wavfile as wavfile
+
+from wetts.cli.model import load_model
 
 
 def get_args():
     parser = argparse.ArgumentParser(description='')
-    parser.add_argument('text', help='text to synthesis')
+    parser.add_argument('--text', help='text to synthesis')
+    parser.add_argument('--wav', help='output wav file')
     args = parser.parse_args()
     return args
 
 
 def main():
     args = get_args()
-    front_dir = Hub.get_model("frontend")
-    frontend = Frontend(front_dir)
-    print(frontend.compute(args.text))
+    model = load_model()
+    phones, audio = model.synthesis(args.text)
+    wavfile.write(args.wav, 16000, audio)
+    print('{} => {}'.format(args.text, ' '.join(phones)))
+    print('Succeed, see {}'.format(args.wav))
 
 
 if __name__ == '__main__':
