@@ -2,6 +2,8 @@ from setuptools import setup, find_packages
 
 requirements = [
     "tqdm",
+    "scipy",
+    "onnxruntime",
 ]
 
 setup(
