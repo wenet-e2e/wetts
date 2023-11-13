@@ -49,13 +49,13 @@ fi
 
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-  export MASTER_ADDR=localhost
-  export MASTER_PORT=10086
-  python vits/train.py -c $config -m $dir \
-    --train_data $data/train.txt \
-    --val_data $data/val.txt \
-    --speaker_table $data/speaker.txt \
-    --phone_table $data/phones.txt
+  num_gpus=$(echo $CUDA_VISIBLE_DEVICES | awk -F ',' '{print NF}')
+  torchrun --standalone --nnodes=1 --nproc_per_node=$num_gpus \
+    vits/train.py -c $config -m $dir \
+      --train_data $data/train.txt \
+      --val_data $data/val.txt \
+      --speaker_table $data/speaker.txt \
+      --phone_table $data/phones.txt
 fi
 
 
