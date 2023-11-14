@@ -17,8 +17,8 @@ import os
 
 import torch
 
-from models import SynthesizerTrn
-import utils
+from model.models import SynthesizerTrn
+from utils import task
 
 
 def get_args():
@@ -43,7 +43,7 @@ def main():
     args = get_args()
     os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
-    hps = utils.get_hparams_from_file(args.cfg)
+    hps = task.get_hparams_from_file(args.cfg)
     hps['model']['is_onnx'] = True
 
     phone_num = len(open(args.phone_table).readlines())
@@ -56,7 +56,7 @@ def main():
         n_speakers=num_speakers,
         **hps.model
     )
-    utils.load_checkpoint(args.checkpoint, net_g, None)
+    task.load_checkpoint(args.checkpoint, net_g, None)
     net_g.flow.remove_weight_norm()
     net_g.dec.remove_weight_norm()
     net_g.forward = net_g.export_forward

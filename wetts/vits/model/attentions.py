@@ -4,8 +4,8 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-import commons
-from modules import LayerNorm
+from model.normalization import LayerNorm
+from utils import commons
 
 
 class Encoder(nn.Module):

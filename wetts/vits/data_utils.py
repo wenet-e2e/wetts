@@ -5,8 +5,8 @@ import torch
 import torchaudio
 import torch.utils.data
 
-from mel_processing import spectrogram_torch
-from utils import load_filepaths_and_text
+from utils.mel_processing import spectrogram_torch
+from utils.task import load_filepaths_and_text
 
 
 class TextAudioSpeakerLoader(torch.utils.data.Dataset):

@@ -8,26 +8,23 @@ import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.cuda.amp import autocast, GradScaler
 
-import commons
-import utils
 from data_utils import (
     TextAudioSpeakerLoader,
     TextAudioSpeakerCollate,
     DistributedBucketSampler,
 )
-from models import (
-    SynthesizerTrn,
-    MultiPeriodDiscriminator,
-)
+from model.discriminators import MultiPeriodDiscriminator
+from model.models import SynthesizerTrn
 from losses import generator_loss, discriminator_loss, feature_loss, kl_loss
-from mel_processing import mel_spectrogram_torch, spec_to_mel_torch
+from utils import commons, task
+from utils.mel_processing import mel_spectrogram_torch, spec_to_mel_torch
 
 torch.backends.cudnn.benchmark = False
 global_step = 0
 
 
 def main():
-    hps = utils.get_hparams()
+    hps = task.get_hparams()
     torch.manual_seed(hps.train.seed)
     global global_step
     world_size = int(os.environ.get('WORLD_SIZE', 1))
@@ -36,7 +33,7 @@ def main():
     torch.torch.cuda.set_device(local_rank)
     dist.init_process_group("nccl")
     if rank == 0:
-        logger = utils.get_logger(hps.model_dir)
+        logger = task.get_logger(hps.model_dir)
         logger.info(hps)
         writer = SummaryWriter(log_dir=hps.model_dir)
         writer_eval = SummaryWriter(log_dir=os.path.join(hps.model_dir, "eval"))
@@ -94,11 +91,11 @@ def main():
     net_d = DDP(net_d, device_ids=[rank])
 
     try:
-        _, _, _, epoch_str = utils.load_checkpoint(
-            utils.latest_checkpoint_path(hps.model_dir, "G_*.pth"), net_g, optim_g
+        _, _, _, epoch_str = task.load_checkpoint(
+            task.latest_checkpoint_path(hps.model_dir, "G_*.pth"), net_g, optim_g
         )
-        _, _, _, epoch_str = utils.load_checkpoint(
-            utils.latest_checkpoint_path(hps.model_dir, "D_*.pth"), net_d, optim_d
+        _, _, _, epoch_str = task.load_checkpoint(
+            task.latest_checkpoint_path(hps.model_dir, "D_*.pth"), net_d, optim_d
         )
         global_step = (epoch_str - 1) * len(train_loader)
     except Exception as e:
@@ -281,20 +278,20 @@ def train_and_evaluate(
                     {"loss/d_g/{}".format(i): v for i, v in enumerate(losses_disc_g)}
                 )
                 image_dict = {
-                    "slice/mel_org": utils.plot_spectrogram_to_numpy(
+                    "slice/mel_org": task.plot_spectrogram_to_numpy(
                         y_mel[0].data.cpu().numpy()
                     ),
-                    "slice/mel_gen": utils.plot_spectrogram_to_numpy(
+                    "slice/mel_gen": task.plot_spectrogram_to_numpy(
                         y_hat_mel[0].data.cpu().numpy()
                     ),
-                    "all/mel": utils.plot_spectrogram_to_numpy(
+                    "all/mel": task.plot_spectrogram_to_numpy(
                         mel[0].data.cpu().numpy()
                     ),
-                    "all/attn": utils.plot_alignment_to_numpy(
+                    "all/attn": task.plot_alignment_to_numpy(
                         attn[0, 0].data.cpu().numpy()
                     ),
                 }
-                utils.summarize(
+                task.summarize(
                     writer=writer,
                     global_step=global_step,
                     images=image_dict,
@@ -303,14 +300,14 @@ def train_and_evaluate(
 
             if global_step % hps.train.eval_interval == 0:
                 evaluate(hps, net_g, eval_loader, writer_eval)
-                utils.save_checkpoint(
+                task.save_checkpoint(
                     net_g,
                     optim_g,
                     hps.train.learning_rate,
                     epoch,
                     os.path.join(hps.model_dir, "G_{}.pth".format(global_step)),
                 )
-                utils.save_checkpoint(
+                task.save_checkpoint(
                     net_d,
                     optim_d,
                     hps.train.learning_rate,
@@ -369,16 +366,16 @@ def evaluate(hps, generator, eval_loader, writer_eval):
             hps.data.win_length,
         )
     image_dict = {
-        "gen/mel": utils.plot_spectrogram_to_numpy(y_hat_mel[0].cpu().numpy())
+        "gen/mel": task.plot_spectrogram_to_numpy(y_hat_mel[0].cpu().numpy())
     }
     audio_dict = {"gen/audio": y_hat[0, :, : y_hat_lengths[0]]}
     if global_step == 0:
         image_dict.update(
-            {"gt/mel": utils.plot_spectrogram_to_numpy(mel[0].cpu().numpy())}
+            {"gt/mel": task.plot_spectrogram_to_numpy(mel[0].cpu().numpy())}
         )
         audio_dict.update({"gt/audio": y[0, :, : y_lengths[0]]})
 
-    utils.summarize(
+    task.summarize(
         writer=writer_eval,
         global_step=global_step,
         images=image_dict,

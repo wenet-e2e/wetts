@@ -21,8 +21,8 @@ import numpy as np
 from scipy.io import wavfile
 import torch
 
-from models import SynthesizerTrn
-import utils
+from model.models import SynthesizerTrn
+from utils import task
 
 
 def get_args():
@@ -59,7 +59,7 @@ def main():
         arr = line.strip().split()
         assert len(arr) == 2
         speaker_dict[arr[0]] = int(arr[1])
-    hps = utils.get_hparams_from_file(args.cfg)
+    hps = task.get_hparams_from_file(args.cfg)
 
     net_g = SynthesizerTrn(
         len(phone_dict),
@@ -71,7 +71,7 @@ def main():
     net_g = net_g.to(device)
 
     net_g.eval()
-    utils.load_checkpoint(args.checkpoint, net_g, None)
+    task.load_checkpoint(args.checkpoint, net_g, None)
 
     for line in open(args.test_file):
         audio_path, speaker, text = line.strip().split("|")
