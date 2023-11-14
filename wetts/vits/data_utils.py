@@ -130,10 +130,8 @@ class TextAudioSpeakerCollate:
         batch: [text_normalized, spec_normalized, wav_normalized, sid]
         """
         # Right zero-pad all one-hot text sequences to max input length
-        _, ids_sorted_decreasing = torch.sort(torch.LongTensor(
-            [x[1].size(1) for x in batch]),
-                                              dim=0,
-                                              descending=True)
+        ids = torch.LongTensor([x[1].size(1) for x in batch])
+        _, ids_sorted_decreasing = torch.sort(ids, dim=0, descending=True)
 
         max_text_len = max([len(x[0]) for x in batch])
         max_spec_len = max([x[1].size(1) for x in batch])
