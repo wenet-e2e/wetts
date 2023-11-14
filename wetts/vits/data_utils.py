@@ -60,16 +60,13 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
             src_sampling_rate = torchaudio.info(audiopath).sample_rate
             # filename|speaker|text
             text = item[2]
-            if self.min_text_len <= len(text) and len(text) <= self.max_text_len:
+            if self.min_text_len <= len(text) and len(
+                    text) <= self.max_text_len:
                 audiopaths_sid_text_new.append(item)
                 lengths.append(
                     int(
-                        os.path.getsize(audiopath)
-                        * self.sampling_rate
-                        / src_sampling_rate
-                    )
-                    // (2 * self.hop_length)
-                )
+                        os.path.getsize(audiopath) * self.sampling_rate /
+                        src_sampling_rate) // (2 * self.hop_length))
         self.audiopaths_sid_text = audiopaths_sid_text_new
         self.lengths = lengths
 
@@ -86,9 +83,8 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         audio, sampling_rate = torchaudio.load(filename, normalize=False)
         if sampling_rate != self.sampling_rate:
             audio = audio.to(torch.float)
-            audio = torchaudio.transforms.Resample(sampling_rate, self.sampling_rate)(
-                audio
-            )
+            audio = torchaudio.transforms.Resample(sampling_rate,
+                                                   self.sampling_rate)(audio)
             audio = audio.to(torch.int16)
         audio = audio[0]  # Get the first channel
         audio_norm = audio / self.max_wav_value
@@ -114,7 +110,8 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         return sid
 
     def __getitem__(self, index):
-        return self.get_audio_text_speaker_pair(self.audiopaths_sid_text[index])
+        return self.get_audio_text_speaker_pair(
+            self.audiopaths_sid_text[index])
 
     def __len__(self):
         return len(self.audiopaths_sid_text)
@@ -133,9 +130,10 @@ class TextAudioSpeakerCollate:
         batch: [text_normalized, spec_normalized, wav_normalized, sid]
         """
         # Right zero-pad all one-hot text sequences to max input length
-        _, ids_sorted_decreasing = torch.sort(
-            torch.LongTensor([x[1].size(1) for x in batch]), dim=0, descending=True
-        )
+        _, ids_sorted_decreasing = torch.sort(torch.LongTensor(
+            [x[1].size(1) for x in batch]),
+                                              dim=0,
+                                              descending=True)
 
         max_text_len = max([len(x[0]) for x in batch])
         max_spec_len = max([x[1].size(1) for x in batch])
@@ -147,7 +145,8 @@ class TextAudioSpeakerCollate:
         sid = torch.LongTensor(len(batch))
 
         text_padded = torch.LongTensor(len(batch), max_text_len)
-        spec_padded = torch.FloatTensor(len(batch), batch[0][1].size(0), max_spec_len)
+        spec_padded = torch.FloatTensor(len(batch), batch[0][1].size(0),
+                                        max_spec_len)
         wav_padded = torch.FloatTensor(len(batch), 1, max_wav_len)
         text_padded.zero_()
         spec_padded.zero_()
@@ -156,15 +155,15 @@ class TextAudioSpeakerCollate:
             row = batch[ids_sorted_decreasing[i]]
 
             text = row[0]
-            text_padded[i, : text.size(0)] = text
+            text_padded[i, :text.size(0)] = text
             text_lengths[i] = text.size(0)
 
             spec = row[1]
-            spec_padded[i, :, : spec.size(1)] = spec
+            spec_padded[i, :, :spec.size(1)] = spec
             spec_lengths[i] = spec.size(1)
 
             wav = row[2]
-            wav_padded[i, :, : wav.size(1)] = wav
+            wav_padded[i, :, :wav.size(1)] = wav
             wav_lengths[i] = wav.size(1)
 
             sid[i] = row[3]
@@ -191,7 +190,8 @@ class TextAudioSpeakerCollate:
         )
 
 
-class DistributedBucketSampler(torch.utils.data.distributed.DistributedSampler):
+class DistributedBucketSampler(torch.utils.data.distributed.DistributedSampler
+                               ):
     """
     Maintain similar input lengths in a batch.
     Length groups are specified by boundaries.
@@ -212,7 +212,10 @@ class DistributedBucketSampler(torch.utils.data.distributed.DistributedSampler):
         rank=None,
         shuffle=True,
     ):
-        super().__init__(dataset, num_replicas=num_replicas, rank=rank, shuffle=shuffle)
+        super().__init__(dataset,
+                         num_replicas=num_replicas,
+                         rank=rank,
+                         shuffle=shuffle)
         self.lengths = dataset.lengths
         self.batch_size = batch_size
         self.boundaries = boundaries
@@ -238,9 +241,8 @@ class DistributedBucketSampler(torch.utils.data.distributed.DistributedSampler):
         for i in range(len(buckets)):
             len_bucket = len(buckets[i])
             total_batch_size = self.num_replicas * self.batch_size
-            rem = (
-                total_batch_size - (len_bucket % total_batch_size)
-            ) % total_batch_size
+            rem = (total_batch_size -
+                   (len_bucket % total_batch_size)) % total_batch_size
             num_samples_per_bucket.append(len_bucket + rem)
         return buckets, num_samples_per_bucket
 
@@ -252,7 +254,8 @@ class DistributedBucketSampler(torch.utils.data.distributed.DistributedSampler):
         indices = []
         if self.shuffle:
             for bucket in self.buckets:
-                indices.append(torch.randperm(len(bucket), generator=g).tolist())
+                indices.append(
+                    torch.randperm(len(bucket), generator=g).tolist())
         else:
             for bucket in self.buckets:
                 indices.append(list(range(len(bucket))))
@@ -266,22 +269,18 @@ class DistributedBucketSampler(torch.utils.data.distributed.DistributedSampler):
 
             # add extra samples to make it evenly divisible
             rem = num_samples_bucket - len_bucket
-            ids_bucket = (
-                ids_bucket
-                + ids_bucket * (rem // len_bucket)
-                + ids_bucket[: (rem % len_bucket)]
-            )
+            ids_bucket = (ids_bucket + ids_bucket * (rem // len_bucket) +
+                          ids_bucket[:(rem % len_bucket)])
 
             # subsample
-            ids_bucket = ids_bucket[self.rank :: self.num_replicas]
+            ids_bucket = ids_bucket[self.rank::self.num_replicas]
 
             # batching
             for j in range(len(ids_bucket) // self.batch_size):
                 batch = [
                     bucket[idx]
-                    for idx in ids_bucket[
-                        j * self.batch_size : (j + 1) * self.batch_size
-                    ]
+                    for idx in ids_bucket[j * self.batch_size:(j + 1) *
+                                          self.batch_size]
                 ]
                 batches.append(batch)
 

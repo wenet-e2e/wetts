@@ -37,8 +37,7 @@ class DDSConv(nn.Module):
                     groups=channels,
                     dilation=dilation,
                     padding=padding,
-                )
-            )
+                ))
             self.convs_1x1.append(nn.Conv1d(channels, channels, 1))
             self.norms_1.append(LayerNorm(channels))
             self.norms_2.append(LayerNorm(channels))
@@ -59,6 +58,7 @@ class DDSConv(nn.Module):
 
 
 class ConvFlow(nn.Module):
+
     def __init__(
         self,
         in_channels,
@@ -78,10 +78,12 @@ class ConvFlow(nn.Module):
         self.half_channels = in_channels // 2
 
         self.pre = nn.Conv1d(self.half_channels, filter_channels, 1)
-        self.convs = DDSConv(filter_channels, kernel_size, n_layers, p_dropout=0.0)
-        self.proj = nn.Conv1d(
-            filter_channels, self.half_channels * (num_bins * 3 - 1), 1
-        )
+        self.convs = DDSConv(filter_channels,
+                             kernel_size,
+                             n_layers,
+                             p_dropout=0.0)
+        self.proj = nn.Conv1d(filter_channels,
+                              self.half_channels * (num_bins * 3 - 1), 1)
         self.proj.weight.data.zero_()
         self.proj.bias.data.zero_()
 
@@ -92,13 +94,15 @@ class ConvFlow(nn.Module):
         h = self.proj(h) * x_mask
 
         b, c, t = x0.shape
-        h = h.reshape(b, c, -1, t).permute(0, 1, 3, 2)  # [b, cx?, t] -> [b, c, t, ?]
+        h = h.reshape(b, c, -1, t).permute(0, 1, 3,
+                                           2)  # [b, cx?, t] -> [b, c, t, ?]
 
-        unnormalized_widths = h[..., : self.num_bins] / math.sqrt(self.filter_channels)
-        unnormalized_heights = h[..., self.num_bins : 2 * self.num_bins] / math.sqrt(
-            self.filter_channels
-        )
-        unnormalized_derivatives = h[..., 2 * self.num_bins :]
+        unnormalized_widths = h[..., :self.num_bins] / math.sqrt(
+            self.filter_channels)
+        unnormalized_heights = h[...,
+                                 self.num_bins:2 * self.num_bins] / math.sqrt(
+                                     self.filter_channels)
+        unnormalized_derivatives = h[..., 2 * self.num_bins:]
 
         x1, logabsdet = piecewise_rational_quadratic_transform(
             x1,
@@ -119,6 +123,7 @@ class ConvFlow(nn.Module):
 
 
 class ElementwiseAffine(nn.Module):
+
     def __init__(self, channels):
         super().__init__()
         self.channels = channels
@@ -137,6 +142,7 @@ class ElementwiseAffine(nn.Module):
 
 
 class Log(nn.Module):
+
     def forward(self, x, x_mask, reverse=False, **kwargs):
         if not reverse:
             y = torch.log(torch.clamp_min(x, 1e-5)) * x_mask
@@ -148,6 +154,7 @@ class Log(nn.Module):
 
 
 class StochasticDurationPredictor(nn.Module):
+
     def __init__(
         self,
         in_channels,
@@ -171,31 +178,37 @@ class StochasticDurationPredictor(nn.Module):
         self.flows.append(ElementwiseAffine(2))
         for i in range(n_flows):
             self.flows.append(
-                ConvFlow(2, filter_channels, kernel_size, n_layers=3)
-            )
+                ConvFlow(2, filter_channels, kernel_size, n_layers=3))
             self.flows.append(Flip())
 
         self.post_pre = nn.Conv1d(1, filter_channels, 1)
         self.post_proj = nn.Conv1d(filter_channels, filter_channels, 1)
-        self.post_convs = DDSConv(
-            filter_channels, kernel_size, n_layers=3, p_dropout=p_dropout
-        )
+        self.post_convs = DDSConv(filter_channels,
+                                  kernel_size,
+                                  n_layers=3,
+                                  p_dropout=p_dropout)
         self.post_flows = nn.ModuleList()
         self.post_flows.append(ElementwiseAffine(2))
         for i in range(4):
             self.post_flows.append(
-                ConvFlow(2, filter_channels, kernel_size, n_layers=3)
-            )
+                ConvFlow(2, filter_channels, kernel_size, n_layers=3))
             self.post_flows.append(Flip())
 
         self.pre = nn.Conv1d(in_channels, filter_channels, 1)
         self.proj = nn.Conv1d(filter_channels, filter_channels, 1)
-        self.convs = DDSConv(
-            filter_channels, kernel_size, n_layers=3, p_dropout=p_dropout
-        )
+        self.convs = DDSConv(filter_channels,
+                             kernel_size,
+                             n_layers=3,
+                             p_dropout=p_dropout)
         self.cond = nn.Conv1d(gin_channels, filter_channels, 1)
 
-    def forward(self, x, x_mask, w=None, g=None, reverse=False, noise_scale=1.0):
+    def forward(self,
+                x,
+                x_mask,
+                w=None,
+                g=None,
+                reverse=False,
+                noise_scale=1.0):
         x = torch.detach(x)
         x = self.pre(x)
         g = torch.detach(g)
@@ -211,10 +224,8 @@ class StochasticDurationPredictor(nn.Module):
             h_w = self.post_pre(w)
             h_w = self.post_convs(h_w, x_mask)
             h_w = self.post_proj(h_w) * x_mask
-            e_q = (
-                torch.randn(w.size(0), 2, w.size(2)).to(device=x.device, dtype=x.dtype)
-                * x_mask
-            )
+            e_q = (torch.randn(w.size(0), 2, w.size(2)).to(
+                device=x.device, dtype=x.dtype) * x_mask)
             z_q = e_q
             for flow in self.post_flows:
                 z_q, logdet_q = flow(z_q, x_mask, g=(x + h_w))
@@ -223,12 +234,10 @@ class StochasticDurationPredictor(nn.Module):
             u = torch.sigmoid(z_u) * x_mask
             z0 = (w - u) * x_mask
             logdet_tot_q += torch.sum(
-                (F.logsigmoid(z_u) + F.logsigmoid(-z_u)) * x_mask, [1, 2]
-            )
+                (F.logsigmoid(z_u) + F.logsigmoid(-z_u)) * x_mask, [1, 2])
             logq = (
-                torch.sum(-0.5 * (math.log(2 * math.pi) + (e_q**2)) * x_mask, [1, 2])
-                - logdet_tot_q
-            )
+                torch.sum(-0.5 * (math.log(2 * math.pi) +
+                                  (e_q**2)) * x_mask, [1, 2]) - logdet_tot_q)
 
             logdet_tot = 0
             z0, logdet = self.log_flow(z0, x_mask)
@@ -237,18 +246,14 @@ class StochasticDurationPredictor(nn.Module):
             for flow in flows:
                 z, logdet = flow(z, x_mask, g=x, reverse=reverse)
                 logdet_tot = logdet_tot + logdet
-            nll = (
-                torch.sum(0.5 * (math.log(2 * math.pi) + (z**2)) * x_mask, [1, 2])
-                - logdet_tot
-            )
+            nll = (torch.sum(0.5 * (math.log(2 * math.pi) +
+                                    (z**2)) * x_mask, [1, 2]) - logdet_tot)
             return nll + logq  # [b]
         else:
             flows = list(reversed(self.flows))
             flows = flows[:-2] + [flows[-1]]  # remove a useless vflow
-            z = (
-                torch.randn(x.size(0), 2, x.size(2)).to(device=x.device, dtype=x.dtype)
-                * noise_scale
-            )
+            z = (torch.randn(x.size(0), 2, x.size(2)).to(
+                device=x.device, dtype=x.dtype) * noise_scale)
             for flow in flows:
                 z = flow(z, x_mask, g=x, reverse=reverse)
             z0, z1 = torch.split(z, [1, 1], 1)
@@ -257,9 +262,9 @@ class StochasticDurationPredictor(nn.Module):
 
 
 class DurationPredictor(nn.Module):
-    def __init__(
-        self, in_channels, filter_channels, kernel_size, p_dropout, gin_channels
-    ):
+
+    def __init__(self, in_channels, filter_channels, kernel_size, p_dropout,
+                 gin_channels):
         super().__init__()
 
         self.in_channels = in_channels
@@ -269,13 +274,15 @@ class DurationPredictor(nn.Module):
         self.gin_channels = gin_channels
 
         self.drop = nn.Dropout(p_dropout)
-        self.conv_1 = nn.Conv1d(
-            in_channels, filter_channels, kernel_size, padding=kernel_size // 2
-        )
+        self.conv_1 = nn.Conv1d(in_channels,
+                                filter_channels,
+                                kernel_size,
+                                padding=kernel_size // 2)
         self.norm_1 = LayerNorm(filter_channels)
-        self.conv_2 = nn.Conv1d(
-            filter_channels, filter_channels, kernel_size, padding=kernel_size // 2
-        )
+        self.conv_2 = nn.Conv1d(filter_channels,
+                                filter_channels,
+                                kernel_size,
+                                padding=kernel_size // 2)
         self.norm_2 = LayerNorm(filter_channels)
         self.proj = nn.Conv1d(filter_channels, 1, 1)
         self.cond = nn.Conv1d(gin_channels, in_channels, 1)

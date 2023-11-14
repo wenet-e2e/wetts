@@ -17,41 +17,39 @@ class SynthesizerTrn(nn.Module):
     Synthesizer for Training
     """
 
-    def __init__(
-        self,
-        n_vocab,
-        spec_channels,
-        segment_size,
-        inter_channels=192,
-        hidden_channels=192,
-        filter_channels=768,
-        n_heads=2,
-        n_layers=6,
-        kernel_size=3,
-        p_dropout=0.1,
-        resblock="1",
-        resblock_kernel_sizes=[3, 7, 11],
-        resblock_dilation_sizes=[[1, 3, 5], [1, 3, 5], [1, 3, 5]],
-        upsample_rates=[8, 8, 2, 2],
-        upsample_initial_channel=512,
-        upsample_kernel_sizes=[16, 16, 4, 4],
-        n_speakers=1,
-        gin_channels=256,
-        use_sdp=True,
-        vocoder_type="hifigan",
-        vocos_channels=512,
-        vocos_h_channels=1536,
-        vocos_out_channels=1026,
-        vocos_num_layers=8,
-        vocos_istft_config={
-            "n_fft": 1024,
-            "hop_length": 256,
-            "win_length": 1024,
-            "center": True,
-        },
-        is_onnx=False,
-        **kwargs
-    ):
+    def __init__(self,
+                 n_vocab,
+                 spec_channels,
+                 segment_size,
+                 inter_channels=192,
+                 hidden_channels=192,
+                 filter_channels=768,
+                 n_heads=2,
+                 n_layers=6,
+                 kernel_size=3,
+                 p_dropout=0.1,
+                 resblock="1",
+                 resblock_kernel_sizes=[3, 7, 11],
+                 resblock_dilation_sizes=[[1, 3, 5], [1, 3, 5], [1, 3, 5]],
+                 upsample_rates=[8, 8, 2, 2],
+                 upsample_initial_channel=512,
+                 upsample_kernel_sizes=[16, 16, 4, 4],
+                 n_speakers=1,
+                 gin_channels=256,
+                 use_sdp=True,
+                 vocoder_type="hifigan",
+                 vocos_channels=512,
+                 vocos_h_channels=1536,
+                 vocos_out_channels=1026,
+                 vocos_num_layers=8,
+                 vocos_istft_config={
+                     "n_fft": 1024,
+                     "hop_length": 256,
+                     "win_length": 1024,
+                     "center": True,
+                 },
+                 is_onnx=False,
+                 **kwargs):
         super().__init__()
         self.n_vocab = n_vocab
         self.spec_channels = spec_channels
@@ -114,18 +112,26 @@ class SynthesizerTrn(nn.Module):
             16,
             gin_channels=gin_channels,
         )
-        self.flow = ResidualCouplingBlock(
-            inter_channels, hidden_channels, 5, 1, 4, gin_channels=gin_channels
-        )
+        self.flow = ResidualCouplingBlock(inter_channels,
+                                          hidden_channels,
+                                          5,
+                                          1,
+                                          4,
+                                          gin_channels=gin_channels)
 
         if use_sdp:
-            self.dp = StochasticDurationPredictor(
-                hidden_channels, 192, 3, 0.5, 4, gin_channels=gin_channels
-            )
+            self.dp = StochasticDurationPredictor(hidden_channels,
+                                                  192,
+                                                  3,
+                                                  0.5,
+                                                  4,
+                                                  gin_channels=gin_channels)
         else:
-            self.dp = DurationPredictor(
-                hidden_channels, 256, 3, 0.5, gin_channels=gin_channels
-            )
+            self.dp = DurationPredictor(hidden_channels,
+                                        256,
+                                        3,
+                                        0.5,
+                                        gin_channels=gin_channels)
 
         self.emb_g = nn.Embedding(n_speakers, gin_channels)
 
@@ -139,26 +145,22 @@ class SynthesizerTrn(nn.Module):
         with torch.no_grad():
             # negative cross-entropy
             s_p_sq_r = torch.exp(-2 * logs_p)  # [b, d, t]
-            neg_cent1 = torch.sum(
-                -0.5 * math.log(2 * math.pi) - logs_p, [1], keepdim=True
-            )  # [b, 1, t_s]
+            neg_cent1 = torch.sum(-0.5 * math.log(2 * math.pi) - logs_p, [1],
+                                  keepdim=True)  # [b, 1, t_s]
             neg_cent2 = torch.matmul(
-                -0.5 * (z_p**2).transpose(1, 2), s_p_sq_r
-            )  # [b, t_t, d] x [b, d, t_s] = [b, t_t, t_s]
+                -0.5 * (z_p**2).transpose(1, 2),
+                s_p_sq_r)  # [b, t_t, d] x [b, d, t_s] = [b, t_t, t_s]
             neg_cent3 = torch.matmul(
-                z_p.transpose(1, 2), (m_p * s_p_sq_r)
-            )  # [b, t_t, d] x [b, d, t_s] = [b, t_t, t_s]
-            neg_cent4 = torch.sum(
-                -0.5 * (m_p**2) * s_p_sq_r, [1], keepdim=True
-            )  # [b, 1, t_s]
+                z_p.transpose(1, 2),
+                (m_p * s_p_sq_r))  # [b, t_t, d] x [b, d, t_s] = [b, t_t, t_s]
+            neg_cent4 = torch.sum(-0.5 * (m_p**2) * s_p_sq_r, [1],
+                                  keepdim=True)  # [b, 1, t_s]
             neg_cent = neg_cent1 + neg_cent2 + neg_cent3 + neg_cent4
 
-            attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)
-            attn = (
-                monotonic_align.maximum_path(neg_cent, attn_mask.squeeze(1))
-                .unsqueeze(1)
-                .detach()
-            )
+            attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(
+                y_mask, -1)
+            attn = (monotonic_align.maximum_path(
+                neg_cent, attn_mask.squeeze(1)).unsqueeze(1).detach())
 
         w = attn.sum(2)
         if self.use_sdp:
@@ -167,17 +169,17 @@ class SynthesizerTrn(nn.Module):
         else:
             logw_ = torch.log(w + 1e-6) * x_mask
             logw = self.dp(x, x_mask, g=g)
-            l_length = torch.sum((logw - logw_) ** 2, [1, 2]) / torch.sum(
-                x_mask
-            )  # for averaging
+            l_length = torch.sum(
+                (logw - logw_)**2, [1, 2]) / torch.sum(x_mask)  # for averaging
 
         # expand prior
-        m_p = torch.matmul(attn.squeeze(1), m_p.transpose(1, 2)).transpose(1, 2)
-        logs_p = torch.matmul(attn.squeeze(1), logs_p.transpose(1, 2)).transpose(1, 2)
+        m_p = torch.matmul(attn.squeeze(1), m_p.transpose(1,
+                                                          2)).transpose(1, 2)
+        logs_p = torch.matmul(attn.squeeze(1),
+                              logs_p.transpose(1, 2)).transpose(1, 2)
 
         z_slice, ids_slice = commons.rand_slice_segments(
-            z, y_lengths, self.segment_size
-        )
+            z, y_lengths, self.segment_size)
         o = self.dec(z_slice, g=g)
         return (
             o,
@@ -204,25 +206,26 @@ class SynthesizerTrn(nn.Module):
         g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
         t2 = time.time()
         if self.use_sdp:
-            logw = self.dp(x, x_mask, g=g, reverse=True, noise_scale=noise_scale_w)
+            logw = self.dp(x,
+                           x_mask,
+                           g=g,
+                           reverse=True,
+                           noise_scale=noise_scale_w)
         else:
             logw = self.dp(x, x_mask, g=g)
         t3 = time.time()
         w = torch.exp(logw) * x_mask * length_scale
         w_ceil = torch.ceil(w)
         y_lengths = torch.clamp_min(torch.sum(w_ceil, [1, 2]), 1).long()
-        y_mask = torch.unsqueeze(commons.sequence_mask(y_lengths, None), 1).to(
-            x_mask.dtype
-        )
+        y_mask = torch.unsqueeze(commons.sequence_mask(y_lengths, None),
+                                 1).to(x_mask.dtype)
         attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)
         attn = commons.generate_path(w_ceil, attn_mask)
 
         m_p = torch.matmul(attn.squeeze(1), m_p.transpose(1, 2)).transpose(
-            1, 2
-        )  # [b, t', t], [b, t, d] -> [b, d, t']
-        logs_p = torch.matmul(attn.squeeze(1), logs_p.transpose(1, 2)).transpose(
-            1, 2
-        )  # [b, t', t], [b, t, d] -> [b, d, t']
+            1, 2)  # [b, t', t], [b, t, d] -> [b, d, t']
+        logs_p = torch.matmul(attn.squeeze(1), logs_p.transpose(
+            1, 2)).transpose(1, 2)  # [b, t', t], [b, t, d] -> [b, d, t']
 
         z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
         t4 = time.time()
@@ -230,14 +233,13 @@ class SynthesizerTrn(nn.Module):
         t5 = time.time()
         o = self.dec((z * y_mask)[:, :, :max_len], g=g)
         t6 = time.time()
-        print(
-            "TextEncoder: {}s DurationPredictor: {}s Flow: {}s Decoder: {}s".format(
-                round(t2 - t1, 3),
-                round(t3 - t2, 3),
-                round(t5 - t4, 3),
-                round(t6 - t5, 3),
-            )
-        )
+        print("TextEncoder: {}s DurationPredictor: {}s Flow: {}s Decoder: {}s".
+              format(
+                  round(t2 - t1, 3),
+                  round(t3 - t2, 3),
+                  round(t5 - t4, 3),
+                  round(t6 - t5, 3),
+              ))
         return o, attn, y_mask, (z, z_p, m_p, logs_p)
 
     def export_forward(self, x, x_lengths, scales, sid):

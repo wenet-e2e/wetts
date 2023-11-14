@@ -26,7 +26,9 @@ def get_args():
     parser.add_argument("--checkpoint", required=True, help="checkpoint")
     parser.add_argument("--cfg", required=True, help="config file")
     parser.add_argument("--onnx_model", required=True, help="onnx model")
-    parser.add_argument("--phone_table", required=True, help="input phone dict")
+    parser.add_argument("--phone_table",
+                        required=True,
+                        help="input phone dict")
     parser.add_argument("--speaker_table", default=None, help="speaker table")
     parser.add_argument(
         "--providers",
@@ -49,13 +51,11 @@ def main():
     phone_num = len(open(args.phone_table).readlines())
     num_speakers = len(open(args.speaker_table).readlines())
 
-    net_g = SynthesizerTrn(
-        phone_num,
-        hps.data.filter_length // 2 + 1,
-        hps.train.segment_size // hps.data.hop_length,
-        n_speakers=num_speakers,
-        **hps.model
-    )
+    net_g = SynthesizerTrn(phone_num,
+                           hps.data.filter_length // 2 + 1,
+                           hps.train.segment_size // hps.data.hop_length,
+                           n_speakers=num_speakers,
+                           **hps.model)
     task.load_checkpoint(args.checkpoint, net_g, None)
     net_g.flow.remove_weight_norm()
     net_g.dec.remove_weight_norm()
@@ -77,11 +77,24 @@ def main():
         input_names=["input", "input_lengths", "scales", "sid"],
         output_names=["output"],
         dynamic_axes={
-            "input": {0: "batch", 1: "phonemes"},
-            "input_lengths": {0: "batch"},
-            "scales": {0: "batch"},
-            "sid": {0: "batch"},
-            "output": {0: "batch", 1: "audio", 2: "audio_length"},
+            "input": {
+                0: "batch",
+                1: "phonemes"
+            },
+            "input_lengths": {
+                0: "batch"
+            },
+            "scales": {
+                0: "batch"
+            },
+            "sid": {
+                0: "batch"
+            },
+            "output": {
+                0: "batch",
+                1: "audio",
+                2: "audio_length"
+            },
         },
         opset_version=13,
         verbose=False,

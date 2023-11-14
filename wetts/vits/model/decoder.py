@@ -13,6 +13,7 @@ from utils.stft import OnnxSTFT
 
 
 class Generator(nn.Module):
+
     def __init__(
         self,
         initial_channel,
@@ -27,9 +28,11 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
         self.num_kernels = len(resblock_kernel_sizes)
         self.num_upsamples = len(upsample_rates)
-        self.conv_pre = Conv1d(
-            initial_channel, upsample_initial_channel, 7, 1, padding=3
-        )
+        self.conv_pre = Conv1d(initial_channel,
+                               upsample_initial_channel,
+                               7,
+                               1,
+                               padding=3)
         resblock = ResBlock1 if resblock == "1" else ResBlock2
 
         self.ups = nn.ModuleList()
@@ -38,20 +41,17 @@ class Generator(nn.Module):
                 weight_norm(
                     ConvTranspose1d(
                         upsample_initial_channel // (2**i),
-                        upsample_initial_channel // (2 ** (i + 1)),
+                        upsample_initial_channel // (2**(i + 1)),
                         k,
                         u,
                         padding=(k - u) // 2,
-                    )
-                )
-            )
+                    )))
 
         self.resblocks = nn.ModuleList()
         for i in range(len(self.ups)):
-            ch = upsample_initial_channel // (2 ** (i + 1))
+            ch = upsample_initial_channel // (2**(i + 1))
             for j, (k, d) in enumerate(
-                zip(resblock_kernel_sizes, resblock_dilation_sizes)
-            ):
+                    zip(resblock_kernel_sizes, resblock_dilation_sizes)):
                 self.resblocks.append(resblock(ch, k, d))
 
         self.conv_post = Conv1d(ch, 1, 7, 1, padding=3, bias=False)
@@ -87,78 +87,69 @@ class Generator(nn.Module):
 
 
 class ResBlock1(torch.nn.Module):
+
     def __init__(self, channels, kernel_size=3, dilation=(1, 3, 5)):
         super(ResBlock1, self).__init__()
-        self.convs1 = nn.ModuleList(
-            [
-                weight_norm(
-                    Conv1d(
-                        channels,
-                        channels,
-                        kernel_size,
-                        1,
-                        dilation=dilation[0],
-                        padding=get_padding(kernel_size, dilation[0]),
-                    )
-                ),
-                weight_norm(
-                    Conv1d(
-                        channels,
-                        channels,
-                        kernel_size,
-                        1,
-                        dilation=dilation[1],
-                        padding=get_padding(kernel_size, dilation[1]),
-                    )
-                ),
-                weight_norm(
-                    Conv1d(
-                        channels,
-                        channels,
-                        kernel_size,
-                        1,
-                        dilation=dilation[2],
-                        padding=get_padding(kernel_size, dilation[2]),
-                    )
-                ),
-            ]
-        )
+        self.convs1 = nn.ModuleList([
+            weight_norm(
+                Conv1d(
+                    channels,
+                    channels,
+                    kernel_size,
+                    1,
+                    dilation=dilation[0],
+                    padding=get_padding(kernel_size, dilation[0]),
+                )),
+            weight_norm(
+                Conv1d(
+                    channels,
+                    channels,
+                    kernel_size,
+                    1,
+                    dilation=dilation[1],
+                    padding=get_padding(kernel_size, dilation[1]),
+                )),
+            weight_norm(
+                Conv1d(
+                    channels,
+                    channels,
+                    kernel_size,
+                    1,
+                    dilation=dilation[2],
+                    padding=get_padding(kernel_size, dilation[2]),
+                )),
+        ])
         self.convs1.apply(init_weights)
 
-        self.convs2 = nn.ModuleList(
-            [
-                weight_norm(
-                    Conv1d(
-                        channels,
-                        channels,
-                        kernel_size,
-                        1,
-                        dilation=1,
-                        padding=get_padding(kernel_size, 1),
-                    )
-                ),
-                weight_norm(
-                    Conv1d(
-                        channels,
-                        channels,
-                        kernel_size,
-                        1,
-                        dilation=1,
-                        padding=get_padding(kernel_size, 1),
-                    )
-                ),
-                weight_norm(
-                    Conv1d(
-                        channels,
-                        channels,
-                        kernel_size,
-                        1,
-                        dilation=1,
-                        padding=get_padding(kernel_size, 1),
-                    )
-                ),
-            ]
-        )
+        self.convs2 = nn.ModuleList([
+            weight_norm(
+                Conv1d(
+                    channels,
+                    channels,
+                    kernel_size,
+                    1,
+                    dilation=1,
+                    padding=get_padding(kernel_size, 1),
+                )),
+            weight_norm(
+                Conv1d(
+                    channels,
+                    channels,
+                    kernel_size,
+                    1,
+                    dilation=1,
+                    padding=get_padding(kernel_size, 1),
+                )),
+            weight_norm(
+                Conv1d(
+                    channels,
+                    channels,
+                    kernel_size,
+                    1,
+                    dilation=1,
+                    padding=get_padding(kernel_size, 1),
+                )),
+        ])
         self.convs2.apply(init_weights)
 
     def forward(self, x, x_mask=None):
@@ -184,32 +175,29 @@ class ResBlock1(torch.nn.Module):
 
 
 class ResBlock2(torch.nn.Module):
+
     def __init__(self, channels, kernel_size=3, dilation=(1, 3)):
         super(ResBlock2, self).__init__()
-        self.convs = nn.ModuleList(
-            [
-                weight_norm(
-                    Conv1d(
-                        channels,
-                        channels,
-                        kernel_size,
-                        1,
-                        dilation=dilation[0],
-                        padding=get_padding(kernel_size, dilation[0]),
-                    )
-                ),
-                weight_norm(
-                    Conv1d(
-                        channels,
-                        channels,
-                        kernel_size,
-                        1,
-                        dilation=dilation[1],
-                        padding=get_padding(kernel_size, dilation[1]),
-                    )
-                ),
-            ]
-        )
+        self.convs = nn.ModuleList([
+            weight_norm(
+                Conv1d(
+                    channels,
+                    channels,
+                    kernel_size,
+                    1,
+                    dilation=dilation[0],
+                    padding=get_padding(kernel_size, dilation[0]),
+                )),
+            weight_norm(
+                Conv1d(
+                    channels,
+                    channels,
+                    kernel_size,
+                    1,
+                    dilation=dilation[1],
+                    padding=get_padding(kernel_size, dilation[1]),
+                )),
+        ])
         self.convs.apply(init_weights)
 
     def forward(self, x, x_mask=None):
@@ -229,6 +217,7 @@ class ResBlock2(torch.nn.Module):
 
 
 class ConvNeXtLayer(nn.Module):
+
     def __init__(self, channels, h_channels, scale):
         super().__init__()
         self.dw_conv = nn.Conv1d(
@@ -241,9 +230,9 @@ class ConvNeXtLayer(nn.Module):
         self.norm = LayerNorm(channels)
         self.pw_conv1 = nn.Conv1d(channels, h_channels, 1)
         self.pw_conv2 = nn.Conv1d(h_channels, channels, 1)
-        self.scale = nn.Parameter(
-            torch.full(size=(1, channels, 1), fill_value=scale), requires_grad=True
-        )
+        self.scale = nn.Parameter(torch.full(size=(1, channels, 1),
+                                             fill_value=scale),
+                                  requires_grad=True)
 
     def forward(self, x):
         res = x
@@ -258,27 +247,30 @@ class ConvNeXtLayer(nn.Module):
 
 
 class VocosGenerator(nn.Module):
-    def __init__(
-        self,
-        in_channels,
-        channels,
-        h_channels,
-        out_channels,
-        num_layers,
-        istft_config,
-        gin_channels,
-        is_onnx=False
-    ):
+
+    def __init__(self,
+                 in_channels,
+                 channels,
+                 h_channels,
+                 out_channels,
+                 num_layers,
+                 istft_config,
+                 gin_channels,
+                 is_onnx=False):
         super().__init__()
 
         self.pad = nn.ReflectionPad1d([1, 0])
-        self.in_conv = nn.Conv1d(in_channels, channels, kernel_size=1, padding=0)
+        self.in_conv = nn.Conv1d(in_channels,
+                                 channels,
+                                 kernel_size=1,
+                                 padding=0)
         self.cond = Conv1d(gin_channels, channels, 1)
         self.norm_pre = LayerNorm(channels)
         scale = 1 / num_layers
-        self.layers = nn.ModuleList(
-            [ConvNeXtLayer(channels, h_channels, scale) for _ in range(num_layers)]
-        )
+        self.layers = nn.ModuleList([
+            ConvNeXtLayer(channels, h_channels, scale)
+            for _ in range(num_layers)
+        ])
         self.norm_post = LayerNorm(channels)
         self.out_conv = nn.Conv1d(channels, out_channels, kernel_size=1)
         self.is_onnx = is_onnx

@@ -4,11 +4,11 @@ from torch.nn.utils.parametrizations import weight_norm
 
 from utils import commons
 
-
 LRELU_SLOPE = 0.1
 
 
 class WN(nn.Module):
+
     def __init__(
         self,
         hidden_channels,
@@ -21,7 +21,7 @@ class WN(nn.Module):
         super(WN, self).__init__()
         assert kernel_size % 2 == 1
         self.hidden_channels = hidden_channels
-        self.kernel_size = (kernel_size,)
+        self.kernel_size = (kernel_size, )
         self.dilation_rate = dilation_rate
         self.n_layers = n_layers
         self.gin_channels = gin_channels
@@ -66,16 +66,17 @@ class WN(nn.Module):
         for i in range(self.n_layers):
             x_in = self.in_layers[i](x)
             cond_offset = i * 2 * self.hidden_channels
-            g_l = g[:, cond_offset : cond_offset + 2 * self.hidden_channels, :]
+            g_l = g[:, cond_offset:cond_offset + 2 * self.hidden_channels, :]
 
-            acts = commons.fused_add_tanh_sigmoid_multiply(x_in, g_l, n_channels_tensor)
+            acts = commons.fused_add_tanh_sigmoid_multiply(
+                x_in, g_l, n_channels_tensor)
             acts = self.drop(acts)
 
             res_skip_acts = self.res_skip_layers[i](acts)
             if i < self.n_layers - 1:
-                res_acts = res_skip_acts[:, : self.hidden_channels, :]
+                res_acts = res_skip_acts[:, :self.hidden_channels, :]
                 x = (x + res_acts) * x_mask
-                output = output + res_skip_acts[:, self.hidden_channels :, :]
+                output = output + res_skip_acts[:, self.hidden_channels:, :]
             else:
                 output = output + res_skip_acts
         return output * x_mask
@@ -89,6 +90,7 @@ class WN(nn.Module):
 
 
 class Flip(nn.Module):
+
     def forward(self, x, *args, reverse=False, **kwargs):
         x = torch.flip(x, [1])
         if not reverse:

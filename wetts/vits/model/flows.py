@@ -5,6 +5,7 @@ from model.modules import Flip, WN
 
 
 class ResidualCouplingBlock(nn.Module):
+
     def __init__(
         self,
         channels,
@@ -35,8 +36,7 @@ class ResidualCouplingBlock(nn.Module):
                     n_layers,
                     gin_channels=gin_channels,
                     mean_only=True,
-                )
-            )
+                ))
             self.flows.append(Flip())
 
     def forward(self, x, x_mask, g=None, reverse=False):
@@ -55,6 +55,7 @@ class ResidualCouplingBlock(nn.Module):
 
 
 class ResidualCouplingLayer(nn.Module):
+
     def __init__(
         self,
         channels,
@@ -85,7 +86,8 @@ class ResidualCouplingLayer(nn.Module):
             p_dropout=p_dropout,
             gin_channels=gin_channels,
         )
-        self.post = nn.Conv1d(hidden_channels, self.half_channels * (2 - mean_only), 1)
+        self.post = nn.Conv1d(hidden_channels,
+                              self.half_channels * (2 - mean_only), 1)
         self.post.weight.data.zero_()
         self.post.bias.data.zero_()
 
