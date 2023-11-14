@@ -19,15 +19,12 @@ import onnxruntime as ort
 from scipy.io import wavfile
 import torch
 
-import utils
+from utils import task
 
 
 def to_numpy(tensor):
-    return (
-        tensor.detach().cpu().numpy()
-        if tensor.requires_grad
-        else tensor.detach().numpy()
-    )
+    return (tensor.detach().cpu().numpy()
+            if tensor.requires_grad else tensor.detach().numpy())
 
 
 def get_args():
@@ -35,7 +32,9 @@ def get_args():
     parser.add_argument("--onnx_model", required=True, help="onnx model")
     parser.add_argument("--cfg", required=True, help="config file")
     parser.add_argument("--outdir", required=True, help="ouput directory")
-    parser.add_argument("--phone_table", required=True, help="input phone dict")
+    parser.add_argument("--phone_table",
+                        required=True,
+                        help="input phone dict")
     parser.add_argument("--speaker_table", default=True, help="speaker table")
     parser.add_argument("--test_file", required=True, help="test file")
     parser.add_argument(
@@ -61,9 +60,10 @@ def main():
         arr = line.strip().split()
         assert len(arr) == 2
         speaker_dict[arr[0]] = int(arr[1])
-    hps = utils.get_hparams_from_file(args.cfg)
+    hps = task.get_hparams_from_file(args.cfg)
 
-    ort_sess = ort.InferenceSession(args.onnx_model, providers=[args.providers])
+    ort_sess = ort.InferenceSession(args.onnx_model,
+                                    providers=[args.providers])
     scales = torch.FloatTensor([0.667, 1.0, 0.8])
     # make triton dynamic shape happy
     scales = scales.unsqueeze(0)

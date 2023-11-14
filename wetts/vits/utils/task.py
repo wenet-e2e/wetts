@@ -8,7 +8,6 @@ import torch
 
 MATPLOTLIB_FLAG = False
 
-
 logging.basicConfig(
     format="%(asctime)s %(levelname)-8s %(message)s",
     level=logging.INFO,
@@ -40,18 +39,16 @@ def load_checkpoint(checkpoint_path, model, optimizer=None):
         model.module.load_state_dict(new_state_dict)
     else:
         model.load_state_dict(new_state_dict)
-    logger.info(
-        "Loaded checkpoint '{}' (iteration {})".format(checkpoint_path, iteration)
-    )
+    logger.info("Loaded checkpoint '{}' (iteration {})".format(
+        checkpoint_path, iteration))
     return model, optimizer, learning_rate, iteration
 
 
-def save_checkpoint(model, optimizer, learning_rate, iteration, checkpoint_path):
+def save_checkpoint(model, optimizer, learning_rate, iteration,
+                    checkpoint_path):
     logger.info(
         "Saving model and optimizer state at iteration {} to {}".format(
-            iteration, checkpoint_path
-        )
-    )
+            iteration, checkpoint_path))
     if hasattr(model, "module"):
         state_dict = model.module.state_dict()
     else:
@@ -106,7 +103,10 @@ def plot_spectrogram_to_numpy(spectrogram):
     import numpy as np
 
     fig, ax = plt.subplots(figsize=(10, 2))
-    im = ax.imshow(spectrogram, aspect="auto", origin="lower", interpolation="none")
+    im = ax.imshow(spectrogram,
+                   aspect="auto",
+                   origin="lower",
+                   interpolation="none")
     plt.colorbar(im, ax=ax)
     plt.xlabel("Frames")
     plt.ylabel("Channels")
@@ -114,7 +114,7 @@ def plot_spectrogram_to_numpy(spectrogram):
 
     fig.canvas.draw()
     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep="")
-    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3, ))
     plt.close()
     return data
 
@@ -132,9 +132,10 @@ def plot_alignment_to_numpy(alignment, info=None):
     import numpy as np
 
     fig, ax = plt.subplots(figsize=(6, 4))
-    im = ax.imshow(
-        alignment.transpose(), aspect="auto", origin="lower", interpolation="none"
-    )
+    im = ax.imshow(alignment.transpose(),
+                   aspect="auto",
+                   origin="lower",
+                   interpolation="none")
     fig.colorbar(im, ax=ax)
     xlabel = "Decoder timestep"
     if info is not None:
@@ -145,7 +146,7 @@ def plot_alignment_to_numpy(alignment, info=None):
 
     fig.canvas.draw()
     data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep="")
-    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3, ))
     plt.close()
     return data
 
@@ -165,10 +166,20 @@ def get_hparams(init=True):
         default="./configs/base.json",
         help="JSON file for configuration",
     )
-    parser.add_argument("-m", "--model", type=str, required=True, help="Model name")
-    parser.add_argument("--train_data", type=str, required=True, help="train data")
+    parser.add_argument("-m",
+                        "--model",
+                        type=str,
+                        required=True,
+                        help="Model name")
+    parser.add_argument("--train_data",
+                        type=str,
+                        required=True,
+                        help="train data")
     parser.add_argument("--val_data", type=str, required=True, help="val data")
-    parser.add_argument("--phone_table", type=str, required=True, help="phone table")
+    parser.add_argument("--phone_table",
+                        type=str,
+                        required=True,
+                        help="phone table")
     parser.add_argument(
         "--speaker_table",
         type=str,
@@ -196,10 +207,14 @@ def get_hparams(init=True):
     config["data"]["training_files"] = args.train_data
     config["data"]["validation_files"] = args.val_data
     config["data"]["phone_table"] = args.phone_table
-    phones = [line for line in open(args.phone_table).readlines() if line.strip()]
+    phones = [
+        line for line in open(args.phone_table).readlines() if line.strip()
+    ]
     config["data"]["num_phones"] = len(phones)
     config["data"]["speaker_table"] = args.speaker_table
-    speakers = [line for line in open(args.speaker_table).readlines() if line.strip()]
+    speakers = [
+        line for line in open(args.speaker_table).readlines() if line.strip()
+    ]
     config["data"]["n_speakers"] = len(speakers)
 
     hparams = HParams(**config)
@@ -230,7 +245,8 @@ def get_logger(model_dir, filename="train.log"):
     logger = logging.getLogger(os.path.basename(model_dir))
     logger.setLevel(logging.INFO)
 
-    formatter = logging.Formatter("%(asctime)s\t%(name)s\t%(levelname)s\t%(message)s")
+    formatter = logging.Formatter(
+        "%(asctime)s\t%(name)s\t%(levelname)s\t%(message)s")
     if not os.path.exists(model_dir):
         os.makedirs(model_dir)
     h = logging.FileHandler(os.path.join(model_dir, filename))
@@ -241,6 +257,7 @@ def get_logger(model_dir, filename="train.log"):
 
 
 class HParams:
+
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
             if type(v) == dict:

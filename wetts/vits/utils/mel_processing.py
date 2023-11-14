@@ -38,7 +38,12 @@ mel_basis = {}
 hann_window = {}
 
 
-def spectrogram_torch(y, n_fft, sampling_rate, hop_size, win_size, center=False):
+def spectrogram_torch(y,
+                      n_fft,
+                      sampling_rate,
+                      hop_size,
+                      win_size,
+                      center=False):
     if torch.min(y) < -1.0:
         print("min value is ", torch.min(y))
     if torch.max(y) > 1.0:
@@ -49,8 +54,7 @@ def spectrogram_torch(y, n_fft, sampling_rate, hop_size, win_size, center=False)
     wnsize_dtype_device = str(win_size) + "_" + dtype_device
     if wnsize_dtype_device not in hann_window:
         hann_window[wnsize_dtype_device] = torch.hann_window(win_size).to(
-            dtype=y.dtype, device=y.device
-        )
+            dtype=y.dtype, device=y.device)
 
     y = F.pad(
         y.unsqueeze(1),
@@ -82,18 +86,22 @@ def spec_to_mel_torch(spec, n_fft, n_mels, sampling_rate):
     dtype_device = str(spec.dtype) + "_" + str(spec.device)
     if dtype_device not in mel_basis:
         mel = librosa_mel_fn(sr=sampling_rate, n_fft=n_fft, n_mels=n_mels)
-        mel_basis[dtype_device] = torch.from_numpy(mel).to(
-            dtype=spec.dtype, device=spec.device
-        )
+        mel_basis[dtype_device] = torch.from_numpy(mel).to(dtype=spec.dtype,
+                                                           device=spec.device)
     spec = torch.matmul(mel_basis[dtype_device], spec)
     spec = spectral_normalize_torch(spec)
     return spec
 
 
-def mel_spectrogram_torch(
-    y, n_fft, n_mels, sampling_rate, hop_size, win_size, center=False
-):
-    spec = spectrogram_torch(y, n_fft, sampling_rate, hop_size, win_size, center)
+def mel_spectrogram_torch(y,
+                          n_fft,
+                          n_mels,
+                          sampling_rate,
+                          hop_size,
+                          win_size,
+                          center=False):
+    spec = spectrogram_torch(y, n_fft, sampling_rate, hop_size, win_size,
+                             center)
     spec = spec_to_mel_torch(spec, n_fft, n_mels, sampling_rate)
 
     return spec
