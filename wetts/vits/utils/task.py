@@ -3,6 +3,7 @@ import glob
 import json
 import logging
 import os
+from pathlib import Path
 
 import torch
 
@@ -189,9 +190,7 @@ def get_hparams(init=True):
 
     args = parser.parse_args()
     model_dir = args.model
-
-    if not os.path.exists(model_dir):
-        os.makedirs(model_dir)
+    Path(model_dir).mkdir(parents=True, exist_ok=True)
 
     config_path = args.config
     config_save_path = os.path.join(model_dir, "config.json")
@@ -247,8 +246,7 @@ def get_logger(model_dir, filename="train.log"):
 
     formatter = logging.Formatter(
         "%(asctime)s\t%(name)s\t%(levelname)s\t%(message)s")
-    if not os.path.exists(model_dir):
-        os.makedirs(model_dir)
+    Path(model_dir).mkdir(parents=True, exist_ok=True)
     h = logging.FileHandler(os.path.join(model_dir, filename))
     h.setLevel(logging.INFO)
     h.setFormatter(formatter)
