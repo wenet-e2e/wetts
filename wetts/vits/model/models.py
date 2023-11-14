@@ -3,13 +3,12 @@ import time
 
 import torch
 from torch import nn
-import monotonic_align
 
 from model.decoder import Generator, VocosGenerator
 from model.duration_predictors import StochasticDurationPredictor, DurationPredictor
 from model.encoders import TextEncoder, PosteriorEncoder
 from model.flows import ResidualCouplingBlock
-from utils import commons
+from utils import commons, monotonic_align
 
 
 class SynthesizerTrn(nn.Module):
