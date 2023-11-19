@@ -29,9 +29,9 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         self.min_text_len = getattr(hparams, "min_text_len", 1)
         self.max_text_len = getattr(hparams, "max_text_len", 190)
 
-        self.use_mel_spec_posterior = getattr(
-            hparams, "use_mel_posterior_encoder", False
-        )
+        self.use_mel_spec_posterior = getattr(hparams,
+                                              "use_mel_posterior_encoder",
+                                              False)
         if self.use_mel_spec_posterior:
             self.n_mel_channels = getattr(hparams, "n_mel_channels", 80)
 

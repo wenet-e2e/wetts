@@ -5,9 +5,12 @@ import torch
 from torch import nn
 
 from model.decoders import Generator, VocosGenerator
-from model.duration_predictors import StochasticDurationPredictor, DurationPredictor
+from model.duration_predictors import (
+    StochasticDurationPredictor,
+    DurationPredictor
+)
 from model.encoders import TextEncoder, PosteriorEncoder
-from model.flows import AVAILABLE_FLOW_TYPES, ResidualCouplingBlock, ResidualCouplingTransformersBlock
+from model.flows import AVAILABLE_FLOW_TYPES, ResidualCouplingTransformersBlock
 from utils import commons, monotonic_align
 
 
@@ -78,7 +81,6 @@ class SynthesizerTrn(nn.Module):
                 self.transformer_flow_type in AVAILABLE_FLOW_TYPES
             ), f"transformer_flow_type must be one of {AVAILABLE_FLOW_TYPES}"
         self.use_sdp = use_sdp
-        # self.use_duration_discriminator = kwargs.get("use_duration_discriminator", False)
         self.use_noise_scaled_mas = kwargs.get("use_noise_scaled_mas", False)
         self.mas_noise_scale_initial = kwargs.get("mas_noise_scale_initial",
                                                   0.01)
@@ -299,8 +301,9 @@ class SynthesizerTrn(nn.Module):
         return audio
 
     # currently vits-2 is not capable of voice conversion
-    ## comment - choihkk
-    ## Assuming the use of the ResidualCouplingTransformersLayer2 module, it seems that voice conversion is possible
+    # comment - choihkk
+    # Assuming the use of the ResidualCouplingTransformersLayer2 module,
+    # it seems that voice conversion is possible
     def voice_conversion(self, y, y_lengths, sid_src, sid_tgt):
         g_src = self.emb_g(sid_src).unsqueeze(-1)
         g_tgt = self.emb_g(sid_tgt).unsqueeze(-1)

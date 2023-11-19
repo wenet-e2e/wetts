@@ -13,7 +13,10 @@ from data_utils import (
     TextAudioSpeakerCollate,
     DistributedBucketSampler,
 )
-from model.discriminators import AVAILABLE_DURATION_DISCRIMINATOR_TYPES, MultiPeriodDiscriminator, DurationDiscriminatorV1, DurationDiscriminatorV2
+from model.discriminators import (AVAILABLE_DURATION_DISCRIMINATOR_TYPES,
+                                  MultiPeriodDiscriminator,
+                                  DurationDiscriminatorV1,
+                                  DurationDiscriminatorV2)
 from model.flows import AVAILABLE_FLOW_TYPES
 from model.models import SynthesizerTrn
 from losses import generator_loss, discriminator_loss, feature_loss, kl_loss
@@ -41,7 +44,7 @@ def main():
             log_dir=os.path.join(hps.model_dir, "eval"))
 
     if ("use_mel_posterior_encoder" in hps.model.keys()
-            and hps.model.use_mel_posterior_encoder == True):
+            and hps.model.use_mel_posterior_encoder):
         print("Using mel posterior encoder for VITS2")
         posterior_channels = 80  # vits2
         hps.data.use_mel_posterior_encoder = True
@@ -81,10 +84,10 @@ def main():
             collate_fn=collate_fn,
         )
 
-    # some of these flags are not being used in the code and directly set in hps json file.
-    # they are kept here for reference and prototyping.
+    # some of these flags are not being used in the code and directly set in hps
+    # json file. they are kept here for reference and prototyping.
     if ("use_transformer_flows" in hps.model.keys()
-            and hps.model.use_transformer_flows == True):
+            and hps.model.use_transformer_flows):
         use_transformer_flows = True
         transformer_flow_type = hps.model.transformer_flow_type
         print(f"Using transformer flows {transformer_flow_type} for VITS2")
@@ -96,18 +99,18 @@ def main():
         use_transformer_flows = False
 
     if ("use_spk_conditioned_encoder" in hps.model.keys()
-            and hps.model.use_spk_conditioned_encoder == True):
+            and hps.model.use_spk_conditioned_encoder):
         if hps.data.n_speakers == 0:
             raise ValueError(
-                "n_speakers must be > 0 when using spk conditioned encoder to train multi-speaker model"
-            )
+                "n_speakers must be > 0 when using spk conditioned encoder to",
+                "train multi-speaker model")
         use_spk_conditioned_encoder = True
     else:
         print("Using normal encoder for VITS1")
         use_spk_conditioned_encoder = False
 
     if ("use_noise_scaled_mas" in hps.model.keys()
-            and hps.model.use_noise_scaled_mas == True):
+            and hps.model.use_noise_scaled_mas):
         print("Using noise scaled MAS for VITS2")
         use_noise_scaled_mas = True
         mas_noise_scale_initial = 0.01
@@ -118,25 +121,20 @@ def main():
         mas_noise_scale_initial = 0.0
         noise_scale_delta = 0.0
 
-
     if ("use_duration_discriminator" in hps.model.keys()
-            and hps.model.use_duration_discriminator == True):
-        # print("Using duration discriminator for VITS2")
-        use_duration_discriminator = True
-
+            and hps.model.use_duration_discriminator):
         # comment - choihkk
         # add duration discriminator type here
-        # I think it would be a good idea to come up with a method to input this part accurately, like a hydra
+        # I think it would be a good idea to come up with a method to input this
+        # part accurately, like a hydra
         duration_discriminator_type = getattr(hps.model,
                                               "duration_discriminator_type",
                                               "dur_disc_1")
         print(
-            f"Using duration_discriminator {duration_discriminator_type} for VITS2"
-        )
-        assert (
-            duration_discriminator_type
-            in AVAILABLE_DURATION_DISCRIMINATOR_TYPES
-        ), f"duration_discriminator_type must be one of {AVAILABLE_DURATION_DISCRIMINATOR_TYPES}"
+            f"Using duration_discriminator {duration_discriminator_type} for",
+            "VITS2")
+        assert (duration_discriminator_type
+                in AVAILABLE_DURATION_DISCRIMINATOR_TYPES)
         if duration_discriminator_type == "dur_disc_1":
             net_dur_disc = DurationDiscriminatorV1(
                 hps.model.hidden_channels,
@@ -158,7 +156,6 @@ def main():
     else:
         print("NOT using any duration discriminator like VITS1")
         net_dur_disc = None
-        use_duration_discriminator = False
 
     net_g = SynthesizerTrn(hps.data.num_phones,
                            posterior_channels,
@@ -191,10 +188,11 @@ def main():
         optim_dur_disc = None
 
     # comment - choihkk
-    # if we comment out unused parameter like DurationDiscriminator's self.pre_out_norm1,2 self.norm_1,2
-    # and ResidualCouplingTransformersLayer's self.post_transformer
-    # we don't have to set find_unused_parameters=True
-    # but I will not proceed with commenting out for compatibility with the latest work for others
+    # if we comment out unused parameter like DurationDiscriminator's
+    # self.pre_out_norm1,2 self.norm_1,2 and ResidualCouplingTransformersLayer's
+    # self.post_transformer we don't have to set find_unused_parameters=True
+    # but I will not proceed with commenting out for compatibility with the
+    # latest work for others
     net_g = DDP(net_g, device_ids=[rank], find_unused_parameters=True)
     net_d = DDP(net_d, device_ids=[rank], find_unused_parameters=True)
 
@@ -222,8 +220,7 @@ def main():
         optim_d, gamma=hps.train.lr_decay, last_epoch=epoch_str - 2)
     if net_dur_disc:
         scheduler_dur_disc = torch.optim.lr_scheduler.ExponentialLR(
-            optim_dur_disc, gamma=hps.train.lr_decay, last_epoch=epoch_str - 2
-        )
+            optim_dur_disc, gamma=hps.train.lr_decay, last_epoch=epoch_str - 2)
     else:
         scheduler_dur_disc = None
 
@@ -290,10 +287,10 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler,
     ) in enumerate(train_loader):
         if net_g.module.use_noise_scaled_mas:
             current_mas_noise_scale = (
-                net_g.module.mas_noise_scale_initial
-                - net_g.module.noise_scale_delta * global_step
-            )
-            net_g.module.current_mas_noise_scale = max(current_mas_noise_scale, 0.0)
+                net_g.module.mas_noise_scale_initial -
+                net_g.module.noise_scale_delta * global_step)
+            net_g.module.current_mas_noise_scale = max(current_mas_noise_scale,
+                                                       0.0)
         x, x_lengths = x.cuda(rank, non_blocking=True), x_lengths.cuda(
             rank, non_blocking=True)
         spec, spec_lengths = spec.cuda(
@@ -315,10 +312,8 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler,
                 (hidden_x, logw, logw_),
             ) = net_g(x, x_lengths, spec, spec_lengths, speakers)
 
-            if (
-                hps.model.use_mel_posterior_encoder
-                or hps.data.use_mel_posterior_encoder
-            ):
+            if (hps.model.use_mel_posterior_encoder
+                    or hps.data.use_mel_posterior_encoder):
                 mel = spec
             else:
                 # comment - choihkk
@@ -358,10 +353,11 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler,
             # Duration Discriminator
             if net_dur_disc:
                 y_dur_hat_r, y_dur_hat_g = net_dur_disc(
-                    hidden_x.detach(), x_mask.detach(), logw_.detach(), logw.detach()
-                )
+                    hidden_x.detach(), x_mask.detach(), logw_.detach(),
+                    logw.detach())
                 with autocast(enabled=False):
-                    # TODO: I think need to mean using the mask, but for now, just mean all
+                    # TODO: I think need to mean using the mask, but for now,
+                    # just mean all
                     (
                         loss_dur_disc,
                         losses_dur_disc_r,
@@ -372,8 +368,7 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler,
                 scaler.scale(loss_dur_disc_all).backward()
                 scaler.unscale_(optim_dur_disc)
                 grad_norm_dur_disc = commons.clip_grad_value_(
-                    net_dur_disc.parameters(), None
-                )
+                    net_dur_disc.parameters(), None)
                 scaler.step(optim_dur_disc)
 
         optim_d.zero_grad()
@@ -386,7 +381,8 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler,
             # Generator
             y_d_hat_r, y_d_hat_g, fmap_r, fmap_g = net_d(y, y_hat)
             if net_dur_disc:
-                y_dur_hat_r, y_dur_hat_g = net_dur_disc(hidden_x, x_mask, logw_, logw)
+                y_dur_hat_r, y_dur_hat_g = net_dur_disc(
+                    hidden_x, x_mask, logw_, logw)
             with autocast(enabled=False):
                 loss_dur = torch.sum(l_length.float())
                 loss_mel = F.l1_loss(y_mel, y_hat_mel) * hps.train.c_mel
@@ -426,12 +422,12 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler,
                     "grad_norm_g": grad_norm_g,
                 }
                 if net_dur_disc:
-                    scalar_dict.update(
-                        {
-                            "loss/dur_disc/total": loss_dur_disc_all,
-                            "grad_norm_dur_disc": grad_norm_dur_disc,
-                        }
-                    )
+                    scalar_dict.update({
+                        "loss/dur_disc/total":
+                        loss_dur_disc_all,
+                        "grad_norm_dur_disc":
+                        grad_norm_dur_disc,
+                    })
                 scalar_dict.update({
                     "loss/g/fm": loss_fm,
                     "loss/g/mel": loss_mel,
@@ -501,7 +497,8 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler,
                         optim_dur_disc,
                         hps.train.learning_rate,
                         epoch,
-                        os.path.join(hps.model_dir, "DUR_{}.pth".format(global_step)),
+                        os.path.join(hps.model_dir,
+                                     "DUR_{}.pth".format(global_step)),
                     )
         global_step += 1
 
