@@ -23,7 +23,7 @@ class Generator(nn.Module):
         upsample_rates,
         upsample_initial_channel,
         upsample_kernel_sizes,
-        gin_channels,
+        gin_channels=0,
     ):
         super(Generator, self).__init__()
         self.num_kernels = len(resblock_kernel_sizes)
@@ -57,11 +57,13 @@ class Generator(nn.Module):
         self.conv_post = Conv1d(ch, 1, 7, 1, padding=3, bias=False)
         self.ups.apply(init_weights)
 
-        self.cond = nn.Conv1d(gin_channels, upsample_initial_channel, 1)
+        if gin_channels != 0:
+            self.cond = nn.Conv1d(gin_channels, upsample_initial_channel, 1)
 
     def forward(self, x, g=None):
         x = self.conv_pre(x)
-        x = x + self.cond(g)
+        if g is not None:
+            x = x + self.cond(g)
 
         for i in range(self.num_upsamples):
             x = F.leaky_relu(x, LRELU_SLOPE)
