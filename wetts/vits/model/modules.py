@@ -15,7 +15,7 @@ class WN(nn.Module):
         kernel_size,
         dilation_rate,
         n_layers,
-        gin_channels,
+        gin_channels=0,
         p_dropout=0,
     ):
         super(WN, self).__init__()
@@ -61,12 +61,17 @@ class WN(nn.Module):
         output = torch.zeros_like(x)
         n_channels_tensor = torch.IntTensor([self.hidden_channels])
 
-        g = self.cond_layer(g)
+        if g is not None:
+            g = self.cond_layer(g)
 
         for i in range(self.n_layers):
             x_in = self.in_layers[i](x)
-            cond_offset = i * 2 * self.hidden_channels
-            g_l = g[:, cond_offset:cond_offset + 2 * self.hidden_channels, :]
+            if g is not None:
+                cond_offset = i * 2 * self.hidden_channels
+                g_l = g[:,
+                        cond_offset:cond_offset + 2 * self.hidden_channels, :]
+            else:
+                g_l = torch.zeros_like(x_in)
 
             acts = commons.fused_add_tanh_sigmoid_multiply(
                 x_in, g_l, n_channels_tensor)
@@ -82,7 +87,8 @@ class WN(nn.Module):
         return output * x_mask
 
     def remove_weight_norm(self):
-        nn.utils.remove_weight_norm(self.cond_layer)
+        if self.gin_channels != 0:
+            nn.utils.remove_weight_norm(self.cond_layer)
         for l in self.in_layers:
             nn.utils.remove_weight_norm(l)
         for l in self.res_skip_layers:

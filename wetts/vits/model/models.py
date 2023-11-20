@@ -4,10 +4,13 @@ import time
 import torch
 from torch import nn
 
-from model.decoder import Generator, VocosGenerator
-from model.duration_predictors import StochasticDurationPredictor, DurationPredictor
+from model.decoders import Generator, VocosGenerator
+from model.duration_predictors import (
+    StochasticDurationPredictor,
+    DurationPredictor
+)
 from model.encoders import TextEncoder, PosteriorEncoder
-from model.flows import ResidualCouplingBlock
+from model.flows import AVAILABLE_FLOW_TYPES, ResidualCouplingTransformersBlock
 from utils import commons, monotonic_align
 
 
@@ -20,21 +23,21 @@ class SynthesizerTrn(nn.Module):
                  n_vocab,
                  spec_channels,
                  segment_size,
-                 inter_channels=192,
-                 hidden_channels=192,
-                 filter_channels=768,
-                 n_heads=2,
-                 n_layers=6,
-                 kernel_size=3,
-                 p_dropout=0.1,
-                 resblock="1",
-                 resblock_kernel_sizes=[3, 7, 11],
-                 resblock_dilation_sizes=[[1, 3, 5], [1, 3, 5], [1, 3, 5]],
-                 upsample_rates=[8, 8, 2, 2],
-                 upsample_initial_channel=512,
-                 upsample_kernel_sizes=[16, 16, 4, 4],
-                 n_speakers=1,
-                 gin_channels=256,
+                 inter_channels,
+                 hidden_channels,
+                 filter_channels,
+                 n_heads,
+                 n_layers,
+                 kernel_size,
+                 p_dropout,
+                 resblock,
+                 resblock_kernel_sizes,
+                 resblock_dilation_sizes,
+                 upsample_rates,
+                 upsample_initial_channel,
+                 upsample_kernel_sizes,
+                 n_speakers=0,
+                 gin_channels=0,
                  use_sdp=True,
                  vocoder_type="hifigan",
                  vocos_channels=512,
@@ -68,8 +71,26 @@ class SynthesizerTrn(nn.Module):
         self.segment_size = segment_size
         self.n_speakers = n_speakers
         self.gin_channels = gin_channels
+        self.use_spk_conditioned_encoder = kwargs.get(
+            "use_spk_conditioned_encoder", False)
+        self.use_transformer_flows = kwargs.get("use_transformer_flows", False)
+        self.transformer_flow_type = kwargs.get("transformer_flow_type",
+                                                "mono_layer_post_residual")
+        if self.use_transformer_flows:
+            assert (
+                self.transformer_flow_type in AVAILABLE_FLOW_TYPES
+            ), f"transformer_flow_type must be one of {AVAILABLE_FLOW_TYPES}"
         self.use_sdp = use_sdp
+        self.use_noise_scaled_mas = kwargs.get("use_noise_scaled_mas", False)
+        self.mas_noise_scale_initial = kwargs.get("mas_noise_scale_initial",
+                                                  0.01)
+        self.noise_scale_delta = kwargs.get("noise_scale_delta", 2e-6)
 
+        self.current_mas_noise_scale = self.mas_noise_scale_initial
+        if self.use_spk_conditioned_encoder and gin_channels > 0:
+            self.enc_gin_channels = gin_channels
+        else:
+            self.enc_gin_channels = 0
         self.enc_p = TextEncoder(
             n_vocab,
             inter_channels,
@@ -79,6 +100,7 @@ class SynthesizerTrn(nn.Module):
             n_layers,
             kernel_size,
             p_dropout,
+            gin_channels=self.enc_gin_channels,
         )
         if vocoder_type == "vocos":
             self.dec = VocosGenerator(
@@ -111,12 +133,16 @@ class SynthesizerTrn(nn.Module):
             16,
             gin_channels=gin_channels,
         )
-        self.flow = ResidualCouplingBlock(inter_channels,
-                                          hidden_channels,
-                                          5,
-                                          1,
-                                          4,
-                                          gin_channels=gin_channels)
+        self.flow = ResidualCouplingTransformersBlock(
+            inter_channels,
+            hidden_channels,
+            5,
+            1,
+            4,
+            gin_channels=gin_channels,
+            use_transformer_flows=self.use_transformer_flows,
+            transformer_flow_type=self.transformer_flow_type,
+        )
 
         if use_sdp:
             self.dp = StochasticDurationPredictor(hidden_channels,
@@ -132,12 +158,16 @@ class SynthesizerTrn(nn.Module):
                                         0.5,
                                         gin_channels=gin_channels)
 
-        self.emb_g = nn.Embedding(n_speakers, gin_channels)
+        if n_speakers > 0:
+            self.emb_g = nn.Embedding(n_speakers, gin_channels)
 
     def forward(self, x, x_lengths, y, y_lengths, sid=None):
-        x, m_p, logs_p, x_mask = self.enc_p(x, x_lengths)
-        g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
+        if self.n_speakers > 0:
+            g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
+        else:
+            g = None
 
+        x, m_p, logs_p, x_mask = self.enc_p(x, x_lengths, g=g)
         z, m_q, logs_q, y_mask = self.enc_q(y, y_lengths, g=g)
         z_p = self.flow(z, y_mask, g=g)
 
@@ -156,6 +186,11 @@ class SynthesizerTrn(nn.Module):
                                   keepdim=True)  # [b, 1, t_s]
             neg_cent = neg_cent1 + neg_cent2 + neg_cent3 + neg_cent4
 
+            if self.use_noise_scaled_mas:
+                epsilon = (torch.std(neg_cent) * torch.randn_like(neg_cent) *
+                           self.current_mas_noise_scale)
+                neg_cent = neg_cent + epsilon
+
             attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(
                 y_mask, -1)
             attn = (monotonic_align.maximum_path(
@@ -165,6 +200,8 @@ class SynthesizerTrn(nn.Module):
         if self.use_sdp:
             l_length = self.dp(x, x_mask, w, g=g)
             l_length = l_length / torch.sum(x_mask)
+            logw = self.dp(x, x_mask, g=g, reverse=True, noise_scale=1.0)
+            logw_ = torch.log(w + 1e-6) * x_mask
         else:
             logw_ = torch.log(w + 1e-6) * x_mask
             logw = self.dp(x, x_mask, g=g)
@@ -188,6 +225,7 @@ class SynthesizerTrn(nn.Module):
             x_mask,
             y_mask,
             (z, z_p, m_p, logs_p, m_q, logs_q),
+            (x, logw, logw_),
         )
 
     def infer(
@@ -200,9 +238,12 @@ class SynthesizerTrn(nn.Module):
         noise_scale_w=1.0,
         max_len=None,
     ):
+        if self.n_speakers > 0:
+            g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
+        else:
+            g = None
         t1 = time.time()
-        x, m_p, logs_p, x_mask = self.enc_p(x, x_lengths)
-        g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
+        x, m_p, logs_p, x_mask = self.enc_p(x, x_lengths, g=g)
         t2 = time.time()
         if self.use_sdp:
             logw = self.dp(x,
@@ -253,6 +294,10 @@ class SynthesizerTrn(nn.Module):
         )
         return audio
 
+    # currently vits-2 is not capable of voice conversion
+    # comment - choihkk
+    # Assuming the use of the ResidualCouplingTransformersLayer2 module,
+    # it seems that voice conversion is possible
     def voice_conversion(self, y, y_lengths, sid_src, sid_tgt):
         g_src = self.emb_g(sid_src).unsqueeze(-1)
         g_tgt = self.emb_g(sid_tgt).unsqueeze(-1)

@@ -5,7 +5,7 @@ import torch
 import torchaudio
 import torch.utils.data
 
-from utils.mel_processing import spectrogram_torch
+from utils.mel_processing import spectrogram_torch, mel_spectrogram_torch
 from utils.task import load_filepaths_and_text
 
 
@@ -24,8 +24,16 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         self.hop_length = hparams.hop_length
         self.win_length = hparams.win_length
         self.sampling_rate = hparams.sampling_rate
+        self.mel_fmin = hparams.mel_fmin
+        self.mel_fmax = hparams.mel_fmax
         self.min_text_len = getattr(hparams, "min_text_len", 1)
         self.max_text_len = getattr(hparams, "max_text_len", 190)
+
+        self.use_mel_spec_posterior = getattr(hparams,
+                                              "use_mel_posterior_encoder",
+                                              False)
+        if self.use_mel_spec_posterior:
+            self.n_mel_channels = getattr(hparams, "n_mel_channels", 80)
 
         phone_file = getattr(hparams, "phone_table", None)
         self.phone_dict = None
@@ -89,14 +97,38 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         audio = audio[0]  # Get the first channel
         audio_norm = audio / self.max_wav_value
         audio_norm = audio_norm.unsqueeze(0)
-        spec = spectrogram_torch(
-            audio_norm,
-            self.filter_length,
-            self.sampling_rate,
-            self.hop_length,
-            self.win_length,
-            center=False,
-        )
+        if self.use_mel_spec_posterior:
+            """TODO : (need verification)
+            if linear spec exists convert to
+            mel from existing linear spec (uncomment below lines)"""
+            # if os.path.exists(filename.replace(".wav", ".spec.pt")):
+            #     # spec, n_fft, num_mels, sampling_rate, fmin, fmax
+            #     spec = spec_to_mel_torch(
+            #         torch.load(filename.replace(".wav", ".spec.pt")),
+            #         self.filter_length, self.n_mel_channels, self.sampling_rate,
+            #         self.hparams.mel_fmin, self.hparams.mel_fmax)
+            spec = mel_spectrogram_torch(
+                audio_norm,
+                self.filter_length,
+                self.n_mel_channels,
+                self.sampling_rate,
+                self.hop_length,
+                self.win_length,
+                self.mel_fmin,
+                self.mel_fmax,
+                center=False,
+            )
+        else:
+            spec = spectrogram_torch(
+                audio_norm,
+                self.filter_length,
+                self.sampling_rate,
+                self.hop_length,
+                self.win_length,
+                self.mel_fmin,
+                self.mel_fmax,
+                center=False,
+            )
         spec = torch.squeeze(spec, 0)
         return spec, audio_norm
 

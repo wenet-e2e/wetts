@@ -162,7 +162,7 @@ class StochasticDurationPredictor(nn.Module):
         kernel_size,
         p_dropout,
         n_flows=4,
-        gin_channels=256,
+        gin_channels=0,
     ):
         super().__init__()
         filter_channels = in_channels  # it needs to be removed from future version.
@@ -200,7 +200,8 @@ class StochasticDurationPredictor(nn.Module):
                              kernel_size,
                              n_layers=3,
                              p_dropout=p_dropout)
-        self.cond = nn.Conv1d(gin_channels, filter_channels, 1)
+        if gin_channels != 0:
+            self.cond = nn.Conv1d(gin_channels, filter_channels, 1)
 
     def forward(self,
                 x,
@@ -211,8 +212,9 @@ class StochasticDurationPredictor(nn.Module):
                 noise_scale=1.0):
         x = torch.detach(x)
         x = self.pre(x)
-        g = torch.detach(g)
-        x = x + self.cond(g)
+        if g is not None:
+            g = torch.detach(g)
+            x = x + self.cond(g)
         x = self.convs(x, x_mask)
         x = self.proj(x) * x_mask
 
@@ -263,8 +265,12 @@ class StochasticDurationPredictor(nn.Module):
 
 class DurationPredictor(nn.Module):
 
-    def __init__(self, in_channels, filter_channels, kernel_size, p_dropout,
-                 gin_channels):
+    def __init__(self,
+                 in_channels,
+                 filter_channels,
+                 kernel_size,
+                 p_dropout,
+                 gin_channels=0):
         super().__init__()
 
         self.in_channels = in_channels
@@ -285,12 +291,14 @@ class DurationPredictor(nn.Module):
                                 padding=kernel_size // 2)
         self.norm_2 = LayerNorm(filter_channels)
         self.proj = nn.Conv1d(filter_channels, 1, 1)
-        self.cond = nn.Conv1d(gin_channels, in_channels, 1)
+        if gin_channels != 0:
+            self.cond = nn.Conv1d(gin_channels, in_channels, 1)
 
     def forward(self, x, x_mask, g=None):
         x = torch.detach(x)
-        g = torch.detach(g)
-        x = x + self.cond(g)
+        if g is not None:
+            g = torch.detach(g)
+            x = x + self.cond(g)
         x = self.conv_1(x * x_mask)
         x = torch.relu(x)
         x = self.norm_1(x)

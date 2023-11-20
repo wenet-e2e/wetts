@@ -64,8 +64,13 @@ def main():
         speaker_dict[arr[0]] = int(arr[1])
     hps = task.get_hparams_from_file(args.cfg)
 
+    posterior_channels = hps.data.filter_length // 2 + 1
+    if ("use_mel_posterior_encoder" in hps.model.keys()
+            and hps.model.use_mel_posterior_encoder):
+        print("Using mel posterior encoder for VITS2")
+        posterior_channels = 80  # vits2
     net_g = SynthesizerTrn(len(phone_dict),
-                           hps.data.filter_length // 2 + 1,
+                           posterior_channels,
                            hps.train.segment_size // hps.data.hop_length,
                            n_speakers=len(speaker_dict),
                            **hps.model)
