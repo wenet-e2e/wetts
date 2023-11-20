@@ -448,11 +448,6 @@ def train_and_evaluate(rank, epoch, hps, nets, optims, schedulers, scaler,
                     for i, v in enumerate(losses_disc_g)
                 })
 
-                # if net_dur_disc:
-                #   scalar_dict.update({"loss/dur_disc_r" : f"{losses_dur_disc_r}"})
-                #   scalar_dict.update({"loss/dur_disc_g" : f"{losses_dur_disc_g}"})
-                #   scalar_dict.update({"loss/dur_gen" : f"{loss_dur_gen}"})
-
                 image_dict = {
                     "slice/mel_org":
                     task.plot_spectrogram_to_numpy(

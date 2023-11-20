@@ -133,12 +133,6 @@ class SynthesizerTrn(nn.Module):
             16,
             gin_channels=gin_channels,
         )
-        # self.flow = ResidualCouplingBlock(inter_channels,
-        #                                   hidden_channels,
-        #                                   5,
-        #                                   1,
-        #                                   4,
-        #                                   gin_channels=gin_channels)
         self.flow = ResidualCouplingTransformersBlock(
             inter_channels,
             hidden_channels,
