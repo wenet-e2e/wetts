@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 from torch.nn.utils.parametrizations import weight_norm
+from torch.nn.utils.parametrize import remove_parametrizations
 
 from utils import commons
 
@@ -32,7 +33,7 @@ class WN(nn.Module):
         self.drop = nn.Dropout(p_dropout)
 
         cond_layer = nn.Conv1d(gin_channels, 2 * hidden_channels * n_layers, 1)
-        self.cond_layer = weight_norm(cond_layer, name="weight")
+        self.cond_layer = weight_norm(cond_layer)
 
         for i in range(n_layers):
             dilation = dilation_rate**i
@@ -44,7 +45,7 @@ class WN(nn.Module):
                 dilation=dilation,
                 padding=padding,
             )
-            in_layer = weight_norm(in_layer, name="weight")
+            in_layer = weight_norm(in_layer)
             self.in_layers.append(in_layer)
 
             # last one is not necessary
@@ -54,7 +55,7 @@ class WN(nn.Module):
                 res_skip_channels = hidden_channels
 
             res_skip_layer = nn.Conv1d(hidden_channels, res_skip_channels, 1)
-            res_skip_layer = weight_norm(res_skip_layer, name="weight")
+            res_skip_layer = weight_norm(res_skip_layer)
             self.res_skip_layers.append(res_skip_layer)
 
     def forward(self, x, x_mask, g=None, **kwargs):
@@ -88,11 +89,11 @@ class WN(nn.Module):
 
     def remove_weight_norm(self):
         if self.gin_channels != 0:
-            nn.utils.remove_weight_norm(self.cond_layer)
+            remove_parametrizations(self.cond_layer, "weight")
         for l in self.in_layers:
-            nn.utils.remove_weight_norm(l)
+            remove_parametrizations(l, "weight")
         for l in self.res_skip_layers:
-            nn.utils.remove_weight_norm(l)
+            remove_parametrizations(l, "weight")
 
 
 class Flip(nn.Module):

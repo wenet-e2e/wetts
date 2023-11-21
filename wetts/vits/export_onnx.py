@@ -51,8 +51,17 @@ def main():
     phone_num = len(open(args.phone_table).readlines())
     num_speakers = len(open(args.speaker_table).readlines())
 
+    if ("use_mel_posterior_encoder" in hps.model.keys()
+            and hps.model.use_mel_posterior_encoder):
+        print("Using mel posterior encoder for VITS2")
+        posterior_channels = 80  # vits2
+        hps.data.use_mel_posterior_encoder = True
+    else:
+        print("Using lin posterior encoder for VITS1")
+        posterior_channels = hps.data.filter_length // 2 + 1
+
     net_g = SynthesizerTrn(phone_num,
-                           hps.data.filter_length // 2 + 1,
+                           posterior_channels,
                            hps.train.segment_size // hps.data.hop_length,
                            n_speakers=num_speakers,
                            **hps.model)

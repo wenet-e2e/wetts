@@ -82,6 +82,9 @@ class ResidualCouplingTransformersLayer2(nn.Module):  # vits2
             x = torch.cat([x0, x1], 1)
             return x
 
+    def remove_weight_norm(self):
+        self.enc.remove_weight_norm()
+
 
 class ResidualCouplingTransformersLayer(nn.Module):  # vits2
 
@@ -168,6 +171,9 @@ class ResidualCouplingTransformersLayer(nn.Module):  # vits2
             x1 = (x1 - m) * torch.exp(-logs) * x_mask
             x = torch.cat([x0, x1], 1)
             return x
+
+    def remove_weight_norm(self):
+        self.enc.remove_weight_norm()
 
 
 class FFTransformerCouplingLayer(nn.Module):  # vits2
