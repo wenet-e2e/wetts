@@ -1,0 +1,120 @@
+# Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: "encoder"
+backend: "onnxruntime"
+default_model_filename: "encoder.onnx"
+
+max_batch_size: 32
+
+input [
+  {
+    name: "input"
+    data_type: TYPE_INT64
+    dims: [-1]
+  },
+  {
+    name: "input_lengths"
+    data_type: TYPE_INT64
+    dims: [1]
+    reshape: { shape: [ ] }
+  },
+  {
+    name: "scales"
+    data_type: TYPE_FP32
+    dims: [3]
+  },
+  {
+    name: "sid"
+    data_type: TYPE_INT64
+    dims: [1]
+    reshape: { shape: [ ] }
+  }
+]
+output [
+  {
+    name: "z"
+    data_type: TYPE_FP32
+    dims: [192, -1] # (model.inter_channels, -1)
+  },
+  {
+    name: "g"
+    data_type: TYPE_FP32
+    dims: [256, 1] # (model.gin_channels, 1)
+  }
+]
+dynamic_batching {
+  }
+instance_group [
+    {
+      count: 1
+      kind: KIND_CPU
+    }
+]
+
+optimization { execution_accelerators {
+  cpu_execution_accelerator : [ {
+    name : "openvino"
+  } ]
+}}
+
+parameters [
+  {
+    key: "intra_op_thread_count"
+    value: { string_value: "1" }
+  },
+  {
+    key: "inter_op_thread_count"
+    value: { string_value: "0" }
+  }
+]
+
+model_warmup [{
+    name: "zero_value_warmup"
+    batch_size: 1
+    inputs[
+        {
+            key: "input"
+            value: {
+                data_type: TYPE_INT64
+                dims: [20]
+                zero_data: true
+            }
+        },
+        {
+            key: "input_lengths"
+            value: {
+                data_type: TYPE_INT64
+                dims: [1]
+                zero_data: true
+            }
+        },
+        {
+            key: "scales"
+            value: {
+                data_type: TYPE_FP32
+                dims: [3]
+                zero_data: true
+            }
+        },
+        {
+            key: "sid"
+            value: {
+                data_type: TYPE_INT64
+                dims: [1]
+                zero_data: true
+            }
+        }
+    ]
+}]

@@ -125,8 +125,8 @@ class DiscriminatorS(torch.nn.Module):
 
 
 class DiscriminatorR(nn.Module):
-    """ Multi-Resolution Discriminator module adapted from 
-    https://github.com/descriptinc/descript-audio-codec. 
+    """ Multi-Resolution Discriminator module adapted from
+    https://github.com/descriptinc/descript-audio-codec.
     """
 
     def __init__(

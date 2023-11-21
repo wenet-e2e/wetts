@@ -1,0 +1,86 @@
+# Copyright (c) 2022, NVIDIA CORPORATION.  All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: "decoder"
+backend: "onnxruntime"
+default_model_filename: "decoder.onnx"
+
+max_batch_size: 32
+
+input [
+  {
+    name: "z"
+    data_type: TYPE_FP32
+    dims: [192, -1] # (model.inter_channels, -1)
+  },
+  {
+    name: "g"
+    data_type: TYPE_FP32
+    dims: [256, 1] # (model.gin_channels, 1)
+  }
+]
+output [
+  {
+    name: "output"
+    data_type: TYPE_FP32
+    dims: [-1, -1]
+  }
+]
+dynamic_batching {
+  }
+instance_group [
+    {
+      count: 1
+      kind: KIND_CPU
+    }
+]
+optimization { execution_accelerators {
+  cpu_execution_accelerator : [ {
+    name : "openvino"
+  } ]
+}}
+
+parameters [
+  {
+    key: "intra_op_thread_count"
+    value: { string_value: "0" }
+  },
+  {
+    key: "inter_op_thread_count"
+    value: { string_value: "0" }
+  }
+]
+
+model_warmup [{
+    name: "zero_value_warmup"
+    batch_size: 1
+    inputs[
+        {
+            key: "z"
+            value: {
+                data_type: TYPE_FP32
+                dims: [192, 100]
+                zero_data: true
+            }
+        },
+        {
+            key: "g"
+            value: {
+                data_type: TYPE_FP32
+                dims: [256, 1]
+                zero_data: true
+            }
+        }
+    ]
+}]
