@@ -60,13 +60,19 @@ class Frontend(object):
         )["input_ids"]
         ort_inputs = {"input": tokens}
         ort_outs = self.ppm_sess.run(None, ort_inputs)
-        polyphone_pred = ort_outs[0].argmax(-1)[0][1:-1]
         prosody_pred = ort_outs[1].argmax(-1)[0][1:-1]
         pinyin = []
-        for i, char in enumerate(x):
-            prons = self.hanzi2pinyin.get(char)
-            if len(prons) > 1:
-                pinyin.append(self.polyphone_dict[polyphone_pred[i]])
+        if len(prons) > 1:
+            polyphone_ids = []
+            # The predicted probability for each pronunciation of the polyphone.
+            preds = []
+            for pron in prons:
+                index = self.polyphone_phone_dict.index(pron)
+                polyphone_ids.append(index)
+                preds.append(ort_outs[0][0][i + 1][index])
+            preds = np.array(preds)
+            id = polyphone_ids[preds.argmax(-1)]
+            pinyin.append(self.polyphone_phone_dict[id])
             else:
                 pinyin.append(prons[0])
         return pinyin, prosody_pred
