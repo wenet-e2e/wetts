@@ -73,8 +73,8 @@ class Frontend(object):
             preds = np.array(preds)
             id = polyphone_ids[preds.argmax(-1)]
             pinyin.append(self.polyphone_phone_dict[id])
-            else:
-                pinyin.append(prons[0])
+        else:
+            pinyin.append(prons[0])
         return pinyin, prosody_pred
 
 
