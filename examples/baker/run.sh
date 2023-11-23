@@ -17,6 +17,7 @@ config=configs/v3.json
 raw_data_dir=/mnt/mnt-data-1/binbin.zhang/data/BZNSYP
 data=data
 test_audio=test_audio
+ckpt_step=200000
 
 . tools/parse_options.sh || exit 1;
 
@@ -64,7 +65,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
   python vits/inference.py --cfg $config \
     --speaker_table $data/speaker.txt \
     --phone_table $data/phones.txt \
-    --checkpoint $dir/G_90000.pth \
+    --checkpoint $dir/G_$ckpt_step.pth \
     --test_file $data/test.txt \
     --outdir $test_audio
 fi
@@ -75,13 +76,31 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   python vits/export_onnx.py --cfg $config \
     --speaker_table $data/speaker.txt \
     --phone_table $data/phones.txt \
-    --checkpoint $dir/G_90000.pth \
-    --onnx_model $dir/G_90000.onnx
+    --checkpoint $dir/G_$ckpt_step.pth \
+    --onnx_model $dir/G_$ckpt_step.onnx
 
   python vits/inference_onnx.py --cfg $config \
     --speaker_table $data/speaker.txt \
     --phone_table $data/phones.txt \
-    --onnx_model $dir/G_90000.onnx \
+    --onnx_model $dir/G_$ckpt_step.onnx \
+    --test_file $data/test.txt \
+    --outdir $test_audio
+fi
+
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+  mkdir -p $test_audio
+  python vits/export_onnx.py --cfg $config \
+    --streaming \
+    --speaker_table $data/speaker.txt \
+    --phone_table $data/phones.txt \
+    --checkpoint $dir/G_$ckpt_step.pth \
+    --onnx_model $dir/G_$ckpt_step.onnx
+
+  python vits/inference_onnx.py --cfg $config \
+    --streaming \
+    --speaker_table $data/speaker.txt \
+    --phone_table $data/phones.txt \
+    --onnx_model $dir/G_$ckpt_step.onnx \
     --test_file $data/test.txt \
     --outdir $test_audio
 fi

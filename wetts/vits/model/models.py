@@ -282,6 +282,71 @@ class SynthesizerTrn(nn.Module):
               ))
         return o, attn, y_mask, (z, z_p, m_p, logs_p)
 
+    def infer_encoder(
+        self,
+        x,
+        x_lengths,
+        sid=None,
+        noise_scale=1,
+        length_scale=1,
+        noise_scale_w=1.0,
+    ):
+        if self.n_speakers > 0:
+            g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
+        else:
+            g = None
+        t1 = time.time()
+        x, m_p, logs_p, x_mask = self.enc_p(x, x_lengths, g=g)
+        t2 = time.time()
+        if self.use_sdp:
+            logw = self.dp(x,
+                           x_mask,
+                           g=g,
+                           reverse=True,
+                           noise_scale=noise_scale_w)
+        else:
+            logw = self.dp(x, x_mask, g=g)
+        t3 = time.time()
+        w = torch.exp(logw) * x_mask * length_scale
+        w_ceil = torch.ceil(w)
+        y_lengths = torch.clamp_min(torch.sum(w_ceil, [1, 2]), 1).long()
+        y_mask = torch.unsqueeze(commons.sequence_mask(y_lengths, None),
+                                 1).to(x_mask.dtype)
+        attn_mask = torch.unsqueeze(x_mask, 2) * torch.unsqueeze(y_mask, -1)
+        attn = commons.generate_path(w_ceil, attn_mask)
+
+        m_p = torch.matmul(attn.squeeze(1), m_p.transpose(1, 2)).transpose(
+            1, 2)  # [b, t', t], [b, t, d] -> [b, d, t']
+        logs_p = torch.matmul(attn.squeeze(1), logs_p.transpose(
+            1, 2)).transpose(1, 2)  # [b, t', t], [b, t, d] -> [b, d, t']
+
+        z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
+        t4 = time.time()
+        z = self.flow(z_p, y_mask, g=g, reverse=True)
+        t5 = time.time()
+        print("TextEncoder: {}s DurationPredictor: {}s Flow: {}s ".
+              format(
+                  round(t2 - t1, 3),
+                  round(t3 - t2, 3),
+                  round(t5 - t4, 3),
+              ))
+        z = z * y_mask
+        return attn, y_mask, (z, z_p, m_p, logs_p), g
+
+    def infer_decoder(
+        self,
+        z,
+        g,
+    ):
+        t5 = time.time()
+        o = self.dec(z, g=g)
+        t6 = time.time()
+        print("Decoder: {}s".
+              format(
+                  round(t6 - t5, 3),
+              ))
+        return o
+
     def export_forward(self, x, x_lengths, scales, sid):
         # shape of scales: Bx3, make triton happy
         audio, *_ = self.infer(
@@ -291,6 +356,26 @@ class SynthesizerTrn(nn.Module):
             noise_scale=scales[0][0],
             length_scale=scales[0][1],
             noise_scale_w=scales[0][2],
+        )
+
+        return audio
+
+    def export_encoder_forward(self, x, x_lengths, scales, sid):
+        # shape of scales: Bx3, make triton happy
+        attn, y_mask, (z, z_p, m_p, logs_p), g = self.infer_encoder(
+            x,
+            x_lengths,
+            sid,
+            noise_scale=scales[0][0],
+            length_scale=scales[0][1],
+            noise_scale_w=scales[0][2],
+        )
+        return z, g
+
+    def export_decoder_forward(self, z, g):
+        audio = self.infer_decoder(
+            z,
+            g,
         )
         return audio
 

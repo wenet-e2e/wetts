@@ -14,6 +14,7 @@
 
 import argparse
 import os
+from pathlib import Path
 
 import torch
 
@@ -31,6 +32,11 @@ def get_args():
                         help="input phone dict")
     parser.add_argument("--speaker_table", default=None, help="speaker table")
     parser.add_argument(
+        "--streaming",
+        action="store_true",
+        help="export streaming model"
+    )
+    parser.add_argument(
         "--providers",
         required=False,
         default="CPUExecutionProvider",
@@ -39,6 +45,10 @@ def get_args():
     )
     args = parser.parse_args()
     return args
+
+def add_prefix(filepath, prefix):
+    filepath = Path(filepath)
+    return str(filepath.parent / (prefix + filepath.name))
 
 
 def main():
@@ -56,6 +66,10 @@ def main():
             and hps.model.use_mel_posterior_encoder):
         print("Using mel posterior encoder for VITS2")
         posterior_channels = 80  # vits2
+        hps.data.use_mel_posterior_encoder = True
+    else:
+        print("Using lin posterior encoder for VITS1")
+
     net_g = SynthesizerTrn(phone_num,
                            posterior_channels,
                            hps.train.segment_size // hps.data.hop_length,
@@ -74,37 +88,89 @@ def main():
     # make triton dynamic shape happy
     scales = scales.unsqueeze(0)
     sid = torch.IntTensor([0]).long()
+    z = torch.randn(1, hps.model.inter_channels, 105)
+    g = torch.randn(1, hps.model.gin_channels, 1)
 
-    dummy_input = (seq, seq_len, scales, sid)
-    torch.onnx.export(
-        model=net_g,
-        args=dummy_input,
-        f=args.onnx_model,
-        input_names=["input", "input_lengths", "scales", "sid"],
-        output_names=["output"],
-        dynamic_axes={
-            "input": {
-                0: "batch",
-                1: "phonemes"
+    if args.streaming:
+        net_g.forward = net_g.export_encoder_forward
+        dummy_input = (seq, seq_len, scales, sid)
+        torch.onnx.export(
+            model=net_g,
+            args=dummy_input,
+            f=add_prefix(args.onnx_model, 'encoder_'),
+            input_names=["input", "input_lengths", "scales", "sid"],
+            output_names=["z", "g"],
+            dynamic_axes={
+                "input": {
+                    0: "batch",
+                    1: "phonemes"
+                },
+                "input_lengths": {
+                    0: "batch"
+                },
+                "scales": {
+                    0: "batch"
+                },
+                "sid": {
+                    0: "batch"
+                },
+                "z": {0: "batch", 2: "L"},
+                "g": {0: "batch"},
             },
-            "input_lengths": {
-                0: "batch"
+            opset_version=13,
+            verbose=False,
+        )
+        net_g.forward = net_g.export_decoder_forward
+        dummy_input = (z, g)
+        torch.onnx.export(
+            model=net_g,
+            args=dummy_input,
+            f=add_prefix(args.onnx_model, 'decoder_'),
+            input_names=["z", "g"],
+            output_names=["output"],
+            dynamic_axes={
+                "z": {0: "batch", 2: "L"},
+                "g": {0: "batch"},
+                "output": {
+                    0: "batch",
+                    1: "audio",
+                    2: "audio_length"
+                },
             },
-            "scales": {
-                0: "batch"
+            opset_version=13,
+            verbose=False,
+        )
+    else:
+        dummy_input = (seq, seq_len, scales, sid)
+        torch.onnx.export(
+            model=net_g,
+            args=dummy_input,
+            f=args.onnx_model,
+            input_names=["input", "input_lengths", "scales", "sid"],
+            output_names=["output"],
+            dynamic_axes={
+                "input": {
+                    0: "batch",
+                    1: "phonemes"
+                },
+                "input_lengths": {
+                    0: "batch"
+                },
+                "scales": {
+                    0: "batch"
+                },
+                "sid": {
+                    0: "batch"
+                },
+                "output": {
+                    0: "batch",
+                    1: "audio",
+                    2: "audio_length"
+                },
             },
-            "sid": {
-                0: "batch"
-            },
-            "output": {
-                0: "batch",
-                1: "audio",
-                2: "audio_length"
-            },
-        },
-        opset_version=13,
-        verbose=False,
-    )
+            opset_version=13,
+            verbose=False,
+        )
 
 
 if __name__ == "__main__":

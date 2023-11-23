@@ -15,6 +15,7 @@ from data_utils import (
 )
 from model.discriminators import (AVAILABLE_DURATION_DISCRIMINATOR_TYPES,
                                   MultiPeriodDiscriminator,
+                                  MultiPeriodMultiResolutionDiscriminator,
                                   DurationDiscriminatorV1,
                                   DurationDiscriminatorV2)
 from model.flows import AVAILABLE_FLOW_TYPES
@@ -164,7 +165,14 @@ def main():
                            mas_noise_scale_initial=mas_noise_scale_initial,
                            noise_scale_delta=noise_scale_delta,
                            **hps.model).cuda(rank)
-    net_d = MultiPeriodDiscriminator(hps.model.use_spectral_norm).cuda(rank)
+    if ("use_mrd_disc" in hps.model.keys()
+            and hps.model.use_mrd_disc):
+        print("Using MultiPeriodMultiResolutionDiscriminator")
+        net_d = MultiPeriodMultiResolutionDiscriminator(
+            hps.model.use_spectral_norm).cuda(rank)
+    else:
+        print("Using MPD")
+        net_d = MultiPeriodDiscriminator(hps.model.use_spectral_norm).cuda(rank)
     optim_g = torch.optim.AdamW(
         net_g.parameters(),
         hps.train.learning_rate,

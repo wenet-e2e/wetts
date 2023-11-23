@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import argparse
+from pathlib import Path
 
 import numpy as np
 import onnxruntime as ort
@@ -26,6 +27,10 @@ def to_numpy(tensor):
     return (tensor.detach().cpu().numpy()
             if tensor.requires_grad else tensor.detach().numpy())
 
+def add_prefix(filepath, prefix):
+    filepath = Path(filepath)
+    return str(filepath.parent / (prefix + filepath.name))
+
 
 def get_args():
     parser = argparse.ArgumentParser(description="inference")
@@ -36,6 +41,11 @@ def get_args():
                         required=True,
                         help="input phone dict")
     parser.add_argument("--speaker_table", default=True, help="speaker table")
+    parser.add_argument(
+        "--streaming",
+        action="store_true",
+        help="export streaming model"
+    )
     parser.add_argument("--test_file", required=True, help="test file")
     parser.add_argument(
         "--providers",
@@ -61,12 +71,31 @@ def main():
         assert len(arr) == 2
         speaker_dict[arr[0]] = int(arr[1])
     hps = task.get_hparams_from_file(args.cfg)
-
-    ort_sess = ort.InferenceSession(args.onnx_model,
-                                    providers=[args.providers])
     scales = torch.FloatTensor([0.667, 1.0, 0.8])
     # make triton dynamic shape happy
     scales = scales.unsqueeze(0)
+
+    if args.streaming:
+        encoder_ort_sess = ort.InferenceSession(add_prefix(args.onnx_model, 'encoder_'),
+                                                providers=[args.providers])
+        decoder_ort_sess = ort.InferenceSession(add_prefix(args.onnx_model, 'decoder_'),
+                                                providers=[args.providers])
+
+        def tts(ort_inputs):
+            z, g = encoder_ort_sess.run(None, ort_inputs)
+            decoder_inputs = {
+                "z": z,
+                "g": g,
+            }
+            return np.squeeze(decoder_ort_sess.run(None, decoder_inputs))
+
+    else:
+        ort_sess = ort.InferenceSession(args.onnx_model,
+                                        providers=[args.providers])
+
+        def tts(ort_inputs):
+            return np.squeeze(ort_sess.run(None, ort_inputs))
+
 
     for line in open(args.test_file):
         audio_path, speaker, text = line.strip().split("|")
@@ -82,7 +111,7 @@ def main():
             "scales": to_numpy(scales),
             "sid": to_numpy(sid),
         }
-        audio = np.squeeze(ort_sess.run(None, ort_inputs))
+        audio = tts(ort_inputs)
         audio *= 32767.0 / max(0.01, np.max(np.abs(audio))) * 0.6
         audio = np.clip(audio, -32767.0, 32767.0)
         wavfile.write(

@@ -1,0 +1,7 @@
+lexicon.txt
+base.json
+phones.txt
+*.onnx
+python3.10/
+python3.10.tar.gz
+test_audios/
