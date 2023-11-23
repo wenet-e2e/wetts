@@ -53,16 +53,16 @@ def main():
 
     posterior_channels = hps.data.filter_length // 2 + 1
     if ("use_mel_posterior_encoder" in hps.model.keys()
-                and hps.model.use_mel_posterior_encoder):
-            print("Using mel posterior encoder for VITS2")
-            posterior_channels = 80  # vits2
+            and hps.model.use_mel_posterior_encoder):
+        print("Using mel posterior encoder for VITS2")
+        posterior_channels = 80  # vits2
     net_g = SynthesizerTrn(phone_num,
                            posterior_channels,
                            hps.train.segment_size // hps.data.hop_length,
                            n_speakers=num_speakers,
                            **hps.model)
     task.load_checkpoint(args.checkpoint, net_g, None)
-    if hasattr(net_g.flow,'remove_weight_norm'):
+    if hasattr(net_g.flow, 'remove_weight_norm'):
         net_g.flow.remove_weight_norm()
     net_g.dec.remove_weight_norm()
     net_g.forward = net_g.export_forward
