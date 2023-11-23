@@ -61,6 +61,7 @@ def main():
     phone_num = len(open(args.phone_table).readlines())
     num_speakers = len(open(args.speaker_table).readlines())
 
+    posterior_channels = hps.data.filter_length // 2 + 1
     if ("use_mel_posterior_encoder" in hps.model.keys()
             and hps.model.use_mel_posterior_encoder):
         print("Using mel posterior encoder for VITS2")
@@ -68,7 +69,6 @@ def main():
         hps.data.use_mel_posterior_encoder = True
     else:
         print("Using lin posterior encoder for VITS1")
-        posterior_channels = hps.data.filter_length // 2 + 1
 
     net_g = SynthesizerTrn(phone_num,
                            posterior_channels,
@@ -76,7 +76,8 @@ def main():
                            n_speakers=num_speakers,
                            **hps.model)
     task.load_checkpoint(args.checkpoint, net_g, None)
-    net_g.flow.remove_weight_norm()
+    if hasattr(net_g.flow, 'remove_weight_norm'):
+        net_g.flow.remove_weight_norm()
     net_g.dec.remove_weight_norm()
     net_g.forward = net_g.export_forward
     net_g.eval()
