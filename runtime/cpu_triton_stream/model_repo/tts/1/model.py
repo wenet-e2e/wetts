@@ -113,19 +113,20 @@ class TritonPythonModel:
         phoneme_seq = []
         for i, pinyin in enumerate(pinyin_seq):
             # 12345 represents five tones
-            if pinyin[-1] in "12345":
-                assert pinyin in self.pinyin_lexicon
+            if pinyin == 'n2':
+                pinyin = 'en2'
+
+            if pinyin[-1] in "12345" and pinyin in self.pinyin_lexicon:
                 phoneme_seq += self.pinyin_lexicon[pinyin]
+                phoneme_seq += ['#0']
+            elif pinyin in ',':
+                phoneme_seq += ['#3']
+            elif pinyin in '.!?':
+                phoneme_seq += ['#4']
             else:
-                # Pinyins would end up with a number in 1-5,
-                # which represents tones of the pinyin.
-                # For symbols which are not pinyin,
-                # e.g. English letters, Chinese puncts, we directly use them as inputs.
-                phoneme_seq.append(pinyin)
-            # add prosody boundary like baker example
-            if i != len(pinyin_seq) - 1:
-                phoneme_seq.append("#0")
-        phoneme_seq = ["sil"] + phoneme_seq + ["#4", "sil"]
+                print(f"Not valid pinyin {pinyin}", flush=True)
+        phoneme_seq = ["sil"] + phoneme_seq + ["sil"]
+        print(f"{text=}\n{phoneme_seq=}", flush=True)
         seq = []
         for symbol in phoneme_seq:
             if symbol in self.token_dict:

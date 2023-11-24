@@ -3,8 +3,7 @@
 ## Quick Start
 Run with a pre-built demo
 - The VITS model in the Docker image is trained on the Baker dataset with configs/vits2_vocos_v1.json.
-- It only trains for 200,000 steps just for demonstration purposes, resulting in poor quality.
-- Additionally, it only supports Chinese text.
+- It only trains for 200,000 steps just for demonstration purposes.
 
 ```
 # server
@@ -16,16 +15,19 @@ cd client/ && python stream_tts_client.py --text text.scp --outdir test_audios
 ```
 
 You will get the following results:
-Ps: Different CPUs may have varying performances. The following results are just for reference (CPU 1 core).
+- Different CPUs may have varying performances. The following results are just for reference.
+- CPU(1 core): Intel(R) Xeon(R) Platinum 8255C CPU @ 2.50GHz
+
 ```
 cd client/ && python3 stream_client.py --text text.scp --outdir test_audios
-wav1|今天天气不错我们一起去爬山
-chunk_id=0, chunk_latency=0.319, chunk_duration=0.75s
-chunk_id=1, chunk_latency=0.400, chunk_duration=0.75s
-chunk_id=2, chunk_latency=0.491, chunk_duration=0.75s
-chunk_id=3, chunk_latency=0.405, chunk_duration=0.75s
-chunk_id=4, chunk_latency=0.300, chunk_duration=0.05s
-dur=3.04, rtf=0.63, first_latency=0.319
+
+2|今天天气不好我们家里躺平吧
+chunk_id=0, chunk_latency=0.21, chunk_duration=0.75s
+chunk_id=1, chunk_latency=0.08, chunk_duration=0.75s
+chunk_id=2, chunk_latency=0.04, chunk_duration=0.75s
+chunk_id=3, chunk_latency=0.08, chunk_duration=0.75s
+chunk_id=4, chunk_latency=0.08, chunk_duration=0.22s
+dur=3.21, rtf=0.15, first_latency=0.211
 ```
 
 ## Usage / Commands
@@ -46,8 +48,6 @@ bash run.sh --stage 0 --stop_stage 1
 # export streaming model
 bash run.sh --stage 4 --stop_stage 4
 ```
-
-Only tested on wetts/examples/baker/configs/vits2_vocos_v1.json for now.
 
 ## PS
 - I enable response_cache in model_repo/tts, if you want to disable it, you can comment out `response_cache` in model_repo/tts/config.pbtxt

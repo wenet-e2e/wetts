@@ -64,58 +64,50 @@ if __name__ == "__main__":
 
     FLAGS = parser.parse_args()
 
-    total_lines = []
+    textlines = []
 
     with open(FLAGS.text, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip("\n")
-            total_lines.append(line)
-
-    def single_job(client_textlines):
-        predictions = []
-        with grpcclient.InferenceServerClient(
-            url=FLAGS.url, verbose=FLAGS.verbose
-        ) as triton_client:
-            idx, textlines = client_textlines
-            for cur_id, li in enumerate(textlines):
-                start = time.time()
-
-                audio_name, audio_text = li.strip().split("|", 1)
-                audio_name = audio_name.strip()
-                input0_data = np.array([[audio_text]], dtype=object)
-                inputs = [
-                    grpcclient.InferInput(
-                        "text", input0_data.shape, np_to_triton_dtype(input0_data.dtype)
-                    )
-                ]
-
-                inputs[0].set_data_from_numpy(input0_data)
-                outputs = [grpcclient.InferRequestedOutput("wav")]
-                response = triton_client.infer(
-                    FLAGS.model_name,
-                    inputs,
-                    outputs=outputs,
-                    request_id=str(idx + cur_id),
-                )
-                result = response.as_numpy("wav")
-                result = np.squeeze(result)
-
-                end = time.time()
-                audio_duration = result.shape[0] / FLAGS.sampling_rate
-                RTF = (end - start) / audio_duration
-                print(li)
-                print(f"{RTF=:.2f}, {audio_duration=:.2f}")
-                predictions.append((audio_name, result))
-        return predictions
-
-    predictions = single_job([0, total_lines])
+            textlines.append(line)
 
     os.makedirs(FLAGS.outdir, exist_ok=True)
 
-    for audio_name, result in predictions:
-        assert len(result.shape) == 1, result.shape
-        wavfile.write(
-            FLAGS.outdir + "/" + audio_name + ".wav",
-            FLAGS.sampling_rate,
-            result.astype(np.int16),
-        )
+    with grpcclient.InferenceServerClient(
+        url=FLAGS.url, verbose=FLAGS.verbose
+    ) as triton_client:
+        for cur_id, li in enumerate(textlines):
+            print(li)
+            start = time.time()
+
+            audio_name, audio_text = li.strip().split("|", 1)
+            audio_name = audio_name.strip()
+            input0_data = np.array([[audio_text]], dtype=object)
+            inputs = [
+                grpcclient.InferInput(
+                    "text", input0_data.shape, np_to_triton_dtype(input0_data.dtype)
+                )
+            ]
+
+            inputs[0].set_data_from_numpy(input0_data)
+            outputs = [grpcclient.InferRequestedOutput("wav")]
+            response = triton_client.infer(
+                FLAGS.model_name,
+                inputs,
+                outputs=outputs,
+                request_id=str(cur_id),
+            )
+            result = response.as_numpy("wav")
+            result = np.squeeze(result)
+
+            end = time.time()
+            audio_duration = result.shape[0] / FLAGS.sampling_rate
+            RTF = (end - start) / audio_duration
+            print(f"{RTF=:.2f}, {audio_duration=:.2f}")
+
+            assert len(result.shape) == 1, result.shape
+            wavfile.write(
+                FLAGS.outdir + "/" + audio_name + ".wav",
+                FLAGS.sampling_rate,
+                result.astype(np.int16),
+            )

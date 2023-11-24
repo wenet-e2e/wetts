@@ -13,9 +13,6 @@ ckpt_step=200000
 build_docker:
 	docker build . -f Dockerfile -t tts_server:latest
 
-build_public:
-	docker build . -f Dockerfile -t jackiexiao/baker_tts_server:latest
-
 .PHONY: cp_asset
 # Copy the asset to the model repo
 cp_asset:
@@ -35,14 +32,18 @@ start_server:
 		-v ${model_dir}:/models \
 		--name tts_triton_server \
 		tts_server:latest \
-		bash -c "tritonserver --model-repository=/models --cache-config local,size=1048576"
+		bash -c "tritonserver --model-repository=/models --cache-config local,size=104857600"
 
 # streaming client
 .PHONY: stream_client
 stream_client:
-	cd client/ && python3 stream_client.py --text text.scp --outdir test_audios
+	cd client/ && python stream_client.py --text text.scp --outdir test_audios
 
 # non streaming client
 .PHONY: client
 client:
-	cd client/ && python3 client.py --text text.scp --outdir test_audios
+	cd client/ && python client.py --text text.scp --outdir test_audios
+
+.PHONY: web_ui
+web_ui:
+	cd client/ && streamlit run web_ui.py

@@ -10,4 +10,5 @@ RUN pip3 config set global.index-url https://mirrors.cloud.tencent.com/pypi/simp
 # COPY ./model_repo /models
 
 ENV PYTHONIOENCODING=UTF-8
-CMD tritonserver --model-repository=/models --cache-config local,size=1048576
+# 100MB cache
+CMD tritonserver --model-repository=/models --cache-config local,size=104857600

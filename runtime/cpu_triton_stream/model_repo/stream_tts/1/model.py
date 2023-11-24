@@ -1,5 +1,4 @@
 import json
-import math
 from pathlib import Path
 from typing import List
 
@@ -74,12 +73,11 @@ def get_chunks(mel, block_size, pad_size):
     mel_len = mel.shape[-1]
 
     chunks = []
-    n = math.ceil(mel_len / block_size)
-    for i in range(n):
-        start = max(0, i * block_size - pad_size)
-        end = min((i + 1) * block_size + pad_size, mel_len)
+    for i in range(0, mel_len, block_size):
+        start = max(0, i - pad_size)
+        end = min(i + block_size + pad_size, mel_len)
         chunks.append(mel[:, :, start:end])
-    pad_end = 0
+    pad_end = None
     # Padding the last chunk if its size is less than MIN_CHUNK
     if chunks[-1].shape[-1] < MIN_CHUNK:
         pad_end = MIN_CHUNK - chunks[-1].shape[-1]
