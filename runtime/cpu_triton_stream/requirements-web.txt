@@ -1,0 +1,6 @@
+tritonclient[all]
+scipy
+soundfile
+pydub
+stqdm
+streamlit

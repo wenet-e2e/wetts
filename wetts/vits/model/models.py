@@ -333,20 +333,6 @@ class SynthesizerTrn(nn.Module):
         z = z * y_mask
         return attn, y_mask, (z, z_p, m_p, logs_p), g
 
-    def infer_decoder(
-        self,
-        z,
-        g,
-    ):
-        t5 = time.time()
-        o = self.dec(z, g=g)
-        t6 = time.time()
-        print("Decoder: {}s".
-              format(
-                  round(t6 - t5, 3),
-              ))
-        return o
-
     def export_forward(self, x, x_lengths, scales, sid):
         # shape of scales: Bx3, make triton happy
         audio, *_ = self.infer(
@@ -373,11 +359,7 @@ class SynthesizerTrn(nn.Module):
         return z, g
 
     def export_decoder_forward(self, z, g):
-        audio = self.infer_decoder(
-            z,
-            g,
-        )
-        return audio
+        return self.dec(z, g=g)
 
     # currently vits-2 is not capable of voice conversion
     # comment - choihkk
