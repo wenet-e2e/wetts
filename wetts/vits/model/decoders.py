@@ -266,7 +266,8 @@ class VocosGenerator(nn.Module):
                                  channels,
                                  kernel_size=1,
                                  padding=0)
-        self.cond = Conv1d(gin_channels, channels, 1)
+        if gin_channels != 0:
+            self.cond = Conv1d(gin_channels, channels, 1)
         self.norm_pre = LayerNorm(channels)
         scale = 1 / num_layers
         self.layers = nn.ModuleList([
@@ -286,7 +287,9 @@ class VocosGenerator(nn.Module):
 
     def forward(self, x, g=None):
         x = self.pad(x)
-        x = self.in_conv(x) + self.cond(g)
+        x = self.in_conv(x)
+        if g is not None:
+            x = x + self.cond(g)
         x = self.norm_pre(x)
         for layer in self.layers:
             x = layer(x)
