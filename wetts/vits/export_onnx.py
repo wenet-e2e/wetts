@@ -65,7 +65,7 @@ def main():
     if ("use_mel_posterior_encoder" in hps.model.keys()
             and hps.model.use_mel_posterior_encoder):
         print("Using mel posterior encoder for VITS2")
-        posterior_channels = 80  # vits2
+        posterior_channels = hps.data.n_mel_channels  # vits2
         hps.data.use_mel_posterior_encoder = True
     else:
         print("Using lin posterior encoder for VITS1")

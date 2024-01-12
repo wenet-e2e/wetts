@@ -19,7 +19,6 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
     def __init__(self, audiopaths_sid_text, hparams):
         self.audiopaths_sid_text = load_filepaths_and_text(audiopaths_sid_text)
         self.max_wav_value = hparams.max_wav_value
-        self.sampling_rate = hparams.sampling_rate
         self.filter_length = hparams.filter_length
         self.hop_length = hparams.hop_length
         self.win_length = hparams.win_length
@@ -125,8 +124,6 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
                 self.sampling_rate,
                 self.hop_length,
                 self.win_length,
-                self.mel_fmin,
-                self.mel_fmax,
                 center=False,
             )
         spec = torch.squeeze(spec, 0)
