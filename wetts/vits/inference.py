@@ -68,7 +68,7 @@ def main():
     if ("use_mel_posterior_encoder" in hps.model.keys()
             and hps.model.use_mel_posterior_encoder):
         print("Using mel posterior encoder for VITS2")
-        posterior_channels = 80  # vits2
+        posterior_channels = hps.data.n_mel_channels  # vits2
     net_g = SynthesizerTrn(len(phone_dict),
                            posterior_channels,
                            hps.train.segment_size // hps.data.hop_length,
