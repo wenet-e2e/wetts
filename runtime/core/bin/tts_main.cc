@@ -73,7 +73,8 @@ int main(int argc, char* argv[]) {
       FLAGS_g2p_prosody_model, FLAGS_vocab, FLAGS_char2pinyin, FLAGS_pinyin2id,
       FLAGS_pinyin2phones, g2p_en);
   auto model = std::make_shared<wetts::TtsModel>(
-      FLAGS_vits_model, FLAGS_speaker2id, FLAGS_phone2id, tn, g2p_prosody);
+      FLAGS_vits_model, FLAGS_speaker2id, FLAGS_phone2id, FLAGS_sampling_rate,
+      tn, g2p_prosody);
 
   std::vector<float> audio;
   int sid = model->GetSid(FLAGS_sname);

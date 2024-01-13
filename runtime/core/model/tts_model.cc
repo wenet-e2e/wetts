@@ -26,12 +26,13 @@
 namespace wetts {
 
 TtsModel::TtsModel(const std::string& model_path, const std::string& speaker2id,
-                   const std::string& phone2id,
+                   const std::string& phone2id, const int sampling_rate,
                    std::shared_ptr<wetext::Processor> tn,
                    std::shared_ptr<G2pProsody> g2p_prosody)
     : OnnxModel(model_path),
       tn_(std::move(tn)),
       g2p_prosody_(std::move(g2p_prosody)) {
+  sampling_rate_ = sampling_rate;
   ReadTableFile(phone2id, &phone2id_);
   ReadTableFile(speaker2id, &speaker2id_);
 }
