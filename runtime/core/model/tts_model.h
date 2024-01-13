@@ -30,7 +30,9 @@ namespace wetts {
 class TtsModel : public OnnxModel {
  public:
   explicit TtsModel(const std::string& model_path,
-                    const std::string& speaker2id, const std::string& phone2id,
+                    const std::string& speaker2id,
+                    const std::string& phone2id,
+                    const int sampling_rate,
                     std::shared_ptr<wetext::Processor> processor,
                     std::shared_ptr<G2pProsody> g2p_prosody);
   void Forward(const std::vector<int64_t>& phonemes, const int sid,
@@ -38,6 +40,7 @@ class TtsModel : public OnnxModel {
   void Synthesis(const std::string& text, const int sid,
                  std::vector<float>* audio);
   int GetSid(const std::string& name);
+  int sampling_rate() const { return sampling_rate_; }
 
  private:
   int sampling_rate_;

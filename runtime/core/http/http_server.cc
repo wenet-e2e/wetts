@@ -25,29 +25,25 @@
 
 #include "frontend/wav.h"
 #include "utils/string.h"
+#include "utils/timer.h"
 
 namespace wetts {
 
 namespace urls = boost::urls;
 namespace uuids = boost::uuids;
 
-http::message_generator ConnectionHandler::handle_request(
-    const std::string& wav_path) {
-  // Attempt to open the file
+http::message_generator ConnectionHandler::HandleRequest(
+  char* wav_data, int data_size) {
   beast::error_code ec;
-  http::file_body::value_type body;
-  body.open(wav_path.c_str(), beast::file_mode::scan, ec);
-
-  // Cache the size since we need it after the move
-  auto const size = body.size();
-  // Respond to GET request
-  http::response<http::file_body> res{
-      std::piecewise_construct, std::make_tuple(std::move(body)),
-      std::make_tuple(http::status::ok, request_.version())};
+  http::response<http::buffer_body> res;
+  res.result(http::status::ok);
   res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
   res.set(http::field::content_type, "audio/wav");
-  res.content_length(size);
   res.keep_alive(request_.keep_alive());
+  res.body().data = wav_data;
+  res.body().size = data_size;
+  res.body().more = false;
+  res.prepare_payload();
   return res;
 }
 
@@ -80,16 +76,37 @@ void ConnectionHandler::operator()() {
     std::string name = (*params.find("name")).value;
     int sid = tts_model_->GetSid(name);
     // 2. Synthesis audio from text
-    std::vector<float> audio;
-    tts_model_->Synthesis(text, sid, &audio);
-    wetts::WavWriter wav_writer(audio.data(), audio.size(), 1, 22050, 16);
-    // 3. Write samples to file named uuid.wav
-    std::string wav_path =
-        uuids::to_string(uuids::random_generator()()) + ".wav";
-    wav_writer.Write(wav_path);
-
+    int sample_rate = tts_model_->sampling_rate();
+    int num_channels = 1;
+    int bits_per_sample = 16;
+    LOG(INFO) << "Sample rate: " << sample_rate;
+    LOG(INFO) << "Num of channels: " << num_channels;
+    LOG(INFO) << "Bit per sample: " << bits_per_sample;
+    int extract_time = 0;
+    wetts::Timer timer;
+    std::vector<float> pcm;
+    tts_model_->Synthesis(text, sid, &pcm);
+    int pcm_size = pcm.size();
+    extract_time = timer.Elapsed();
+    LOG(INFO) << "TTS pcm duration: "
+              << pcm_size * 1000 / num_channels / sample_rate << "ms";
+    LOG(INFO) << "Cost time: " << static_cast<float>(extract_time) << "ms";
+    // 3. Convert pcm to wav
+    std::vector<int16_t> audio(pcm_size);
+    for (int i = 0; i < pcm_size; ++i) {
+      audio[i] = static_cast<int16_t>(pcm[i]);
+    }
+    int audio_size = pcm_size * sizeof(int16_t);
+    int data_size = audio_size + 44;
+    WavHeader header(pcm_size, num_channels, sample_rate, bits_per_sample);
+    std::vector<char> wav_data;
+    wav_data.insert(wav_data.end(), reinterpret_cast<char*>(&header),
+                    reinterpret_cast<char*>(&header) + 44);
+    wav_data.insert(wav_data.end(), reinterpret_cast<char*>(audio.data()),
+                    reinterpret_cast<char*>(audio.data()) + audio_size);
     // Handle request
-    http::message_generator msg = handle_request(wav_path);
+    http::message_generator msg =
+        HandleRequest(wav_data.data(), data_size);
     // Determine if we should close the connection
     bool keep_alive = msg.keep_alive();
     // Send the response
