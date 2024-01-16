@@ -78,8 +78,8 @@ void init(JNIEnv* env, jobject, jstring jModelDir) {
       std::make_shared<wetts::G2pEn>(cmudict, g2p_en_model, g2p_en_sym);
   auto g2p_prosody = std::make_shared<wetts::G2pProsody>(
       g2p_prosody_model, vocab, char2pinyin, pinyin2id, pinyin2phones, g2p_en);
-  model = std::make_shared<wetts::TtsModel>(vits_model, speaker2id, phone2id, FLAGS_sampling_rate,
-                                            tn, g2p_prosody);
+  model = std::make_shared<wetts::TtsModel>(
+      vits_model, speaker2id, phone2id, FLAGS_sampling_rate, tn, g2p_prosody);
 }
 
 void run(JNIEnv* env, jobject, jstring jText, jstring jSpeaker) {
