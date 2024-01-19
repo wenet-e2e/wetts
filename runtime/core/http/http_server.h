@@ -38,7 +38,7 @@ class ConnectionHandler {
   ConnectionHandler(tcp::socket&& socket, std::shared_ptr<TtsModel> tts_model)
       : socket_(std::move(socket)), tts_model_(std::move(tts_model)) {}
   void operator()();
-  http::message_generator HandleRequest(char* wav_data, int data_size);
+  http::message_generator HandleRequest(const std::string& json_data);
 
  private:
   tcp::socket socket_;

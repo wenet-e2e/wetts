@@ -1,5 +1,5 @@
 // Copyright (c) 2022 Zhendong Peng (pzd17@tsinghua.org.cn)
-//
+//               2024 Shengqiang Li (shengqiang.li96@gmail.com)
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
@@ -17,11 +17,13 @@
 #include <vector>
 
 #include "boost/beast/core.hpp"
+#include "boost/beast/core/detail/base64.hpp"
 #include "boost/beast/version.hpp"
 #include "boost/url/src.hpp"
 #include "boost/uuid/uuid.hpp"
 #include "boost/uuid/uuid_generators.hpp"
 #include "boost/uuid/uuid_io.hpp"
+#include "json/json.h"
 
 #include "frontend/wav.h"
 #include "utils/string.h"
@@ -31,18 +33,17 @@ namespace wetts {
 
 namespace urls = boost::urls;
 namespace uuids = boost::uuids;
+namespace base64 = boost::beast::detail::base64;
 
 http::message_generator ConnectionHandler::HandleRequest(
-  char* wav_data, int data_size) {
+    const std::string& json_data) {
   beast::error_code ec;
-  http::response<http::buffer_body> res;
+  http::response<http::string_body> res;
   res.result(http::status::ok);
   res.set(http::field::server, BOOST_BEAST_VERSION_STRING);
-  res.set(http::field::content_type, "audio/wav");
+  res.set(http::field::content_type, "application/json");
   res.keep_alive(request_.keep_alive());
-  res.body().data = wav_data;
-  res.body().size = data_size;
-  res.body().more = false;
+  res.body() = json_data;
   res.prepare_payload();
   return res;
 }
@@ -104,9 +105,17 @@ void ConnectionHandler::operator()() {
                     reinterpret_cast<char*>(&header) + 44);
     wav_data.insert(wav_data.end(), reinterpret_cast<char*>(audio.data()),
                     reinterpret_cast<char*>(audio.data()) + audio_size);
+    // 4. Base64 encode
+    Json::Value response;
+    std::size_t encode_size = base64::encoded_size(data_size);
+    std::vector<char> base64_wav(encode_size);
+    std::size_t encoded_size =
+        base64::encode(base64_wav.data(), wav_data.data(), data_size);
+    std::string encoded_wav(base64_wav.begin(), base64_wav.end());
+    response["audio"] = encoded_wav;
+    std::string json_data = response.toStyledString();
     // Handle request
-    http::message_generator msg =
-        HandleRequest(wav_data.data(), data_size);
+    http::message_generator msg = HandleRequest(json_data);
     // Determine if we should close the connection
     bool keep_alive = msg.keep_alive();
     // Send the response
