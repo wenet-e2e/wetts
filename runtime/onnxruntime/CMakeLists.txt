@@ -28,6 +28,7 @@ add_subdirectory(frontend)
 
 if(BUILD_SERVER)
   include(boost)
+  include(jsoncpp)
   add_subdirectory(http)
 endif()
 
