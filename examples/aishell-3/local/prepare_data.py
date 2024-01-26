@@ -48,4 +48,4 @@ with open(train_set_label_file, encoding="utf8") as fin, open(
             else:
                 print("{} OOV {}".format(key, x))
                 sys.exit(-1)
-        fout.write("{}|{}|sil {} sil\n".format(wav_path, speaker, " ".join(phones)))
+        fout.write("{}|{}|sil {}\n".format(wav_path, speaker, " ".join(phones)))

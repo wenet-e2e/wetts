@@ -49,4 +49,4 @@ with open(sys.argv[2], "r", encoding="utf8") as fin:
                     phones.append(prosody[k])
             else:
                 phones.append("#0")
-        print("{}/{}.wav|baker|sil {} sil".format(sys.argv[3], key, " ".join(phones)))
+        print("{}/{}.wav|baker|sil {}\n".format(sys.argv[3], key, " ".join(phones)))

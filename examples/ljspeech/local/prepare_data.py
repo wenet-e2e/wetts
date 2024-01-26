@@ -38,7 +38,7 @@ def main():
         for row in csv.reader(fin, delimiter="|"):
             wav_path = os.path.join(args.data_dir, f"wavs/{row[0]}.wav")
             phones = english_cleaners(row[-1], args.use_prosody)
-            fout.write("{}|ljspeech|sil {} sil\n".format(wav_path, " ".join(phones)))
+            fout.write("{}|ljspeech|sil {}\n".format(wav_path, " ".join(phones)))
 
 
 if __name__ == "__main__":
