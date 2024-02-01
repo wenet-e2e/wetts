@@ -1,0 +1,3 @@
+git+https://github.com/wenet-e2e/wetts.git
+requests
+gradio
