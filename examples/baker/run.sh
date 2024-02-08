@@ -14,7 +14,7 @@ config=configs/v3.json
 
 # Please download data from https://www.data-baker.com/data/index/TNtts, and
 # set `raw_data_dir` to your data.
-raw_data_dir=/mnt/mnt-data-1/binbin.zhang/data/BZNSYP
+raw_data_dir=. # path to dataset directory
 data=data
 test_audio=test_audio
 ckpt_step=200000
@@ -56,7 +56,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
       --train_data $data/train.txt \
       --val_data $data/val.txt \
       --speaker_table $data/speaker.txt \
-      --phone_table $data/phones.txt
+      --phone_table $data/phones.txt \
+      --num_workers 8
 fi
 
 

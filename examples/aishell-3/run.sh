@@ -63,7 +63,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
       --train_data $data/train.txt \
       --val_data $data/val.txt \
       --speaker_table $data/speaker.txt \
-      --phone_table $data/phones.txt
+      --phone_table $data/phones.txt \
+      --num_workers 8
 fi
 
 

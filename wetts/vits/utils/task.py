@@ -181,6 +181,10 @@ def get_hparams(init=True):
                         type=str,
                         required=True,
                         help="phone table")
+    parser.add_argument('--num_workers',
+                        default=8,
+                        type=int,
+                        help='num of subprocess workers for reading')
     parser.add_argument(
         "--speaker_table",
         type=str,
@@ -218,6 +222,7 @@ def get_hparams(init=True):
 
     hparams = HParams(**config)
     hparams.model_dir = model_dir
+    hparams.num_workers = args.num_workers
     return hparams
 
 
