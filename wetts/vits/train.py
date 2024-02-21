@@ -203,6 +203,8 @@ def main():
     # latest work for others
     net_g = DDP(net_g, device_ids=[rank], find_unused_parameters=True)
     net_d = DDP(net_d, device_ids=[rank], find_unused_parameters=True)
+    if net_dur_disc:
+        net_dur_disc = DDP(net_dur_disc, device_ids=[rank], find_unused_parameters=True)
 
     try:
         _, _, _, epoch_str = task.load_checkpoint(
