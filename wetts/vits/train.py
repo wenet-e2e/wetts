@@ -35,7 +35,7 @@ def main():
     world_size = int(os.environ.get('WORLD_SIZE', 1))
     local_rank = int(os.environ.get('LOCAL_RANK', 0))
     rank = int(os.environ.get('RANK', 0))
-    torch.torch.cuda.set_device(local_rank)
+    torch.cuda.set_device(local_rank)
     dist.init_process_group("nccl")
     if rank == 0:
         logger = task.get_logger(hps.model_dir)
