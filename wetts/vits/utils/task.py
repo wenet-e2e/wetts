@@ -3,6 +3,7 @@ import glob
 import json
 import logging
 import os
+import re
 from pathlib import Path
 
 import torch
@@ -257,6 +258,11 @@ def get_logger(model_dir, filename="train.log"):
     h.setFormatter(formatter)
     logger.addHandler(h)
     return logger
+
+
+def get_steps(model_path):
+    matches = re.findall(r"\d+", model_path)
+    return matches[-1] if matches else None
 
 
 class HParams:
