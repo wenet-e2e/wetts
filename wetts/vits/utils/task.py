@@ -3,6 +3,7 @@ import glob
 import json
 import logging
 import os
+import huggingface_hub
 from pathlib import Path
 
 import torch
@@ -15,6 +16,16 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging
+
+
+def download_wavlm_model(wavlm_dir):
+    huggingface_hub.snapshot_download(
+        repo_id="microsoft/wavlm-base-plus",
+        local_dir=wavlm_dir,
+        local_dir_use_symlinks=False
+    )
+    logger.info("Download wavlm-base-plus model to {}".format(wavlm_dir))
+    return
 
 
 def load_checkpoint(checkpoint_path, model, optimizer=None):
