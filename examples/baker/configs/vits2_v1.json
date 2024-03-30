@@ -50,6 +50,12 @@
     "n_layers_q": 3,
     "use_sdp": true,
     "use_spectral_norm": false,
-    "gin_channels": 256
+    "gin_channels": 256,
+    "use_wd": true,
+    "slm_model": "exp/slm/wavlm-base-plus",
+    "slm_sr": 16000,
+    "slm_hidden": 768,
+    "slm_nlayers": 13,
+    "slm_initial_channel": 64
   }
 }
