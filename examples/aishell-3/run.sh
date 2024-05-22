@@ -39,7 +39,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     $data/lexicon.txt \
     $dataset_dir/data_aishell3 \
     $data/all.txt
-  
+
   # Compute spec length (optional, but recommended)
   python tools/compute_spec_length.py \
     $data/all.txt \

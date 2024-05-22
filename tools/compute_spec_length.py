@@ -14,17 +14,20 @@ def load_filepaths_and_text(filename, split="|"):
         filepaths_and_text = [line.strip().split(split) for line in f]
     return filepaths_and_text
 
+
 def process_item(item):
     audiopath = item[0]
     src_sampling_rate = sf.info(audiopath).samplerate
     text = item[2]
     text = text.strip().split()
     if min_text_len <= len(text) and len(text) <= max_text_len:
-        length = int(os.path.getsize(audiopath) * sampling_rate / src_sampling_rate) // (2 * hop_length)
+        length = int(os.path.getsize(audiopath) * sampling_rate /
+                     src_sampling_rate) // (2 * hop_length)
         item.append(length)
         return item
     else:
         return None
+
 
 def main(in_file, out_file):
     """
@@ -34,7 +37,12 @@ def main(in_file, out_file):
     audiopaths_sid_text = load_filepaths_and_text(in_file, split="|")
 
     with ThreadPoolExecutor(max_workers=32) as executor:
-        results = list(tqdm(executor.map(process_item, audiopaths_sid_text), total=len(audiopaths_sid_text)))
+        results = list(
+            tqdm(
+                executor.map(process_item, audiopaths_sid_text),
+                total=len(audiopaths_sid_text),
+            )
+        )
 
     # Filter out None results
     results = [result for result in results if result is not None]
