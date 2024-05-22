@@ -11,3 +11,4 @@ torchvision
 tqdm
 transformers
 huggingface_hub
+soundfile

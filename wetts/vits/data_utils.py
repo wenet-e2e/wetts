@@ -4,6 +4,8 @@ import random
 import torch
 import torchaudio
 import torch.utils.data
+from tqdm import tqdm
+import soundfile as sf
 
 from utils.mel_processing import spectrogram_torch, mel_spectrogram_torch
 from utils.task import load_filepaths_and_text
@@ -60,20 +62,26 @@ class TextAudioSpeakerLoader(torch.utils.data.Dataset):
         """
         Filter text & store spec lengths
         """
-        audiopaths_sid_text_new = []
-        lengths = []
-        for item in self.audiopaths_sid_text:
-            audiopath = item[0]
-            src_sampling_rate = torchaudio.info(audiopath).sample_rate
-            # filename|speaker|text
-            text = item[2]
-            if self.min_text_len <= len(text) and len(
-                    text) <= self.max_text_len:
-                audiopaths_sid_text_new.append(item)
-                lengths.append(
-                    int(
-                        os.path.getsize(audiopath) * self.sampling_rate /
-                        src_sampling_rate) // (2 * self.hop_length))
+        if len(self.audiopaths_sid_text[0]) > 3:
+            # spec length is provided
+            audiopaths_sid_text_new = [item[:3] for item in self.audiopaths_sid_text]
+            lengths = [int(item[3]) for item in self.audiopaths_sid_text]
+        else:
+            audiopaths_sid_text_new = []
+            lengths = []
+            for item in tqdm(self.audiopaths_sid_text, desc="Filtering data"):
+                audiopath = item[0]
+                src_sampling_rate = sf.info(audiopath).samplerate
+                # filename|speaker|text
+                text = item[2]
+                text = text.strip().split()
+                if self.min_text_len <= len(text) and len(
+                        text) <= self.max_text_len:
+                    audiopaths_sid_text_new.append(item)
+                    lengths.append(
+                        int(
+                            os.path.getsize(audiopath) * self.sampling_rate /
+                            src_sampling_rate) // (2 * self.hop_length))
         self.audiopaths_sid_text = audiopaths_sid_text_new
         self.lengths = lengths
 
