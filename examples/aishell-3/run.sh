@@ -39,6 +39,13 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     $data/lexicon.txt \
     $dataset_dir/data_aishell3 \
     $data/all.txt
+  
+  # Compute spec length (optional, but recommended)
+  python tools/compute_spec_length.py \
+    $data/all.txt \
+    $config \
+    $data/all_spec_length.txt
+  mv $data/all_spec_length.txt $data/all.txt
 
   cat $data/all.txt | awk -F '|' '{print $2}' | \
     sort | uniq | awk '{print $0, NR-1}' > $data/speaker.txt
