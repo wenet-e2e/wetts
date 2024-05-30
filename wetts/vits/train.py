@@ -418,7 +418,7 @@ def train_and_evaluate(rank, local_rank, epoch, hps, nets, optims, schedulers, s
             y_mel = commons.slice_segments(
                 mel, ids_slice, hps.train.segment_size // hps.data.hop_length)
             y_hat_mel = mel_spectrogram_torch(
-                y_hat.squeeze(1),
+                y_hat.squeeze(1).float(),
                 hps.data.filter_length,
                 hps.data.n_mel_channels,
                 hps.data.sampling_rate,
