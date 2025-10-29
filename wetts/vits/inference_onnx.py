@@ -27,6 +27,7 @@ def to_numpy(tensor):
     return (tensor.detach().cpu().numpy()
             if tensor.requires_grad else tensor.detach().numpy())
 
+
 def add_prefix(filepath, prefix):
     filepath = Path(filepath)
     return str(filepath.parent / (prefix + filepath.name))
@@ -41,11 +42,9 @@ def get_args():
                         required=True,
                         help="input phone dict")
     parser.add_argument("--speaker_table", default=True, help="speaker table")
-    parser.add_argument(
-        "--streaming",
-        action="store_true",
-        help="export streaming model"
-    )
+    parser.add_argument("--streaming",
+                        action="store_true",
+                        help="export streaming model")
     parser.add_argument("--test_file", required=True, help="test file")
     parser.add_argument(
         "--providers",
@@ -76,9 +75,11 @@ def main():
     scales = scales.unsqueeze(0)
 
     if args.streaming:
-        encoder_ort_sess = ort.InferenceSession(add_prefix(args.onnx_model, 'encoder_'),
+        encoder_ort_sess = ort.InferenceSession(add_prefix(
+            args.onnx_model, 'encoder_'),
                                                 providers=[args.providers])
-        decoder_ort_sess = ort.InferenceSession(add_prefix(args.onnx_model, 'decoder_'),
+        decoder_ort_sess = ort.InferenceSession(add_prefix(
+            args.onnx_model, 'decoder_'),
                                                 providers=[args.providers])
 
         def tts(ort_inputs):
@@ -95,7 +96,6 @@ def main():
 
         def tts(ort_inputs):
             return np.squeeze(ort_sess.run(None, ort_inputs))
-
 
     for line in open(args.test_file):
         audio_path, speaker, text = line.strip().split("|")
