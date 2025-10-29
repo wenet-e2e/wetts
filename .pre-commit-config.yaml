@@ -33,6 +33,6 @@ repos:
     args: ['--config=.flake8']
 
 - repo: https://github.com/cpplint/cpplint
-  rev: 1.6.1
+  rev: 2.0.2
   hooks:
   - id: cpplint
