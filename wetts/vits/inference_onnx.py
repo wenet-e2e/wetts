@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import argparse
+import math
 from pathlib import Path
 
 import numpy as np
@@ -30,6 +31,48 @@ def to_numpy(tensor):
 def add_prefix(filepath, prefix):
     filepath = Path(filepath)
     return str(filepath.parent / (prefix + filepath.name))
+
+
+# Copy from: runtime/cpu_triton_stream/model_repo/stream_tts/1/model.py
+def get_chunks(mel, block_size, pad_size):
+    """Divide mel into multiple chunks with overlap(overlap_size == pad_size)
+    Args:
+        mel (np.ndarray): shape (B, freq, Frame)
+        block_size (int)
+        pad_size (int)
+    Returns:
+        list: chunks list
+    """
+    if block_size == -1:
+        return [mel]
+    mel_len = mel.shape[-1]
+    chunks = []
+    n = math.ceil(mel_len / block_size)
+    for i in range(n):
+        start = max(0, i * block_size - pad_size)
+        end = min((i + 1) * block_size + pad_size, mel_len)
+        chunks.append(mel[:, :, start:end])
+    return chunks
+
+
+# Copy from: runtime/cpu_triton_stream/model_repo/stream_tts/1/model.py
+def depadding(audio, chunk_num, chunk_id, block, pad, upsample):
+    """
+    Streaming inference removes the result of pad inference
+
+    Args:
+        audio: (np.ndarray): shape (B, T)
+    """
+
+    assert len(audio.shape) == 2
+    front_pad = min(chunk_id * block, pad)
+    if chunk_id == 0:  # First chunk
+        audio = audio[:, :block * upsample]
+    elif chunk_id == chunk_num - 1:  # Last chunk
+        audio = audio[:, front_pad * upsample:]  # Remove the added padding
+    else:  # Middle chunk
+        audio = audio[:, front_pad * upsample:(front_pad + block) * upsample]
+    return audio
 
 
 def get_args():
@@ -52,6 +95,14 @@ def get_args():
         choices=["CUDAExecutionProvider", "CPUExecutionProvider"],
         help="onnx runtime providers",
     )
+    parser.add_argument("--chunk_size",
+                        type=int,
+                        default=-1,
+                        help="for streaming")
+    parser.add_argument("--pad_size",
+                        type=int,
+                        default=0,
+                        help="for streaming")
     args = parser.parse_args()
     return args
 
@@ -83,13 +134,19 @@ def main():
             providers=[args.providers],
         )
 
+        # Copy from: runtime/cpu_triton_stream/model_repo/stream_tts/1/model.py
         def tts(ort_inputs):
             z, g = encoder_ort_sess.run(None, ort_inputs)
-            decoder_inputs = {
-                "z": z,
-                "g": g,
-            }
-            return np.squeeze(decoder_ort_sess.run(None, decoder_inputs))
+            z_chunks = get_chunks(z, args.chunk_size, args.pad_size)
+            num_chunks = len(z_chunks)
+            audios = []
+            for i, chunk in enumerate(z_chunks):
+                decoder_inputs = {"z": chunk, "g": g}
+                audio_chunk = decoder_ort_sess.run(None, decoder_inputs)[0]
+                audio_clip = depadding(audio_chunk.reshape(1, -1), num_chunks,
+                                       i, args.chunk_size, args.pad_size, 256)
+                audios.append(audio_clip)
+            return np.squeeze(np.concatenate(audios, axis=1))
 
     else:
         ort_sess = ort.InferenceSession(args.onnx_model,
