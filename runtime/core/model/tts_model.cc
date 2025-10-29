@@ -13,10 +13,13 @@
 // limitations under the License.
 
 #include "model/tts_model.h"
-#include <fstream>
-#include <string>
 
+#include <fstream>
+#include <memory>
+#include <sstream>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "glog/logging.h"
 
@@ -83,15 +86,18 @@ void TtsModel::Synthesis(const std::string& text, const int sid,
   g2p_prosody_->Compute(norm_text, &phonemes);
 
   std::vector<int64_t> inputs;
+  std::stringstream ss;
   inputs.emplace_back(phone2id_["sil"]);
+  ss << "sil";
   for (const auto& phone : phonemes) {
     if (phone2id_.count(phone) == 0) {
       LOG(ERROR) << "Can't find `" << phone << "` in phone2id.";
       continue;
     }
+    ss << " " << phone;
     inputs.emplace_back(phone2id_[phone]);
   }
-
+  LOG(INFO) << "phone sequence " << ss.str();
   Forward(inputs, sid, audio);
   for (size_t i = 0; i < audio->size(); i++) {
     (*audio)[i] *= 32767.0;
