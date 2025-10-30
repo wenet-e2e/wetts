@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <memory>
+#include <vector>
+
 #include "gflags/gflags.h"
 #include "glog/logging.h"
 #include "processor/wetext_processor.h"
@@ -47,7 +50,8 @@ DEFINE_string(g2p_prosody_model, "", "g2p prosody model file");
 // VITS
 DEFINE_string(speaker2id, "", "speaker to id");
 DEFINE_string(phone2id, "", "phone to id");
-DEFINE_string(vits_model, "", "e2e tts model file");
+DEFINE_string(vits_encoder_model, "", "vits encoder model path");
+DEFINE_string(vits_decoder_model, "", "vits decoder model path");
 DEFINE_int32(sampling_rate, 22050, "sampling rate of pcm");
 
 DEFINE_string(sname, "", "speaker name");
@@ -73,8 +77,8 @@ int main(int argc, char* argv[]) {
       FLAGS_g2p_prosody_model, FLAGS_vocab, FLAGS_char2pinyin, FLAGS_pinyin2id,
       FLAGS_pinyin2phones, g2p_en);
   auto model = std::make_shared<wetts::TtsModel>(
-      FLAGS_vits_model, FLAGS_speaker2id, FLAGS_phone2id, FLAGS_sampling_rate,
-      tn, g2p_prosody);
+      FLAGS_vits_encoder_model, FLAGS_vits_decoder_model, FLAGS_speaker2id,
+      FLAGS_phone2id, FLAGS_sampling_rate, tn, g2p_prosody);
 
   std::vector<float> audio;
   int sid = model->GetSid(FLAGS_sname);
