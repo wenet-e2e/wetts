@@ -17,7 +17,6 @@ import os
 from pathlib import Path
 
 import torch
-
 from model.models import SynthesizerTrn
 from utils import task
 
@@ -99,7 +98,7 @@ def main():
             args=dummy_input,
             f=add_prefix(args.onnx_model, 'encoder_'),
             input_names=["input", "input_lengths", "scales", "sid"],
-            output_names=["z", "g"],
+            output_names=["z"],
             dynamic_axes={
                 "input": {
                     0: "batch",
@@ -115,22 +114,20 @@ def main():
                     0: "batch"
                 },
                 "z": {0: "batch", 2: "L"},
-                "g": {0: "batch"},
             },
             opset_version=13,
             verbose=False,
         )
         net_g.forward = net_g.export_decoder_forward
-        dummy_input = (z, g)
+        dummy_input = (z, sid)
         torch.onnx.export(
             model=net_g,
             args=dummy_input,
             f=add_prefix(args.onnx_model, 'decoder_'),
-            input_names=["z", "g"],
+            input_names=["z", "sid"],
             output_names=["output"],
             dynamic_axes={
                 "z": {0: "batch", 2: "L"},
-                "g": {0: "batch"},
                 "output": {
                     0: "batch",
                     1: "audio",

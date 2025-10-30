@@ -136,12 +136,13 @@ def main():
 
         # Copy from: runtime/cpu_triton_stream/model_repo/stream_tts/1/model.py
         def tts(ort_inputs):
-            z, g = encoder_ort_sess.run(None, ort_inputs)
+            sid = ort_inputs['sid']
+            z = encoder_ort_sess.run(None, ort_inputs)[0]
             z_chunks = get_chunks(z, args.chunk_size, args.pad_size)
             num_chunks = len(z_chunks)
             audios = []
             for i, chunk in enumerate(z_chunks):
-                decoder_inputs = {"z": chunk, "g": g}
+                decoder_inputs = {"z": chunk, "sid": sid}
                 audio_chunk = decoder_ort_sess.run(None, decoder_inputs)[0]
                 audio_clip = depadding(audio_chunk.reshape(1, -1), num_chunks,
                                        i, args.chunk_size, args.pad_size, 256)

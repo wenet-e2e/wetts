@@ -2,15 +2,12 @@ import math
 import time
 
 import torch
-from torch import nn
-
 from model.decoders import Generator, VocosGenerator
-from model.duration_predictors import (
-    StochasticDurationPredictor,
-    DurationPredictor
-)
-from model.encoders import TextEncoder, PosteriorEncoder
+from model.duration_predictors import (DurationPredictor,
+                                       StochasticDurationPredictor)
+from model.encoders import PosteriorEncoder, TextEncoder
 from model.flows import AVAILABLE_FLOW_TYPES, ResidualCouplingTransformersBlock
+from torch import nn
 from utils import commons, monotonic_align
 
 
@@ -358,7 +355,8 @@ class SynthesizerTrn(nn.Module):
         )
         return z, g
 
-    def export_decoder_forward(self, z, g):
+    def export_decoder_forward(self, z, sid):
+        g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
         return self.dec(z, g=g)
 
     # currently vits-2 is not capable of voice conversion
