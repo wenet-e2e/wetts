@@ -12,8 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <memory>
 #include <sstream>
+#include <string>
 #include <utility>
+#include <vector>
 
 #include "model/onnx_model.h"
 
@@ -81,6 +84,13 @@ OnnxModel::OnnxModel(const std::string& model_path) {
     LOG(INFO) << "Output " << i << " : name=" << output_node_names_[i]
               << " type=" << type << " dims=" << shape.str();
   }
+}
+
+std::vector<Ort::Value> OnnxModel::Run(
+    const std::vector<Ort::Value>& input_values) {
+  return session_->Run(Ort::RunOptions{nullptr}, input_node_names_.data(),
+                       input_values.data(), input_node_names_.size(),
+                       output_node_names_.data(), output_node_names_.size());
 }
 
 }  // namespace wetts

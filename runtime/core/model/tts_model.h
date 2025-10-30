@@ -27,11 +27,10 @@
 
 namespace wetts {
 
-class TtsModel : public OnnxModel {
+class TtsModel {
  public:
   explicit TtsModel(const std::string& model_path,
-                    const std::string& speaker2id,
-                    const std::string& phone2id,
+                    const std::string& speaker2id, const std::string& phone2id,
                     const int sampling_rate,
                     std::shared_ptr<wetext::Processor> processor,
                     std::shared_ptr<G2pProsody> g2p_prosody);
@@ -43,6 +42,7 @@ class TtsModel : public OnnxModel {
   int sampling_rate() const { return sampling_rate_; }
 
  private:
+  OnnxModel model_;
   int sampling_rate_;
   std::unordered_map<std::string, int> phone2id_;
   std::unordered_map<std::string, int> speaker2id_;
