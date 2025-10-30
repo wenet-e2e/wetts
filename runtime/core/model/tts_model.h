@@ -29,20 +29,24 @@ namespace wetts {
 
 class TtsModel {
  public:
-  explicit TtsModel(const std::string& model_path,
+  explicit TtsModel(const std::string& encoder_model_path,
+                    const std::string& decodder_model_path,
                     const std::string& speaker2id, const std::string& phone2id,
                     const int sampling_rate,
                     std::shared_ptr<wetext::Processor> processor,
                     std::shared_ptr<G2pProsody> g2p_prosody);
-  void Forward(const std::vector<int64_t>& phonemes, const int sid,
-               std::vector<float>* audio);
+  std::vector<Ort::Value> ForwardEncoder(const std::vector<int64_t>& phonemes,
+                                         const int sid);
+  void ForwardDecoder(const std::vector<Ort::Value>& inputs,
+                      std::vector<float>* audio);
   void Synthesis(const std::string& text, const int sid,
                  std::vector<float>* audio);
   int GetSid(const std::string& name);
   int sampling_rate() const { return sampling_rate_; }
 
  private:
-  OnnxModel model_;
+  // VITS encoder & decoder
+  OnnxModel encoder_, decoder_;
   int sampling_rate_;
   std::unordered_map<std::string, int> phone2id_;
   std::unordered_map<std::string, int> speaker2id_;
