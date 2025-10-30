@@ -33,7 +33,7 @@ G2pProsody::G2pProsody(const std::string& g2p_prosody_model,
                        const std::string& pinyin2id,
                        const std::string& pinyin2phones,
                        std::shared_ptr<G2pEn> g2p_en)
-    : g2p_en_(std::move(g2p_en)), OnnxModel(g2p_prosody_model) {
+    : g2p_en_(std::move(g2p_en)), model_(g2p_prosody_model) {
   std::ifstream in(vocab);
   std::string line;
   int id = 0;
@@ -100,12 +100,10 @@ void G2pProsody::Compute(const std::string& str,
   int num_tokens = token_ids.size();
   const int64_t inputs_shape[] = {1, num_tokens};
   auto inputs_ort = Ort::Value::CreateTensor<int64_t>(
-      memory_info_, token_ids.data(), num_tokens, inputs_shape, 2);
+      model_.memory_info(), token_ids.data(), num_tokens, inputs_shape, 2);
   std::vector<Ort::Value> ort_inputs;
   ort_inputs.push_back(std::move(inputs_ort));
-  auto outputs_ort = session_->Run(
-      Ort::RunOptions{nullptr}, input_node_names_.data(), ort_inputs.data(),
-      ort_inputs.size(), output_node_names_.data(), 2);
+  auto outputs_ort = model_.Run(ort_inputs);
   auto pinyin_info = outputs_ort[0].GetTensorTypeAndShapeInfo();
   int pinyin_dim = pinyin_info.GetShape()[2];
   const float* pinyin_data = outputs_ort[0].GetTensorData<float>();

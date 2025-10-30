@@ -29,7 +29,7 @@
 namespace wetts {
 
 // Unified G2P & Prosody model
-class G2pProsody : public OnnxModel {
+class G2pProsody {
  public:
   explicit G2pProsody(const std::string& g2p_prosody_model,
                       const std::string& vocab, const std::string& char2pinyin,
@@ -44,6 +44,7 @@ class G2pProsody : public OnnxModel {
   const std::string CLS_ = "[CLS]";
   const std::string SEP_ = "[SEP]";
   const std::string UNK_ = "[UNK]";
+  OnnxModel model_;
   std::unordered_map<std::string, int> vocab_;
   std::unordered_map<std::string, int> phones_;
   std::shared_ptr<G2pEn> g2p_en_;

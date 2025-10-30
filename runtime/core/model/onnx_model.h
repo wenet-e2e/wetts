@@ -27,6 +27,8 @@ class OnnxModel {
  public:
   static void InitEngineThreads(int num_threads = 1);
   explicit OnnxModel(const std::string& model_path);
+  std::vector<Ort::Value> Run(const std::vector<Ort::Value>& input_values);
+  const Ort::MemoryInfo& memory_info() { return memory_info_; }
 
  protected:
   static Ort::Env env_;

@@ -32,7 +32,7 @@ TtsModel::TtsModel(const std::string& model_path, const std::string& speaker2id,
                    const std::string& phone2id, const int sampling_rate,
                    std::shared_ptr<wetext::Processor> tn,
                    std::shared_ptr<G2pProsody> g2p_prosody)
-    : OnnxModel(model_path),
+    : model_(model_path),
       tn_(std::move(tn)),
       g2p_prosody_(std::move(g2p_prosody)) {
   sampling_rate_ = sampling_rate;
@@ -45,23 +45,24 @@ void TtsModel::Forward(const std::vector<int64_t>& phonemes, const int sid,
   int num_phones = phonemes.size();
   const int64_t inputs_shape[] = {1, num_phones};
   auto inputs_ort = Ort::Value::CreateTensor<int64_t>(
-      memory_info_, const_cast<int64_t*>(phonemes.data()), num_phones,
+      model_.memory_info(), const_cast<int64_t*>(phonemes.data()), num_phones,
       inputs_shape, 2);
 
   std::vector<int64_t> inputs_len = {num_phones};
   const int64_t inputs_len_shape[] = {1};
-  auto inputs_len_ort = Ort::Value::CreateTensor<int64_t>(
-      memory_info_, inputs_len.data(), inputs_len.size(), inputs_len_shape, 1);
+  auto inputs_len_ort =
+      Ort::Value::CreateTensor<int64_t>(model_.memory_info(), inputs_len.data(),
+                                        inputs_len.size(), inputs_len_shape, 1);
 
   std::vector<float> scales = {0.667, 1.0, 0.8};
   const int64_t scales_shape[] = {1, 3};
   auto scales_ort = Ort::Value::CreateTensor<float>(
-      memory_info_, scales.data(), scales.size(), scales_shape, 2);
+      model_.memory_info(), scales.data(), scales.size(), scales_shape, 2);
 
   std::vector<int64_t> spk_id = {sid};
   const int64_t spk_id_shape[] = {1};
   auto sid_ort = Ort::Value::CreateTensor<int64_t>(
-      memory_info_, spk_id.data(), spk_id.size(), spk_id_shape, 1);
+      model_.memory_info(), spk_id.data(), spk_id.size(), spk_id_shape, 1);
 
   std::vector<Ort::Value> ort_inputs;
   ort_inputs.push_back(std::move(inputs_ort));
@@ -69,9 +70,7 @@ void TtsModel::Forward(const std::vector<int64_t>& phonemes, const int sid,
   ort_inputs.push_back(std::move(scales_ort));
   ort_inputs.push_back(std::move(sid_ort));
 
-  auto outputs_ort = session_->Run(
-      Ort::RunOptions{nullptr}, input_node_names_.data(), ort_inputs.data(),
-      ort_inputs.size(), output_node_names_.data(), 1);
+  auto outputs_ort = model_.Run(ort_inputs);
   int len = outputs_ort[0].GetTensorTypeAndShapeInfo().GetShape()[2];
   const float* outputs = outputs_ort[0].GetTensorData<float>();
   audio->assign(outputs, outputs + len);
