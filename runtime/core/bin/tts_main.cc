@@ -53,6 +53,9 @@ DEFINE_string(phone2id, "", "phone to id");
 DEFINE_string(vits_encoder_model, "", "vits encoder model path");
 DEFINE_string(vits_decoder_model, "", "vits decoder model path");
 DEFINE_int32(sampling_rate, 22050, "sampling rate of pcm");
+DEFINE_bool(streaming, false, "whether streaming");
+DEFINE_int32(chunk_size, 40, "streaming chunk size");
+DEFINE_int32(pad_size, 10, "streaming pad size");
 
 DEFINE_string(sname, "", "speaker name");
 DEFINE_string(text, "", "input text");
@@ -78,11 +81,22 @@ int main(int argc, char* argv[]) {
       FLAGS_pinyin2phones, g2p_en);
   auto model = std::make_shared<wetts::TtsModel>(
       FLAGS_vits_encoder_model, FLAGS_vits_decoder_model, FLAGS_speaker2id,
-      FLAGS_phone2id, FLAGS_sampling_rate, tn, g2p_prosody);
+      FLAGS_phone2id, FLAGS_sampling_rate, tn, g2p_prosody, FLAGS_chunk_size,
+      FLAGS_pad_size);
 
   std::vector<float> audio;
   int sid = model->GetSid(FLAGS_sname);
-  model->Synthesis(FLAGS_text, sid, &audio);
+  if (FLAGS_streaming) {
+    model->SetStreamInfo(FLAGS_text, sid);
+    bool next = true;
+    while (next) {
+      std::vector<float> sub_audio;
+      next = model->StreamSynthesis(&sub_audio);
+      audio.insert(audio.end(), sub_audio.begin(), sub_audio.end());
+    }
+  } else {
+    model->Synthesis(FLAGS_text, sid, &audio);
+  }
 
   wetts::WavWriter wav_writer(audio.data(), audio.size(), 1,
                               FLAGS_sampling_rate, 16);
