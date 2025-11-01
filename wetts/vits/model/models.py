@@ -353,9 +353,12 @@ class SynthesizerTrn(nn.Module):
             length_scale=scales[0][1],
             noise_scale_w=scales[0][2],
         )
-        return z, g
+        # convert to (b, t, h), so we can slice at time dimension
+        z = z.transpose(1, 2)
+        return z
 
     def export_decoder_forward(self, z, sid):
+        z = z.transpose(1, 2)  # (b, h, t)
         g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
         return self.dec(z, g=g)
 

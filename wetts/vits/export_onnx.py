@@ -87,8 +87,7 @@ def main():
     # make triton dynamic shape happy
     scales = scales.unsqueeze(0)
     sid = torch.IntTensor([0]).long()
-    z = torch.randn(1, hps.model.inter_channels, 105)
-    g = torch.randn(1, hps.model.gin_channels, 1)
+    z = torch.randn(1, 105, hps.model.inter_channels)
 
     if args.streaming:
         net_g.forward = net_g.export_encoder_forward
@@ -113,7 +112,7 @@ def main():
                 "sid": {
                     0: "batch"
                 },
-                "z": {0: "batch", 2: "L"},
+                "z": {0: "batch", 1: "L"},
             },
             opset_version=13,
             verbose=False,
@@ -127,7 +126,7 @@ def main():
             input_names=["z", "sid"],
             output_names=["output"],
             dynamic_axes={
-                "z": {0: "batch", 2: "L"},
+                "z": {0: "batch", 1: "L"},
                 "output": {
                     0: "batch",
                     1: "audio",

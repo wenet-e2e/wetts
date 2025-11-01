@@ -45,13 +45,14 @@ def get_chunks(mel, block_size, pad_size):
     """
     if block_size == -1:
         return [mel]
-    mel_len = mel.shape[-1]
+    mel_len = mel.shape[1]
     chunks = []
     n = math.ceil(mel_len / block_size)
     for i in range(n):
         start = max(0, i * block_size - pad_size)
         end = min((i + 1) * block_size + pad_size, mel_len)
-        chunks.append(mel[:, :, start:end])
+        print(start, end)
+        chunks.append(mel[:, start:end, :])
     return chunks
 
 
