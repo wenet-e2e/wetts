@@ -1,4 +1,5 @@
 // Copyright (c) 2022 Zhendong Peng (pzd17@tsinghua.org.cn)
+//               2025 Binbin Zhang (binbzha@qq.com)
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,6 +15,7 @@
 
 #include "model/tts_model.h"
 
+#include <algorithm>
 #include <fstream>
 #include <memory>
 #include <sstream>
@@ -33,11 +35,14 @@ TtsModel::TtsModel(const std::string& encoder_model_path,
                    const std::string& speaker2id, const std::string& phone2id,
                    const int sampling_rate,
                    std::shared_ptr<wetext::Processor> tn,
-                   std::shared_ptr<G2pProsody> g2p_prosody)
+                   std::shared_ptr<G2pProsody> g2p_prosody, int chunk_size,
+                   int pad_size)
     : encoder_(encoder_model_path),
       decoder_(decoder_model_path),
       tn_(std::move(tn)),
-      g2p_prosody_(std::move(g2p_prosody)) {
+      g2p_prosody_(std::move(g2p_prosody)),
+      s_chunk_size_(chunk_size),
+      s_pad_size_(pad_size) {
   sampling_rate_ = sampling_rate;
   ReadTableFile(phone2id, &phone2id_);
   ReadTableFile(speaker2id, &speaker2id_);
@@ -77,25 +82,35 @@ std::vector<Ort::Value> TtsModel::ForwardEncoder(
   return outputs_ort;
 }
 
-void TtsModel::ForwardDecoder(const std::vector<Ort::Value>& inputs,
+void TtsModel::ForwardDecoder(Ort::Value&& z, const int sid,
                               std::vector<float>* audio) {
-  auto outputs_ort = decoder_.Run(inputs);
+  std::vector<Ort::Value> ort_inputs;
+  std::vector<int64_t> spk_id = {sid};
+  const int64_t spk_id_shape[] = {1};
+  auto sid_ort = Ort::Value::CreateTensor<int64_t>(
+      decoder_.memory_info(), spk_id.data(), spk_id.size(), spk_id_shape, 1);
+  ort_inputs.push_back(std::move(z));
+  ort_inputs.push_back(std::move(sid_ort));
+  auto outputs_ort = decoder_.Run(ort_inputs);
   int len = outputs_ort[0].GetTensorTypeAndShapeInfo().GetShape()[2];
-  const float* outputs = outputs_ort[0].GetTensorData<float>();
-  audio->assign(outputs, outputs + len);
+  const float* output_data = outputs_ort[0].GetTensorData<float>();
+  audio->assign(output_data, output_data + len);
+  for (size_t i = 0; i < audio->size(); i++) {
+    (*audio)[i] *= 32767.0;
+  }
 }
 
-void TtsModel::Synthesis(const std::string& text, const int sid,
-                         std::vector<float>* audio) {
+void TtsModel::Text2PhoneIds(const std::string& text,
+                             std::vector<int64_t>* phone_ids) {
+  phone_ids->clear();
   // 1. TN
   std::string norm_text = tn_->Normalize(text);
   // 2. G2P: char => pinyin => phones => ids
   std::vector<std::string> phonemes;
   g2p_prosody_->Compute(norm_text, &phonemes);
-
-  std::vector<int64_t> inputs;
+  // 3. Convert to phone id
   std::stringstream ss;
-  inputs.emplace_back(phone2id_["sil"]);
+  phone_ids->emplace_back(phone2id_["sil"]);
   ss << "sil";
   for (const auto& phone : phonemes) {
     if (phone2id_.count(phone) == 0) {
@@ -103,15 +118,77 @@ void TtsModel::Synthesis(const std::string& text, const int sid,
       continue;
     }
     ss << " " << phone;
-    inputs.emplace_back(phone2id_[phone]);
+    phone_ids->emplace_back(phone2id_[phone]);
   }
   LOG(INFO) << "phone sequence " << ss.str();
+}
 
+void TtsModel::Synthesis(const std::string& text, const int sid,
+                         std::vector<float>* audio) {
+  std::vector<int64_t> inputs;
+  Text2PhoneIds(text, &inputs);
   auto outputs = ForwardEncoder(inputs, sid);
-  ForwardDecoder(outputs, audio);
-  for (size_t i = 0; i < audio->size(); i++) {
-    (*audio)[i] *= 32767.0;
+  ForwardDecoder(std::move(outputs[0]), sid, audio);
+}
+
+// See wetts/vits/inference_onnx.py
+void TtsModel::SplitToChunks(const Ort::Value& z) {
+  CHECK_GT(s_chunk_size_, 0);
+  s_z_chunks_.clear();
+  auto shape = z.GetTensorTypeAndShapeInfo().GetShape();
+  const float* z_data = z.GetTensorData<float>();
+  int mel_len = shape[1];
+  hidden_dim_ = shape[2];
+  int num = std::ceil(static_cast<float>(mel_len) / s_chunk_size_);
+  for (int i = 0; i < num; i++) {
+    int start = std::max(0, i * s_chunk_size_ - s_pad_size_);
+    int end = std::min((i + 1) * s_chunk_size_ + s_pad_size_, mel_len);
+    std::vector<float> chunk(z_data + start * hidden_dim_,
+                             z_data + end * hidden_dim_);
+    s_z_chunks_.push_back(std::move(chunk));
   }
+}
+
+// See wetts/vits/inference_onnx.py
+void TtsModel::Depadding(int chunk_id, int num_chunks, int chunk_size,
+                         int pad_size, int upsample,
+                         std::vector<float>* audio) {
+  int front_pad = std::min(chunk_id * chunk_size, pad_size);
+  if (chunk_id == 0) {
+    audio->assign(audio->begin(), audio->begin() + chunk_size * upsample);
+  } else if (chunk_id == num_chunks - 1) {
+    audio->assign(audio->begin() + front_pad * upsample, audio->end());
+  } else {
+    audio->assign(audio->begin() + front_pad * upsample,
+                  audio->begin() + (front_pad + chunk_size) * upsample);
+  }
+}
+
+bool TtsModel::StreamSynthesis(std::vector<float>* audio) {
+  if (s_text_.empty()) return false;
+  if (s_cur_ == 0) {
+    std::vector<int64_t> inputs;
+    Text2PhoneIds(s_text_, &inputs);
+    auto outputs = ForwardEncoder(inputs, s_sid_);
+    SplitToChunks(outputs[0]);
+    VLOG(2) << "Split to chunks " << s_z_chunks_.size();
+  }
+  int num_chunks = s_z_chunks_.size();
+  VLOG(2) << "Streaming decoder, progress " << s_cur_ << "/" << num_chunks;
+  if (s_cur_ < num_chunks) {
+    auto& chunk = s_z_chunks_[s_cur_];
+    int num_mel = chunk.size() / hidden_dim_;
+    const int64_t chunk_shape[] = {1, num_mel, hidden_dim_};
+    auto z_chunk = Ort::Value::CreateTensor<float>(
+        decoder_.memory_info(), chunk.data(), chunk.size(), chunk_shape, 3);
+    ForwardDecoder(std::move(z_chunk), s_sid_, audio);
+    if (s_chunk_size_ > 0) {
+      Depadding(s_cur_, num_chunks, s_chunk_size_, s_pad_size_, kUpsampleRate,
+                audio);
+    }
+  }
+  s_cur_++;  // At least one chunk inference when calling
+  return s_cur_ >= num_chunks ? false : true;
 }
 
 int TtsModel::GetSid(const std::string& name) {
