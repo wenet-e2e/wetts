@@ -18,6 +18,7 @@ from pathlib import Path
 
 import torch
 from model.models import SynthesizerTrn
+from onnxruntime.quantization import QuantType, quantize_dynamic
 from utils import task
 
 
@@ -30,11 +31,10 @@ def get_args():
                         required=True,
                         help="input phone dict")
     parser.add_argument("--speaker_table", default=None, help="speaker table")
-    parser.add_argument(
-        "--streaming",
-        action="store_true",
-        help="export streaming model"
-    )
+    parser.add_argument("--streaming",
+                        action="store_true",
+                        help="export streaming model")
+    parser.add_argument("--quant", action="store_true", help="quant the model")
     parser.add_argument(
         "--providers",
         required=False,
@@ -44,6 +44,7 @@ def get_args():
     )
     args = parser.parse_args()
     return args
+
 
 def add_prefix(filepath, prefix):
     filepath = Path(filepath)
@@ -92,10 +93,11 @@ def main():
     if args.streaming:
         net_g.forward = net_g.export_encoder_forward
         dummy_input = (seq, seq_len, scales, sid)
+        encoder_path = add_prefix(args.onnx_model, 'encoder_')
         torch.onnx.export(
             model=net_g,
             args=dummy_input,
-            f=add_prefix(args.onnx_model, 'encoder_'),
+            f=encoder_path,
             input_names=["input", "input_lengths", "scales", "sid"],
             output_names=["z"],
             dynamic_axes={
@@ -112,21 +114,29 @@ def main():
                 "sid": {
                     0: "batch"
                 },
-                "z": {0: "batch", 1: "L"},
+                "z": {
+                    0: "batch",
+                    1: "L"
+                },
             },
             opset_version=13,
             verbose=False,
         )
+
+        decoder_path = add_prefix(args.onnx_model, 'decoder_')
         net_g.forward = net_g.export_decoder_forward
         dummy_input = (z, sid)
         torch.onnx.export(
             model=net_g,
             args=dummy_input,
-            f=add_prefix(args.onnx_model, 'decoder_'),
+            f=decoder_path,
             input_names=["z", "sid"],
             output_names=["output"],
             dynamic_axes={
-                "z": {0: "batch", 1: "L"},
+                "z": {
+                    0: "batch",
+                    1: "L"
+                },
                 "output": {
                     0: "batch",
                     1: "audio",
@@ -136,6 +146,16 @@ def main():
             opset_version=13,
             verbose=False,
         )
+        if args.quant:
+            encoder_q_path = add_prefix(args.onnx_model, 'encoder_q_')
+            quantize_dynamic(encoder_path,
+                             encoder_q_path,
+                             weight_type=QuantType.QUInt8)
+            decoder_q_path = add_prefix(args.onnx_model, 'decoder_q_')
+            quantize_dynamic(decoder_path,
+                             decoder_q_path,
+                             weight_type=QuantType.QUInt8)
+
     else:
         dummy_input = (seq, seq_len, scales, sid)
         torch.onnx.export(
