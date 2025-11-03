@@ -91,29 +91,26 @@ void G2pProsody::Tokenize(const std::string& text,
   token_ids->emplace_back(vocab_.at(SEP_));
 }
 
-void G2pProsody::Compute(const std::string& str,
-                         std::vector<std::string>* phonemes) {
-  CHECK(phonemes != nullptr);
-  std::vector<int64_t> token_ids;
-  std::vector<std::string> tokens;
-  Tokenize(str, &tokens, &token_ids);
+void G2pProsody::Forward(const std::vector<std::string>& tokens,
+                         const std::vector<int64_t>& token_ids,
+                         std::vector<std::string>* pinyins,
+                         std::vector<std::string>* prosodys) {
+  pinyins->clear();
+  prosodys->clear();
   int num_tokens = token_ids.size();
   const int64_t inputs_shape[] = {1, num_tokens};
   auto inputs_ort = Ort::Value::CreateTensor<int64_t>(
-      model_.memory_info(), token_ids.data(), num_tokens, inputs_shape, 2);
+      model_.memory_info(), const_cast<int64_t*>(token_ids.data()), num_tokens,
+      inputs_shape, 2);
   std::vector<Ort::Value> ort_inputs;
   ort_inputs.push_back(std::move(inputs_ort));
   auto outputs_ort = model_.Run(ort_inputs);
   auto pinyin_info = outputs_ort[0].GetTensorTypeAndShapeInfo();
   int pinyin_dim = pinyin_info.GetShape()[2];
   const float* pinyin_data = outputs_ort[0].GetTensorData<float>();
-
   auto prosody_info = outputs_ort[1].GetTensorTypeAndShapeInfo();
   int prosody_dim = prosody_info.GetShape()[2];
   const float* prosody_data = outputs_ort[1].GetTensorData<float>();
-
-  std::vector<std::string> pinyins;
-  std::vector<std::string> prosodys;
   // TODO(Binbin Zhang): How to deal with English G2P?
   // Remove [CLS] & [SEP]
   for (int t = 1; t < num_tokens - 1; t++) {
@@ -138,14 +135,26 @@ void G2pProsody::Compute(const std::string& str,
         pinyin = tokens[t];
       }
     }
-    pinyins.emplace_back(pinyin);
+    pinyins->emplace_back(pinyin);
 
     const float* cur_data = prosody_data + t * prosody_dim;
     int best_idx =
         std::max_element(cur_data, cur_data + prosody_dim) - cur_data;
-    prosodys.emplace_back("#" + std::to_string(best_idx));
+    prosodys->emplace_back("#" + std::to_string(best_idx));
   }
+}
 
+void G2pProsody::Compute(const std::string& str,
+                         std::vector<std::string>* phonemes) {
+  CHECK(phonemes != nullptr);
+  // Tokenize the input text
+  std::vector<int64_t> token_ids;
+  std::vector<std::string> tokens;
+  Tokenize(str, &tokens, &token_ids);
+  // Forward the tokenized input text
+  std::vector<std::string> pinyins;
+  std::vector<std::string> prosodys;
+  Forward(tokens, token_ids, &pinyins, &prosodys);
   for (int idx = 0; idx < pinyins.size(); idx++) {
     std::string pinyin = pinyins[idx];
     std::string prosody = prosodys[idx];
