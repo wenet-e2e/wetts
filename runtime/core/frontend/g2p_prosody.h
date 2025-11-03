@@ -39,6 +39,10 @@ class G2pProsody {
   void Tokenize(const std::string& text, std::vector<std::string>* tokens,
                 std::vector<int64_t>* token_ids);
   void Compute(const std::string& str, std::vector<std::string>* phonemes);
+  void Forward(const std::vector<std::string>& tokens,
+               const std::vector<int64_t>& token_ids,
+               std::vector<std::string>* pinyins,
+               std::vector<std::string>* prosodys);
 
  private:
   const std::string CLS_ = "[CLS]";
