@@ -33,9 +33,6 @@ DEFINE_string(vits_flags, "", "vits flags file");
 DEFINE_string(tagger, "", "tagger fst file");
 DEFINE_string(verbalizer, "", "verbalizer fst file");
 
-// Tokenizer
-DEFINE_string(vocab, "", "tokenizer vocab file");
-
 // G2P for English
 DEFINE_string(cmudict, "", "cmudict for english words");
 DEFINE_string(g2p_en_model, "", "english g2p fst model for oov");
@@ -46,6 +43,7 @@ DEFINE_string(char2pinyin, "", "chinese character to pinyin");
 DEFINE_string(pinyin2id, "", "pinyin to id");
 DEFINE_string(pinyin2phones, "", "pinyin to phones");
 DEFINE_string(g2p_prosody_model, "", "g2p prosody model file");
+DEFINE_string(g2p_prosody_vocab, "", "g2p prosody vocab file");
 
 // VITS
 DEFINE_string(speaker2id, "", "speaker to id");
@@ -77,8 +75,8 @@ int main(int argc, char* argv[]) {
              : nullptr;
 
   auto g2p_prosody = std::make_shared<wetts::G2pProsody>(
-      FLAGS_g2p_prosody_model, FLAGS_vocab, FLAGS_char2pinyin, FLAGS_pinyin2id,
-      FLAGS_pinyin2phones, g2p_en);
+      FLAGS_g2p_prosody_model, FLAGS_g2p_prosody_vocab, FLAGS_char2pinyin,
+      FLAGS_pinyin2id, FLAGS_pinyin2phones, g2p_en);
   auto model = std::make_shared<wetts::TtsModel>(
       FLAGS_vits_encoder_model, FLAGS_vits_decoder_model, FLAGS_speaker2id,
       FLAGS_phone2id, FLAGS_sampling_rate, tn, g2p_prosody, FLAGS_chunk_size,
