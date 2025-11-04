@@ -31,17 +31,17 @@
 namespace wetts {
 
 G2pProsody::G2pProsody(const std::string& g2p_prosody_model,
-                       const std::string& vocab,
+                       const std::string& g2p_prosody_vocab,
                        const std::string& lexicon_file,
                        const std::string& pinyin2id,
                        const std::string& pinyin2phones,
                        std::shared_ptr<G2pEn> g2p_en)
     : g2p_en_(std::move(g2p_en)), model_(g2p_prosody_model) {
-  std::ifstream in(vocab);
+  std::ifstream in(g2p_prosody_vocab);
   std::string line;
   int id = 0;
   while (getline(in, line)) {
-    vocab_[line] = id;
+    g2p_vocab_[line] = id;
     id++;
   }
   lexicon_ = std::make_shared<Lexicon>(lexicon_file);
@@ -61,7 +61,7 @@ void G2pProsody::Tokenize(const std::vector<std::string>& words,
                           std::vector<int64_t>* token_ids,
                           std::vector<int>* token_offsets) {
   token_ids->clear();
-  token_ids->emplace_back(vocab_.at(CLS_));
+  token_ids->emplace_back(g2p_vocab_.at(CLS_));
   token_offsets->clear();
   int offset = 1;  // 0 is taken by CLS_
   for (const std::string& word : words) {
@@ -71,20 +71,20 @@ void G2pProsody::Tokenize(const std::vector<std::string>& words,
       std::vector<std::string> chars;
       SplitUTF8StringToChars(word, &chars);
       for (const std::string& ch : chars) {
-        token_ids->emplace_back(vocab_.at(ch));
+        token_ids->emplace_back(g2p_vocab_.at(ch));
         offset++;
       }
     } else if (word[0] < 128 && std::isalnum(word[0])) {
       // English or digit word, Convert english word to UNK
-      token_ids->emplace_back(vocab_.at(UNK_));
+      token_ids->emplace_back(g2p_vocab_.at(UNK_));
       offset++;
     } else {
-      std::string v = vocab_.find(word) != vocab_.end() ? word : UNK_;
-      token_ids->emplace_back(vocab_.at(v));
+      std::string v = g2p_vocab_.find(word) != g2p_vocab_.end() ? word : UNK_;
+      token_ids->emplace_back(g2p_vocab_.at(v));
       offset++;
     }
   }
-  token_ids->emplace_back(vocab_.at(SEP_));
+  token_ids->emplace_back(g2p_vocab_.at(SEP_));
 }
 
 void G2pProsody::Forward(const std::vector<std::string>& words,
