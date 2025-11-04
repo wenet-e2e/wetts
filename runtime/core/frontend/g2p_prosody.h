@@ -24,6 +24,7 @@
 
 #include "frontend/g2p_en.h"
 #include "frontend/lexicon.h"
+#include "frontend/word_break.h"
 #include "model/onnx_model.h"
 
 namespace wetts {
@@ -32,15 +33,17 @@ namespace wetts {
 class G2pProsody {
  public:
   explicit G2pProsody(const std::string& g2p_prosody_model,
-                      const std::string& vocab, const std::string& char2pinyin,
+                      const std::string& vocab, const std::string& lexicon_file,
                       const std::string& pinyin2id,
                       const std::string& pinyin2phones,
                       std::shared_ptr<G2pEn> g2p_en = nullptr);
-  void Tokenize(const std::string& text, std::vector<std::string>* tokens,
-                std::vector<int64_t>* token_ids);
+  void Tokenize(const std::vector<std::string>& words,
+                std::vector<int64_t>* token_ids,
+                std::vector<int>* token_offsets);
   void Compute(const std::string& str, std::vector<std::string>* phonemes);
-  void Forward(const std::vector<std::string>& tokens,
+  void Forward(const std::vector<std::string>& words,
                const std::vector<int64_t>& token_ids,
+               const std::vector<int>& token_offsets,
                std::vector<std::string>* pinyins,
                std::vector<std::string>* prosodys);
 
@@ -53,6 +56,7 @@ class G2pProsody {
   std::unordered_map<std::string, int> phones_;
   std::shared_ptr<G2pEn> g2p_en_;
   std::shared_ptr<Lexicon> lexicon_;
+  std::shared_ptr<WordBreak> word_break_;
   std::unordered_map<std::string, std::vector<std::string>> pinyin2phones_;
 };
 

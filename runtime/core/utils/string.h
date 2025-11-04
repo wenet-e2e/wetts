@@ -78,6 +78,8 @@ std::string JoinPath(const std::string& left, const std::string& right);
 std::wstring ToWString(const std::string& str);
 #endif
 
+std::string ToLower(const std::string& str);
+
 }  // namespace wetts
 
 #endif  // UTILS_STRING_H_

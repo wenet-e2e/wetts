@@ -14,6 +14,9 @@
 
 #include "frontend/g2p_en.h"
 
+#include <string>
+#include <vector>
+
 #include "glog/logging.h"
 
 #include "utils/fst.h"
@@ -59,6 +62,12 @@ void G2pEn::Convert(const std::string& grapheme,
       }
     }
   }
+}
+
+std::string G2pEn::Convert(const std::string& grapheme) {
+  std::vector<std::string> phonemes;
+  Convert(grapheme, &phonemes);
+  return JoinString(" ", phonemes);
 }
 
 }  // namespace wetts
