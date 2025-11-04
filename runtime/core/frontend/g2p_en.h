@@ -30,6 +30,7 @@ class G2pEn {
         const std::string& sym);
 
   void Convert(const std::string& grapheme, std::vector<std::string>* phonemes);
+  std::string Convert(const std::string& grapheme);
 
  private:
   std::unordered_map<std::string, std::vector<std::string>> cmudict_;

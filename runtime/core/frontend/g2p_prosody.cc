@@ -26,10 +26,13 @@
 #include "utils/string.h"
 #include "utils/utils.h"
 
+#include "frontend/word_break.h"
+
 namespace wetts {
 
 G2pProsody::G2pProsody(const std::string& g2p_prosody_model,
-                       const std::string& vocab, const std::string& char2pinyin,
+                       const std::string& vocab,
+                       const std::string& lexicon_file,
                        const std::string& pinyin2id,
                        const std::string& pinyin2phones,
                        std::shared_ptr<G2pEn> g2p_en)
@@ -41,8 +44,8 @@ G2pProsody::G2pProsody(const std::string& g2p_prosody_model,
     vocab_[line] = id;
     id++;
   }
-
-  lexicon_ = std::make_shared<Lexicon>(char2pinyin);
+  lexicon_ = std::make_shared<Lexicon>(lexicon_file);
+  word_break_ = std::make_shared<WordBreak>(lexicon_file);
 
   // Load phone list file
   std::ifstream is(pinyin2id);
@@ -54,45 +57,39 @@ G2pProsody::G2pProsody(const std::string& g2p_prosody_model,
   ReadTableFile(pinyin2phones, &pinyin2phones_);
 }
 
-void G2pProsody::Tokenize(const std::string& text,
-                          std::vector<std::string>* tokens,
-                          std::vector<int64_t>* token_ids) {
-  // Split text into single utf8 chars
-  std::vector<std::string> chars;
-  SplitUTF8StringToChars(text, &chars);
-
-  tokens->emplace_back(CLS_);
+void G2pProsody::Tokenize(const std::vector<std::string>& words,
+                          std::vector<int64_t>* token_ids,
+                          std::vector<int>* token_offsets) {
+  token_ids->clear();
   token_ids->emplace_back(vocab_.at(CLS_));
-  for (int i = 0; i < chars.size(); ++i) {
-    std::string& token = chars[i];
-    if (token == " ") {
-      continue;
-    }
-    if (lexicon_->NumProns(token) > 0) {
-      if (vocab_.count(token) > 0) {
-        tokens->emplace_back(token);
-        token_ids->emplace_back(vocab_.at(token));
-      } else {
-        LOG(ERROR) << "Can't find token `" << token << "` in vocab.";
+  token_offsets->clear();
+  int offset = 1;  // 0 is taken by CLS_
+  for (const std::string& word : words) {
+    token_offsets->emplace_back(offset);
+    if (lexicon_->NumProns(word) > 0) {
+      // Split word into single chinese chars
+      std::vector<std::string> chars;
+      SplitUTF8StringToChars(word, &chars);
+      for (const std::string& ch : chars) {
+        token_ids->emplace_back(vocab_.at(ch));
+        offset++;
       }
-    } else if (IsAlpha(token)) {
-      tokens->emplace_back(token);
-      // Convert english word to UNK
+    } else if (word[0] < 128 && std::isalnum(word[0])) {
+      // English or digit word, Convert english word to UNK
       token_ids->emplace_back(vocab_.at(UNK_));
-      while (i + 1 < chars.size() && IsAlphaOrDigit(chars[i + 1])) {
-        ++i;
-        tokens->back() += chars[i];
-      }
+      offset++;
     } else {
-      LOG(INFO) << "Skip unknown token: " << token;
+      std::string v = vocab_.find(word) != vocab_.end() ? word : UNK_;
+      token_ids->emplace_back(vocab_.at(v));
+      offset++;
     }
   }
-  tokens->emplace_back(SEP_);
   token_ids->emplace_back(vocab_.at(SEP_));
 }
 
-void G2pProsody::Forward(const std::vector<std::string>& tokens,
+void G2pProsody::Forward(const std::vector<std::string>& words,
                          const std::vector<int64_t>& token_ids,
+                         const std::vector<int>& token_offsets,
                          std::vector<std::string>* pinyins,
                          std::vector<std::string>* prosodys) {
   pinyins->clear();
@@ -113,65 +110,105 @@ void G2pProsody::Forward(const std::vector<std::string>& tokens,
   const float* prosody_data = outputs_ort[1].GetTensorData<float>();
   // TODO(Binbin Zhang): How to deal with English G2P?
   // Remove [CLS] & [SEP]
-  for (int t = 1; t < num_tokens - 1; t++) {
+  int num_words = words.size();
+  for (int i = 0; i < num_words; i++) {
+    const std::string& word = words[i];
+    int num_chars = UTF8StringLength(word);
+    int offset = token_offsets[i];
+    int prosody_offset = offset;
     std::string pinyin;
-    if (lexicon_->NumProns(tokens[t]) > 1) {
-      const std::vector<std::string>& possible_prons =
-          lexicon_->Prons(tokens[t]);
+    std::string prosody;
+    if (lexicon_->NumProns(word) == 0) {
+      // 0. OOV or English
+      pinyins->emplace_back(word);
+    } else if (lexicon_->NumProns(word) == 1) {
+      // 1. Word or non polyphone char
+      pinyin = lexicon_->Prons(word)[0];
+      pinyins->emplace_back(pinyin);
+      // We assume it's #0 inside the word
+      for (int j = 0; j < num_chars - 1; j++) {
+        prosody += "#0 ";
+        prosody_offset++;
+      }
+    } else {  // lexicon_->NumProns(word) > 1
+      // 2. Single chinese polyphone char, g2p
+      CHECK_EQ(num_chars, 1);
+      const std::vector<std::string>& possible_prons = lexicon_->Prons(word);
       std::vector<float> possible_vals;
       for (const std::string& pron : possible_prons) {
         int pron_offset = phones_[pron];
         possible_vals.emplace_back(
-            *(pinyin_data + t * pinyin_dim + pron_offset));
+            *(pinyin_data + offset * pinyin_dim + pron_offset));
       }
       int best_idx =
           std::max_element(possible_vals.begin(), possible_vals.end()) -
           possible_vals.begin();
       pinyin = possible_prons[best_idx];
-    } else {
-      pinyin = lexicon_->Prons(tokens[t])[0];
-      // The token could be an english word or punctuation
-      if (pinyin == Lexicon::UNK) {
-        pinyin = tokens[t];
-      }
+      pinyins->emplace_back(pinyin);
     }
-    pinyins->emplace_back(pinyin);
-
-    const float* cur_data = prosody_data + t * prosody_dim;
+    // Compute prosody in the word boundary
+    const float* cur_data = prosody_data + prosody_offset * prosody_dim;
     int best_idx =
         std::max_element(cur_data, cur_data + prosody_dim) - cur_data;
-    prosodys->emplace_back("#" + std::to_string(best_idx));
+    prosody += ("#" + std::to_string(best_idx));
+    prosodys->emplace_back(prosody);
   }
 }
 
 void G2pProsody::Compute(const std::string& str,
                          std::vector<std::string>* phonemes) {
   CHECK(phonemes != nullptr);
-  // Tokenize the input text
+  phonemes->clear();
+  // 1. First segment the input text into words
+  std::vector<std::string> words;
+  word_break_->Segment(str, &words);
+  // 2. Chinese g2p & prosody
   std::vector<int64_t> token_ids;
-  std::vector<std::string> tokens;
-  Tokenize(str, &tokens, &token_ids);
-  // Forward the tokenized input text
+  std::vector<int> token_offsets;
+  Tokenize(words, &token_ids, &token_offsets);
+  for (int i = 0; i < words.size(); i++) {
+    LOG(INFO) << words[i] << " " << token_ids[i] << " " << token_offsets[i];
+  }
   std::vector<std::string> pinyins;
   std::vector<std::string> prosodys;
-  Forward(tokens, token_ids, &pinyins, &prosodys);
-  for (int idx = 0; idx < pinyins.size(); idx++) {
-    std::string pinyin = pinyins[idx];
-    std::string prosody = prosodys[idx];
-    transform(pinyin.begin(), pinyin.end(), pinyin.begin(), ::tolower);
-    if (pinyin2phones_.count(pinyin) > 0) {
-      std::vector<std::string>& phones = pinyin2phones_[pinyin];
-      phonemes->insert(phonemes->end(), phones.begin(), phones.end());
-      phonemes->emplace_back(prosody);
-    } else if (g2p_en_) {
+  Forward(words, token_ids, token_offsets, &pinyins, &prosodys);
+  // 3. English words(lookup or phonetisaurus g2p for English OOV)
+  for (int i = 0; i < words.size(); i++) {
+    if (CheckEnglishWord(words[i])) {
       std::vector<std::string> phones;
-      g2p_en_->Convert(pinyin, &phones);
-      phonemes->insert(phonemes->end(), phones.begin(), phones.end());
-      phonemes->emplace_back(prosody);
-    } else {
-      LOG(ERROR) << "Pinyin " << pinyin << " not found in pinyin2phones";
+      pinyins[i] = g2p_en_->Convert(ToLower(words[i]));
     }
   }
+  // 4. Concat phoneme+prosody to final sequence
+  for (int idx = 0; idx < words.size(); idx++) {
+    const std::string& word = words[idx];
+    std::vector<std::string> pinyin, prosody;
+    LOG(INFO) << word << " " << pinyins[idx] << " " << prosodys[idx];
+    SplitString(pinyins[idx], &pinyin);
+    SplitString(prosodys[idx], &prosody);
+    if (CheckEnglishWord(word)) {
+      CHECK_EQ(prosody.size(), 1);
+      phonemes->insert(phonemes->end(), pinyin.begin(), pinyin.end());
+      phonemes->emplace_back(prosody[0]);
+    } else if (lexicon_->NumProns(word) > 0) {
+      CHECK_EQ(pinyin.size(), prosody.size());
+      for (int n = 0; n < pinyin.size(); n++) {
+        if (pinyin2phones_.count(pinyin[n]) > 0) {
+          std::vector<std::string>& phones = pinyin2phones_[pinyin[n]];
+          phonemes->insert(phonemes->end(), phones.begin(), phones.end());
+          phonemes->emplace_back(prosody[n]);
+        } else {
+          LOG(ERROR) << "Pinyin " << pinyin[n] << " not found in pinyin2phones";
+        }
+      }
+    } else {
+      // Not English, Not in Lexicon, ignore now
+      // TODO(Binbin Zhang): Deal punct
+      LOG(WARNING) << "Ignore word " << word;
+    }
+  }
+  // Last token should be "#4"
+  phonemes->back() = "#4";
 }
 
 }  // namespace wetts
