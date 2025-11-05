@@ -14,20 +14,40 @@
 
 import argparse
 import os
+import random
 
-import torch
 import onnxruntime as ort
-
+import torch
+import torch.nn.functional as F
 from model import FrontendModel
+from onnxruntime.quantization import QuantType, quantize_dynamic
+from transformers import AutoTokenizer
 from utils import read_table
+
+
+def cosine_similarity(tensor1, tensor2):
+    flat1 = tensor1.flatten()
+    flat2 = tensor2.flatten()
+    similarity = F.cosine_similarity(flat1.unsqueeze(0),
+                                     flat2.unsqueeze(0),
+                                     dim=1)
+    return similarity.item()
 
 
 def get_args():
     parser = argparse.ArgumentParser(description="export onnn model")
-    parser.add_argument("--polyphone_dict", required=True, help="polyphone dict file")
-    parser.add_argument("--prosody_dict", required=True, help="train data file")
+    parser.add_argument("--polyphone_dict",
+                        required=True,
+                        help="polyphone dict file")
+    parser.add_argument("--prosody_dict",
+                        required=True,
+                        help="train data file")
     parser.add_argument("--checkpoint", required=True, help="checkpoint model")
     parser.add_argument("--onnx_model", required=True, help="onnx model path")
+    parser.add_argument("--quant_onnx_model", help="quant onnx model path")
+    parser.add_argument("--bert_name_or_path",
+                        default='bert-chinese-base',
+                        help="bert init model")
     args = parser.parse_args()
     return args
 
@@ -41,8 +61,10 @@ def main():
     num_prosody = len(prosody_dict)
 
     # Init model
-    model = FrontendModel(num_polyphones, num_prosody)
-    model.load_state_dict(torch.load(args.checkpoint, map_location="cpu"))
+    tokenizer = AutoTokenizer.from_pretrained(args.bert_name_or_path)
+    model = FrontendModel(num_polyphones, num_prosody, args.bert_name_or_path)
+    model.load_state_dict(torch.load(args.checkpoint, map_location="cpu"),
+                          strict=False)
     model.forward = model.export_forward
     model.eval()
 
@@ -54,29 +76,40 @@ def main():
         input_names=["input"],
         output_names=["polyphone_output", "prosody_output"],
         dynamic_axes={
-            "input": {1: "T"},
-            "polyphone_output": {1: "T"},
-            "prosody_output": {1: "T"},
+            "input": {
+                1: "T"
+            },
+            "polyphone_output": {
+                1: "T"
+            },
+            "prosody_output": {
+                1: "T"
+            },
         },
         opset_version=13,
         verbose=False,
     )
 
     # Verify onnx precision
-    torch_output = model(dummy_input)
-    ort_sess = ort.InferenceSession(args.onnx_model)
-    onnx_output = ort_sess.run(None, {"input": dummy_input.numpy()})
-    print(torch_output[1])
-    print(onnx_output[1])
-    if torch.allclose(
-        torch_output[0], torch.tensor(onnx_output[0]), atol=1e-3
-    ) and torch.allclose(torch_output[1], torch.tensor(onnx_output[1]), atol=1e-3):
-        print("Export to onnx succeed!")
-    else:
-        print(
-            """Export to onnx succeed, but pytorch/onnx have different
-                 outputs when given the same input, please check!!!"""
-        )
+    rand_len = random.randint(5, 20)
+    rand_input = torch.randint(0, 100, (1, rand_len))
+    print('rand input', rand_input)
+    torch_output = model(rand_input)
+    print(torch_output[0].size(), torch_output[1].size())
+
+    def verify_export(onnx_model):
+        ort_sess = ort.InferenceSession(onnx_model)
+        onnx_output = ort_sess.run(None, {"input": rand_input.numpy()})
+        sim = cosine_similarity(torch_output[1],
+                                torch.from_numpy(onnx_output[1]))
+        print(f"Export to onnx {onnx_model}, similarity {sim}")
+
+    verify_export(args.onnx_model)
+    if args.quant_onnx_model is not None:
+        quantize_dynamic(args.onnx_model,
+                         args.quant_onnx_model,
+                         weight_type=QuantType.QUInt8)
+        verify_export(args.quant_onnx_model)
 
 
 if __name__ == "__main__":

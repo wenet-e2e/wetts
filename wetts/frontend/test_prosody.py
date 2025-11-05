@@ -14,24 +14,35 @@
 
 import argparse
 import os
+from functools import partial
 
-from sklearn.metrics import f1_score
 import torch
+from dataset import IGNORE_ID, FrontendDataset, collate_fn
+from model import FrontendModel
+from sklearn.metrics import f1_score
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-
-from dataset import FrontendDataset, collote_fn, IGNORE_ID
-from model import FrontendModel
+from transformers import AutoTokenizer
 from utils import read_table
 
 
 def get_args():
     parser = argparse.ArgumentParser(description="training your network")
-    parser.add_argument("--polyphone_dict", required=True, help="polyphone dict file")
-    parser.add_argument("--prosody_dict", required=True, help="train data file")
+    parser.add_argument("--polyphone_dict",
+                        required=True,
+                        help="polyphone dict file")
+    parser.add_argument("--prosody_dict",
+                        required=True,
+                        help="train data file")
     parser.add_argument("--test_data", required=True, help="test data file")
-    parser.add_argument("--batch_size", type=int, default=32, help="batch size")
+    parser.add_argument("--batch_size",
+                        type=int,
+                        default=32,
+                        help="batch size")
     parser.add_argument("--checkpoint", required=True, help="checkpoint model")
+    parser.add_argument("--bert_name_or_path",
+                        default='bert-chinese-base',
+                        help="bert init model")
     parser.add_argument(
         "--exclude_end",
         action="store_true",
@@ -50,12 +61,16 @@ def main():
     num_polyphones = len(polyphone_dict)
     num_prosody = len(prosody_dict)
 
-    test_data = FrontendDataset(prosody_file=args.test_data, prosody_dict=prosody_dict)
-    test_dataloader = DataLoader(
-        test_data, batch_size=args.batch_size, collate_fn=collote_fn
-    )
+    tokenizer = AutoTokenizer.from_pretrained(args.bert_name_or_path)
+    collate_fn_param = partial(collate_fn, tokenizer=tokenizer)
+    test_data = FrontendDataset(tokenizer,
+                                prosody_file=args.test_data,
+                                prosody_dict=prosody_dict)
+    test_dataloader = DataLoader(test_data,
+                                 batch_size=args.batch_size,
+                                 collate_fn=collate_fn_param)
     # Init model
-    model = FrontendModel(num_polyphones, num_prosody)
+    model = FrontendModel(num_polyphones, num_prosody, args.bert_name_or_path)
     model.load_state_dict(torch.load(args.checkpoint, map_location="cpu"))
 
     model.eval()
@@ -70,26 +85,21 @@ def main():
             for i in range(logits.size(0)):
                 # Remove padding
                 if args.exclude_end:
-                    pred.extend(logits[i][1 : lengths[i], :].argmax(-1).tolist())
-                    label.extend(labels[i][1 : lengths[i]].tolist())
+                    pred.extend(logits[i][1:lengths[i], :].argmax(-1).tolist())
+                    label.extend(labels[i][1:lengths[i]].tolist())
                 else:
-                    pred.extend(logits[i][1 : lengths[i] + 1, :].argmax(-1).tolist())
-                    label.extend(labels[i][1 : lengths[i] + 1].tolist())
+                    pred.extend(logits[i][1:lengths[i] +
+                                          1, :].argmax(-1).tolist())
+                    label.extend(labels[i][1:lengths[i] + 1].tolist())
             pbar.update(1)
-        pw_f1_score = f1_score(
-            [1 if x > 0 else 0 for x in label], [1 if x > 0 else 0 for x in pred]
-        )
-        pph_f1_score = f1_score(
-            [1 if x > 1 else 0 for x in label], [1 if x > 1 else 0 for x in pred]
-        )
-        iph_f1_score = f1_score(
-            [1 if x > 2 else 0 for x in label], [1 if x > 2 else 0 for x in pred]
-        )
-        print(
-            "pw f1_score {} pph f1_score {} iph f1_score {}".format(
-                pw_f1_score, pph_f1_score, iph_f1_score
-            )
-        )
+        pw_f1_score = f1_score([1 if x > 0 else 0 for x in label],
+                               [1 if x > 0 else 0 for x in pred])
+        pph_f1_score = f1_score([1 if x > 1 else 0 for x in label],
+                                [1 if x > 1 else 0 for x in pred])
+        iph_f1_score = f1_score([1 if x > 2 else 0 for x in label],
+                                [1 if x > 2 else 0 for x in pred])
+        print("pw f1_score {} pph f1_score {} iph f1_score {}".format(
+            pw_f1_score, pph_f1_score, iph_f1_score))
         pbar.close()
 
 

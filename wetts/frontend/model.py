@@ -19,21 +19,40 @@ from transformers import AutoModel
 
 
 class FrontendModel(nn.Module):
-    def __init__(self, num_polyphones: int, num_prosody: int):
+
+    def __init__(self,
+                 num_polyphones: int,
+                 num_prosody: int,
+                 bert_name_or_path: str = 'bert-chinese-base'):
         super(FrontendModel, self).__init__()
-        self.bert = AutoModel.from_pretrained("bert-base-chinese")
+        print(bert_name_or_path)
+        self.bert = AutoModel.from_pretrained(bert_name_or_path)
         for param in self.bert.parameters():
             param.requires_grad_(False)
+
+        if 'bert-chinese-base' in bert_name_or_path:
+            d_model = 768
+            nhead = 8
+            dim_feedforward = 2048
+        elif 'TinyBERT_4L_zh_backup' in bert_name_or_path:
+            d_model = 312
+            nhead = 12
+            dim_feedforward = 1200
+        else:
+            assert False, f'unsupport model {bert_name_or_path}'
         self.transform = nn.TransformerEncoderLayer(
-            d_model=768, nhead=8, dim_feedforward=2048, batch_first=True
-        )
-        self.phone_classifier = nn.Linear(768, num_polyphones)
-        self.prosody_classifier = nn.Linear(768, num_prosody)
+            d_model=d_model,
+            nhead=nhead,
+            dim_feedforward=dim_feedforward,
+            batch_first=True)
+        self.phone_classifier = nn.Linear(d_model, num_polyphones)
+        self.prosody_classifier = nn.Linear(d_model, num_prosody)
 
     def _forward(self, x):
         mask = x["attention_mask"] == 0
         bert_output = self.bert(**x)
-        x = self.transform(bert_output.last_hidden_state, src_key_padding_mask=mask)
+        x = self.transform(bert_output.last_hidden_state,
+                           src_key_padding_mask=mask)
         phone_pred = self.phone_classifier(x)
         prosody_pred = self.prosody_classifier(x)
         return phone_pred, prosody_pred

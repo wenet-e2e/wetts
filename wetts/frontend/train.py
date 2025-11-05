@@ -16,21 +16,23 @@ import argparse
 import os
 import sys
 from contextlib import nullcontext
+from functools import partial
 
 import torch
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
-from transformers import AdamW, get_scheduler
-
-from dataset import FrontendDataset, collote_fn, IGNORE_ID
+from dataset import IGNORE_ID, FrontendDataset, collate_fn
 from model import FrontendModel
+from torch.optim import AdamW
+from torch.utils.data import DataLoader
+from transformers import AutoTokenizer, get_scheduler
 from utils import read_table
 
 
 def compute_accuracy(logits, target):
     pred = logits.argmax(-1)
     mask = target != IGNORE_ID
-    numerator = torch.sum(pred.masked_select(mask) == target.masked_select(mask))
+    numerator = torch.sum(
+        pred.masked_select(mask) == target.masked_select(mask))
     denominator = torch.sum(mask)
     if denominator > 0:
         return float(numerator) / float(denominator)
@@ -58,7 +60,8 @@ def train_or_cv(
         model.eval()
         tag = "CV"
     with context():
-        for batch, (inputs, phone_labels, prosody_labels) in enumerate(dataloader):
+        for batch, (inputs, phone_labels,
+                    prosody_labels) in enumerate(dataloader):
             inputs["input_ids"] = inputs["input_ids"].to(device)
             inputs["token_type_ids"] = inputs["token_type_ids"].to(device)
             inputs["attention_mask"] = inputs["attention_mask"].to(device)
@@ -67,28 +70,26 @@ def train_or_cv(
             # Forward
             phone_logits, prosody_logits = model(inputs)
             # Compute loss
-            phone_loss = F.cross_entropy(
-                phone_logits.permute(0, 2, 1), phone_labels, ignore_index=IGNORE_ID
-            )
+            phone_loss = F.cross_entropy(phone_logits.permute(0, 2, 1),
+                                         phone_labels,
+                                         ignore_index=IGNORE_ID)
             phone_acc = compute_accuracy(phone_logits, phone_labels)
 
-            prosody_loss = F.cross_entropy(
-                prosody_logits.permute(0, 2, 1), prosody_labels, ignore_index=IGNORE_ID
-            )
+            prosody_loss = F.cross_entropy(prosody_logits.permute(0, 2, 1),
+                                           prosody_labels,
+                                           ignore_index=IGNORE_ID)
             prosody_acc = compute_accuracy(prosody_logits, prosody_labels)
 
-            loss = polyphone_weight * phone_loss + (1 - polyphone_weight) * prosody_loss
+            loss = polyphone_weight * phone_loss + (
+                1 - polyphone_weight) * prosody_loss
 
             if batch % log_interval == 0:
                 logstr = "Epoch {} [{}] progress {}/{} loss {:.6f}".format(
-                    epoch, tag, batch, len(dataloader), loss.item()
-                )
+                    epoch, tag, batch, len(dataloader), loss.item())
                 logstr += " polyphone_loss {:.6f} polyphone_acc {:.6f}".format(
-                    phone_loss, phone_acc
-                )
+                    phone_loss, phone_acc)
                 logstr += " prosody_loss {:.6f} prosody_acc {:.6f}".format(
-                    prosody_loss, prosody_acc
-                )
+                    prosody_loss, prosody_acc)
                 print(logstr)
             sys.stdout.flush()
 
@@ -102,23 +103,50 @@ def train_or_cv(
 
 def get_args():
     parser = argparse.ArgumentParser(description="training your network")
-    parser.add_argument("--polyphone_dict", required=True, help="polyphone dict")
+    parser.add_argument("--polyphone_dict",
+                        required=True,
+                        help="polyphone dict")
     parser.add_argument("--prosody_dict", required=True, help="prosody dict")
-    parser.add_argument("--train_polyphone_data", default=True, help="train data file")
-    parser.add_argument("--cv_polyphone_data", required=True, help="cv data file")
-    parser.add_argument("--train_prosody_data", required=True, help="train data file")
-    parser.add_argument("--cv_prosody_data", required=True, help="cv data file")
-    parser.add_argument(
-        "--gpu", type=int, default=-1, help="gpu id for this local rank, -1 for cpu"
-    )
-    parser.add_argument("--batch_size", type=int, default=32, help="batch size")
-    parser.add_argument("--num_epochs", type=int, default=4, help="num training epochs")
-    parser.add_argument("--log_interval", type=int, default=1, help="log interval")
-    parser.add_argument("--lr", type=float, default=0.001, help="learning rate")
-    parser.add_argument(
-        "--polyphone_weight", type=float, default=0.5, help="polyphone task weight"
-    )
+    parser.add_argument("--train_polyphone_data",
+                        default=True,
+                        help="train data file")
+    parser.add_argument("--cv_polyphone_data",
+                        required=True,
+                        help="cv data file")
+    parser.add_argument("--train_prosody_data",
+                        required=True,
+                        help="train data file")
+    parser.add_argument("--cv_prosody_data",
+                        required=True,
+                        help="cv data file")
+    parser.add_argument("--gpu",
+                        type=int,
+                        default=-1,
+                        help="gpu id for this local rank, -1 for cpu")
+    parser.add_argument("--batch_size",
+                        type=int,
+                        default=32,
+                        help="batch size")
+    parser.add_argument("--num_epochs",
+                        type=int,
+                        default=4,
+                        help="num training epochs")
+    parser.add_argument("--log_interval",
+                        type=int,
+                        default=1,
+                        help="log interval")
+    parser.add_argument("--lr",
+                        type=float,
+                        default=0.001,
+                        help="learning rate")
+    parser.add_argument("--polyphone_weight",
+                        type=float,
+                        default=0.5,
+                        help="polyphone task weight")
     parser.add_argument("--model_dir", required=True, help="save model dir")
+    parser.add_argument("--bert_name_or_path",
+                        default='bert-chinese-base',
+                        help="bert init model")
     args = parser.parse_args()
     return args
 
@@ -130,21 +158,24 @@ def main():
     prosody_dict = read_table(args.prosody_dict)
     num_polyphones = len(polyphone_dict)
     num_prosody = len(prosody_dict)
-
-    train_data = FrontendDataset(
-        args.train_polyphone_data, polyphone_dict, args.train_prosody_data, prosody_dict
-    )
-    train_dataloader = DataLoader(
-        train_data, batch_size=args.batch_size, shuffle=True, collate_fn=collote_fn
-    )
-    cv_data = FrontendDataset(
-        args.cv_polyphone_data, polyphone_dict, args.cv_prosody_data, prosody_dict
-    )
-    cv_dataloader = DataLoader(
-        cv_data, batch_size=args.batch_size, shuffle=False, collate_fn=collote_fn
-    )
+    tokenizer = AutoTokenizer.from_pretrained(args.bert_name_or_path)
+    collate_fn_param = partial(collate_fn, tokenizer=tokenizer)
+    train_data = FrontendDataset(tokenizer, args.train_polyphone_data,
+                                 polyphone_dict, args.train_prosody_data,
+                                 prosody_dict)
+    train_dataloader = DataLoader(train_data,
+                                  batch_size=args.batch_size,
+                                  shuffle=True,
+                                  collate_fn=collate_fn_param)
+    cv_data = FrontendDataset(tokenizer, args.cv_polyphone_data,
+                              polyphone_dict, args.cv_prosody_data,
+                              prosody_dict)
+    cv_dataloader = DataLoader(cv_data,
+                               batch_size=args.batch_size,
+                               shuffle=False,
+                               collate_fn=collate_fn_param)
     # Init model
-    model = FrontendModel(num_polyphones, num_prosody)
+    model = FrontendModel(num_polyphones, num_prosody, args.bert_name_or_path)
     print(model)
     use_cuda = args.gpu >= 0 and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "mps")
@@ -181,7 +212,8 @@ def main():
             log_interval=args.log_interval,
             polyphone_weight=args.polyphone_weight,
         )
-        torch.save(model.state_dict(), os.path.join(args.model_dir, "{}.pt".format(i)))
+        torch.save(model.state_dict(),
+                   os.path.join(args.model_dir, "{}.pt".format(i)))
 
 
 if __name__ == "__main__":

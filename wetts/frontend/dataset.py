@@ -15,21 +15,21 @@
 import numpy as np
 import torch
 from torch.utils.data import Dataset
-from transformers import AutoTokenizer
 
 IGNORE_ID = -100
 
-tokenizer = AutoTokenizer.from_pretrained("bert-base-chinese")
-
 
 class FrontendDataset(Dataset):
+
     def __init__(
         self,
+        tokenizer=None,
         polyphone_file=None,
         polyphone_dict=None,
         prosody_file=None,
         prosody_dict=None,
     ):
+        self.tokenizer = tokenizer
         self.data = []
         self.polyphone_dict = polyphone_dict
         self.prosody_dict = prosody_dict
@@ -58,22 +58,21 @@ class FrontendDataset(Dataset):
                 tokens = []
                 all_polyphones = []
                 for i in range(0, len(arr), 2):
-                    toks = tokenizer.encode(arr[i], add_special_tokens=False)
+                    toks = self.tokenizer.encode(arr[i],
+                                                 add_special_tokens=False)
                     polyphones = [IGNORE_ID] * len(toks)
                     if i + 1 < len(arr):
                         if arr[i + 1] in self.polyphone_dict:
                             polyphones[-1] = self.polyphone_dict[arr[i + 1]]
-                        else:
-                            print("Skip unknown polyphone {}".format(arr[i + 1]))
+                        # else:
+                        #     print("Skip unknown polyphone {}".format(arr[i + 1]))
                     all_polyphones.extend(polyphones)
                     tokens.append(arr[i])
-                data.append(
-                    {
-                        "sentence": tokens,
-                        "polyphones": all_polyphones,
-                        "prosody": [IGNORE_ID] * len(all_polyphones),
-                    }
-                )
+                data.append({
+                    "sentence": tokens,
+                    "polyphones": all_polyphones,
+                    "prosody": [IGNORE_ID] * len(all_polyphones),
+                })
         return data
 
     def read_prosody_data(self, prosody_file):
@@ -93,11 +92,10 @@ class FrontendDataset(Dataset):
                 else:
                     for i in range(0, len(arr), 2):
                         # #N and N is less than `prosody_dict`
-                        if (
-                            arr[i + 1][0] != "#"
-                            or not arr[i + 1][1:].encode("utf8").isdigit()
-                            or int(arr[i + 1][1:]) >= len(self.prosody_dict)
-                        ):
+                        if (arr[i + 1][0] != "#"
+                                or not arr[i + 1][1:].encode("utf8").isdigit()
+                                or int(arr[i + 1][1:]) >= len(
+                                    self.prosody_dict)):
                             ok = False
                             break
                 if not ok:
@@ -107,19 +105,18 @@ class FrontendDataset(Dataset):
                 tokens = []
                 prosody = []
                 for i in range(0, len(arr), 2):
-                    toks = tokenizer.encode(arr[i], add_special_tokens=False)
+                    toks = self.tokenizer.encode(arr[i],
+                                                 add_special_tokens=False)
                     rank = int(arr[i + 1][1:])
                     rhythm = [0] * len(toks)
                     rhythm[-1] = rank
                     prosody.extend(rhythm)
                     tokens.append(arr[i])
-                data.append(
-                    {
-                        "sentence": tokens,
-                        "polyphones": [IGNORE_ID] * len(prosody),
-                        "prosody": prosody,
-                    }
-                )
+                data.append({
+                    "sentence": tokens,
+                    "polyphones": [IGNORE_ID] * len(prosody),
+                    "prosody": prosody,
+                })
         return data
 
     def __len__(self):
@@ -129,7 +126,7 @@ class FrontendDataset(Dataset):
         return self.data[idx]
 
 
-def collote_fn(batch_samples):
+def collate_fn(batch_samples, tokenizer):
     batch_sentence, batch_polyphones, batch_prosody = [], [], []
     for sample in batch_samples:
         batch_sentence.append(sample["sentence"])
@@ -142,13 +139,16 @@ def collote_fn(batch_samples):
         is_split_into_words=True,
         return_tensors="pt",
     )
-    polyphone_label = np.ones_like(batch_inputs["input_ids"], dtype=int) * IGNORE_ID
+    polyphone_label = np.ones_like(batch_inputs["input_ids"],
+                                   dtype=int) * IGNORE_ID
     for idx, polyphones in enumerate(batch_polyphones):
-        polyphone_label[idx][1 : len(polyphones) + 1] = np.array(
-            polyphones, dtype=np.int32
-        )
-    prosody_label = np.ones_like(batch_inputs["input_ids"], dtype=int) * IGNORE_ID
+        polyphone_label[idx][1:len(polyphones) + 1] = np.array(polyphones,
+                                                               dtype=np.int32)
+    prosody_label = np.ones_like(batch_inputs["input_ids"],
+                                 dtype=int) * IGNORE_ID
     for idx, prosody in enumerate(batch_prosody):
-        prosody_label[idx][1 : len(prosody) + 1] = np.array(prosody, dtype=np.int32)
+        prosody_label[idx][1:len(prosody) + 1] = np.array(prosody,
+                                                          dtype=np.int32)
 
-    return batch_inputs, torch.tensor(polyphone_label), torch.tensor(prosody_label)
+    return batch_inputs, torch.tensor(polyphone_label), torch.tensor(
+        prosody_label)
