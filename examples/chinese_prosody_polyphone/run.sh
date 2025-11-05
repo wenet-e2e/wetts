@@ -5,7 +5,8 @@ stage=0
 stop_stage=4
 url=https://wetts-1256283475.cos.ap-shanghai.myqcloud.com/data
 
-dir=exp
+bert_name_or_path=bert-chinese-base
+dir=exp/bert
 
 . tools/parse_options.sh
 
@@ -35,6 +36,7 @@ fi
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
   mkdir -p $dir
   python frontend/train.py \
+    --bert_name_or_path $bert_name_or_path \
     --gpu 2 \
     --lr 0.001 \
     --num_epochs 10 \
@@ -54,6 +56,7 @@ fi
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
   # Test polyphone, metric: accuracy
   python frontend/test_polyphone.py \
+    --bert_name_or_path $bert_name_or_path \
     --polyphone_dict lexicon/polyphone.txt \
     --prosody_dict lexicon/prosody.txt \
     --test_data data/polyphone/test.txt \
@@ -62,6 +65,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
   # Test prosody, metric: F1-score
   python frontend/test_prosody.py \
+    --bert_name_or_path $bert_name_or_path \
     --polyphone_dict lexicon/polyphone.txt \
     --prosody_dict lexicon/prosody.txt \
     --test_data data/prosody/cv.txt \
@@ -73,6 +77,7 @@ fi
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   # export onnx model
   python frontend/export_onnx.py \
+    --bert_name_or_path $bert_name_or_path \
     --polyphone_dict lexicon/polyphone.txt \
     --prosody_dict lexicon/prosody.txt \
     --checkpoint $dir/9.pt \
@@ -85,8 +90,9 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   # pinyin ['ba1', 'fang1', 'cai2', 'bao3', 'jin4']
   # prosody [0 1 0 0 4]
   python frontend/g2p_prosody.py \
+    --bert_name_or_path $bert_name_or_path \
     --text "八方财宝进" \
-    --hanzi2pinyin_file lexicon/pinyin_dict.txt \
+    --lexicon_file lexicon/pinyin_dict.txt \
     --polyphone_file lexicon/polyphone.txt \
     --polyphone_prosody_model $dir/9.onnx
 fi

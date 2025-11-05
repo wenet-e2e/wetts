@@ -14,23 +14,34 @@
 
 import argparse
 import os
+from functools import partial
 
 import torch
+from dataset import IGNORE_ID, FrontendDataset, collate_fn
+from model import FrontendModel
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-
-from dataset import FrontendDataset, collote_fn, IGNORE_ID
-from model import FrontendModel
+from transformers import AutoTokenizer
 from utils import read_table
 
 
 def get_args():
     parser = argparse.ArgumentParser(description="training your network")
-    parser.add_argument("--polyphone_dict", required=True, help="polyphone dict file")
-    parser.add_argument("--prosody_dict", required=True, help="train data file")
+    parser.add_argument("--polyphone_dict",
+                        required=True,
+                        help="polyphone dict file")
+    parser.add_argument("--prosody_dict",
+                        required=True,
+                        help="train data file")
     parser.add_argument("--test_data", required=True, help="test data file")
-    parser.add_argument("--batch_size", type=int, default=32, help="batch size")
+    parser.add_argument("--batch_size",
+                        type=int,
+                        default=32,
+                        help="batch size")
     parser.add_argument("--checkpoint", required=True, help="checkpoint model")
+    parser.add_argument("--bert_name_or_path",
+                        default='bert-chinese-base',
+                        help="bert init model")
     args = parser.parse_args()
     return args
 
@@ -43,14 +54,18 @@ def main():
     num_polyphones = len(polyphone_dict)
     num_prosody = len(prosody_dict)
 
-    test_data = FrontendDataset(
-        polyphone_file=args.test_data, polyphone_dict=polyphone_dict
-    )
+    tokenizer = AutoTokenizer.from_pretrained(args.bert_name_or_path)
+    collate_fn_param = partial(collate_fn, tokenizer=tokenizer)
+    test_data = FrontendDataset(tokenizer,
+                                polyphone_file=args.test_data,
+                                polyphone_dict=polyphone_dict)
     test_dataloader = DataLoader(
-        test_data, batch_size=args.batch_size, collate_fn=collote_fn
+        test_data,
+        batch_size=args.batch_size,
+        collate_fn=collate_fn_param,
     )
     # Init model
-    model = FrontendModel(num_polyphones, num_prosody)
+    model = FrontendModel(num_polyphones, num_prosody, args.bert_name_or_path)
     model.load_state_dict(torch.load(args.checkpoint, map_location="cpu"))
 
     model.eval()
