@@ -31,7 +31,7 @@ VitsModel::VitsModel(const std::string& encoder_model_path,
       decoder_(decoder_model_path),
       chunk_size_(chunk_size),
       pad_size_(pad_size) {
-  // Fix me: cpplint  Do not indent within a namespace.
+  // Fixme(Binbin): cpplint  Do not indent within a namespace.
 }
 
 std::vector<Ort::Value> VitsModel::ForwardEncoder(
