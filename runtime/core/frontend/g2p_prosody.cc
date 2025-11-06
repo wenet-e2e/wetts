@@ -27,6 +27,7 @@
 #include "utils/utils.h"
 
 #include "frontend/word_break.h"
+#include "frontend/sandhi.h"
 
 namespace wetts {
 
@@ -166,9 +167,6 @@ void G2pProsody::Compute(const std::string& str,
   std::vector<int64_t> token_ids;
   std::vector<int> token_offsets;
   Tokenize(words, &token_ids, &token_offsets);
-  for (int i = 0; i < words.size(); i++) {
-    LOG(INFO) << words[i] << " " << token_ids[i] << " " << token_offsets[i];
-  }
   std::vector<std::string> pinyins;
   std::vector<std::string> prosodys;
   Forward(words, token_ids, token_offsets, &pinyins, &prosodys);
@@ -183,7 +181,8 @@ void G2pProsody::Compute(const std::string& str,
   for (int idx = 0; idx < words.size(); idx++) {
     const std::string& word = words[idx];
     std::vector<std::string> pinyin, prosody;
-    LOG(INFO) << word << " " << pinyins[idx] << " " << prosodys[idx];
+    VLOG(2) << "Word, g2p & prosody: " << word << " "
+            << pinyins[idx] << " " << prosodys[idx];
     SplitString(pinyins[idx], &pinyin);
     SplitString(prosodys[idx], &prosody);
     if (CheckEnglishWord(word)) {
@@ -192,6 +191,7 @@ void G2pProsody::Compute(const std::string& str,
       phonemes->emplace_back(prosody[0]);
     } else if (lexicon_->NumProns(word) > 0) {
       CHECK_EQ(pinyin.size(), prosody.size());
+      Sandhi(word, &pinyin);
       for (int n = 0; n < pinyin.size(); n++) {
         if (pinyin2phones_.count(pinyin[n]) > 0) {
           std::vector<std::string>& phones = pinyin2phones_[pinyin[n]];
@@ -210,5 +210,6 @@ void G2pProsody::Compute(const std::string& str,
   // Last token should be "#4"
   phonemes->back() = "#4";
 }
+
 
 }  // namespace wetts
