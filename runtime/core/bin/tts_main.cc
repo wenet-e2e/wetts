@@ -22,7 +22,7 @@
 #include "frontend/g2p_en.h"
 #include "frontend/g2p_prosody.h"
 #include "frontend/wav.h"
-#include "model/tts_model.h"
+#include "model/tts.h"
 #include "utils/string.h"
 
 // Flags
@@ -77,7 +77,7 @@ int main(int argc, char* argv[]) {
   auto g2p_prosody = std::make_shared<wetts::G2pProsody>(
       FLAGS_g2p_prosody_model, FLAGS_g2p_prosody_vocab, FLAGS_char2pinyin,
       FLAGS_pinyin2id, FLAGS_pinyin2phones, g2p_en);
-  auto model = std::make_shared<wetts::TtsModel>(
+  auto model = std::make_shared<wetts::TTS>(
       FLAGS_vits_encoder_model, FLAGS_vits_decoder_model, FLAGS_speaker2id,
       FLAGS_phone2id, FLAGS_sampling_rate, tn, g2p_prosody, FLAGS_chunk_size,
       FLAGS_pad_size);
@@ -86,10 +86,10 @@ int main(int argc, char* argv[]) {
   int sid = model->GetSid(FLAGS_sname);
   if (FLAGS_streaming) {
     model->SetStreamInfo(FLAGS_text, sid);
-    bool next = true;
-    while (next) {
+    bool done = false;
+    while (!done) {
       std::vector<float> sub_audio;
-      next = model->StreamSynthesis(&sub_audio);
+      done = model->StreamSynthesis(&sub_audio);
       audio.insert(audio.end(), sub_audio.begin(), sub_audio.end());
     }
   } else {
