@@ -181,15 +181,9 @@ void G2pProsody::Compute(const std::string& str,
   for (int idx = 0; idx < words.size(); idx++) {
     const std::string& word = words[idx];
     std::vector<std::string> pinyin, prosody;
-    VLOG(2) << "Word, g2p & prosody: " << word << " "
-            << pinyins[idx] << " " << prosodys[idx];
     SplitString(pinyins[idx], &pinyin);
     SplitString(prosodys[idx], &prosody);
-    if (CheckEnglishWord(word)) {
-      CHECK_EQ(prosody.size(), 1);
-      phonemes->insert(phonemes->end(), pinyin.begin(), pinyin.end());
-      phonemes->emplace_back(prosody[0]);
-    } else if (lexicon_->NumProns(word) > 0) {
+    if (lexicon_->NumProns(word) > 0) {
       CHECK_EQ(pinyin.size(), prosody.size());
       Sandhi(word, &pinyin);
       for (int n = 0; n < pinyin.size(); n++) {
@@ -201,11 +195,17 @@ void G2pProsody::Compute(const std::string& str,
           LOG(ERROR) << "Pinyin " << pinyin[n] << " not found in pinyin2phones";
         }
       }
+    } else if (CheckEnglishWord(word)) {
+      CHECK_EQ(prosody.size(), 1);
+      phonemes->insert(phonemes->end(), pinyin.begin(), pinyin.end());
+      phonemes->emplace_back(prosody[0]);
     } else {
       // Not English, Not in Lexicon, ignore now
       // TODO(Binbin Zhang): Deal punct
       LOG(WARNING) << "Ignore word " << word;
     }
+    VLOG(2) << "Word, g2p & prosody: " << word << " "
+            << pinyins[idx] << " " << prosodys[idx];
   }
   // Last token should be "#4"
   phonemes->back() = "#4";
