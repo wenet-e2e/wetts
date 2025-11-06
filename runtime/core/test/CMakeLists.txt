@@ -25,3 +25,16 @@ target_link_libraries(sentence_break_test
 )
 
 add_test(NAME sentence_break_test COMMAND sentence_break_test)
+
+add_executable(sandhi_test
+  sandhi_test.cc
+)
+
+target_link_libraries(sandhi_test
+  PRIVATE
+    frontend
+    gtest
+    gtest_main
+)
+
+add_test(NAME sandhi_test COMMAND sandhi_test)
