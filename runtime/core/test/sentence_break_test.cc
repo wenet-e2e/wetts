@@ -19,12 +19,12 @@
 #include <string>
 #include <vector>
 
-using wetts::Segement;
+using wetts::SentenceSegement;
 
 TEST(SentenceBreakTest, ChinesePunctuations) {
   std::string text = "我爱编程，但是今天下雨了。明天呢？好吧！";
   std::vector<std::string> sentences;
-  Segement(text, &sentences);
+  SentenceSegement(text, &sentences);
   // 逗号不进行切分
   std::vector<std::string> expect = {"我爱编程，但是今天下雨了", "明天呢",
                                      "好吧"};
@@ -34,7 +34,7 @@ TEST(SentenceBreakTest, ChinesePunctuations) {
 TEST(SentenceBreakTest, EnglishPunctuations) {
   std::string text = "Hello, world! Are you OK? Yes; good.";
   std::vector<std::string> sentences;
-  Segement(text, &sentences);
+  SentenceSegement(text, &sentences);
   // 逗号不进行切分
   std::vector<std::string> expect = {"Hello, world", "Are you OK", "Yes",
                                      "good"};
@@ -45,7 +45,7 @@ TEST(SentenceBreakTest, MaxLengthSplit) {
   // 无标点，依赖最大长度强制切分 + 不切英文单词
   std::string text = "abc def ghi jkl";
   std::vector<std::string> sentences;
-  Segement(text, &sentences, 4);
+  SentenceSegement(text, &sentences, 4);
   std::vector<std::string> expect = {"abc", "def", "ghi", "jkl"};
   ASSERT_EQ(sentences, expect);
 }
@@ -54,7 +54,7 @@ TEST(SentenceBreakTest, ChineseMaxLengthSplit) {
   // 中文无空格，达到最大长度时允许强制切分（不涉及英文单词）
   std::string text = "我爱编程学习";  // 6 个中文字符
   std::vector<std::string> sentences;
-  Segement(text, &sentences, 3);
+  SentenceSegement(text, &sentences, 3);
   std::vector<std::string> expect = {"我爱编", "程学习"};
   ASSERT_EQ(sentences, expect);
 }
