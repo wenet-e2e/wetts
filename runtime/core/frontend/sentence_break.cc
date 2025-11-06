@@ -32,8 +32,9 @@ static bool IsSentenceDelimiterChar(const std::string& ch) {
   return kDelims.find(ch) != kDelims.end();
 }
 
-void Segement(const std::string& text, std::vector<std::string>* sentences,
-              size_t max_clause_len) {
+void SentenceSegement(const std::string& text,
+                      std::vector<std::string>* sentences,
+                      size_t max_clause_len) {
   if (sentences == nullptr) {
     return;
   }

@@ -22,8 +22,9 @@ namespace wetts {
 
 // 将输入文本按句子边界切分。
 // max_clause_len: 最大子句长度（按 UTF-8 字符计数），默认 64；0 表示不限制。
-void Segement(const std::string& text, std::vector<std::string>* sentences,
-              size_t max_clause_len = 64);
+void SentenceSegement(const std::string& text,
+                      std::vector<std::string>* sentences,
+                      size_t max_clause_len = 64);
 
 }  // namespace wetts
 
