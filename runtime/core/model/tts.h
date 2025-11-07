@@ -22,9 +22,9 @@
 #include <vector>
 
 #include "onnxruntime_cxx_api.h"  // NOLINT
-#include "processor/wetext_processor.h"
 
 #include "frontend/g2p_prosody.h"
+#include "frontend/tn.h"
 #include "model/vits_model.h"
 
 namespace wetts {
@@ -35,7 +35,7 @@ class TTS {
                const std::string& decodder_model_path,
                const std::string& speaker2id, const std::string& phone2id,
                const int sampling_rate,
-               std::shared_ptr<wetext::Processor> processor,
+               std::shared_ptr<TN> tn,
                std::shared_ptr<G2pProsody> g2p_prosody, int chunk_size = 40,
                int pad_size = 10);
   // Non-stream synthesis, direct call
@@ -62,7 +62,7 @@ class TTS {
   int sampling_rate_;
   std::unordered_map<std::string, int> phone2id_;
   std::unordered_map<std::string, int> speaker2id_;
-  std::shared_ptr<wetext::Processor> tn_;
+  std::shared_ptr<TN> tn_;
   std::shared_ptr<G2pProsody> g2p_prosody_;
 };
 

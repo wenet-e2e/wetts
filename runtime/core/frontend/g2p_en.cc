@@ -17,19 +17,60 @@
 #include <string>
 #include <vector>
 
+#ifdef BUILD_WITH_FST
+#include "fst/rmepsilon.h"
+#endif
+
 #include "utils/log.h"
 
-#include "frontend/fst.h"
 #include "utils/string.h"
 #include "utils/utils.h"
 
 namespace wetts {
 
+#ifdef BUILD_WITH_FST
+StdVectorFst ShortestPath(const std::string& input, const StdVectorFst* fst) {
+  StdVectorFst input_fst;
+  static StringCompiler compiler(BYTE);
+  compiler(input, &input_fst);
+
+  StdVectorFst lattice;
+  fst::Compose(input_fst, *fst, &lattice);
+  StdVectorFst shortest_path;
+  fst::ShortestPath(lattice, &shortest_path, 1, true);
+  return shortest_path;
+}
+
+void ShortestPath(const std::string& input, const StdVectorFst* fst,
+                  std::string* output) {
+  StdVectorFst lattice = ShortestPath(input, fst);
+  static StringPrinter printer(BYTE);
+  printer(lattice, output);
+}
+
+void ShortestPath(const std::string& input, const StdVectorFst* fst,
+                  std::vector<int>* olabels) {
+  StdVectorFst lattice = ShortestPath(input, fst);
+  fst::Project(&lattice, PROJECT_OUTPUT);
+  fst::RmEpsilon(&lattice);
+  fst::TopSort(&lattice);
+
+  for (StateIterator siter(lattice); !siter.Done(); siter.Next()) {
+    ArcIterator aiter(lattice, siter.Value());
+    if (!aiter.Done()) {
+      olabels->emplace_back(aiter.Value().olabel);
+    }
+  }
+}
+#endif
+
 G2pEn::G2pEn(const std::string& cmudict, const std::string& model,
              const std::string& sym) {
   ReadTableFile(cmudict, &cmudict_);
+#ifdef BUILD_WITH_FST
   model_.reset(fst::StdVectorFst::Read(model));
   sym_.reset(fst::SymbolTable::ReadText(sym));
+#endif
 }
 
 void G2pEn::Convert(const std::string& grapheme,
@@ -48,6 +89,7 @@ void G2pEn::Convert(const std::string& grapheme,
       }
     }
   } else {
+#ifdef BUILD_WITH_FST
     std::vector<std::string> graphemes;
     SplitStringToVector(grapheme, "-", true, &graphemes);
     for (int i = 0; i < graphemes.size(); ++i) {
@@ -61,6 +103,7 @@ void G2pEn::Convert(const std::string& grapheme,
         phonemes->emplace_back("#0");
       }
     }
+#endif
   }
 }
 

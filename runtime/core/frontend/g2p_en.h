@@ -20,9 +20,30 @@
 #include <unordered_map>
 #include <vector>
 
+#ifdef BUILD_WITH_FST
 #include "fst/fstlib.h"
+#endif
 
 namespace wetts {
+
+#ifdef BUILD_WITH_FST
+using fst::StdVectorFst;
+using fst::ProjectType::PROJECT_OUTPUT;
+using fst::StringTokenType::BYTE;
+
+using ArcIterator = fst::ArcIterator<fst::StdVectorFst>;
+using StringPrinter = fst::StringPrinter<fst::StdArc>;
+using StateIterator = fst::StateIterator<fst::StdVectorFst>;
+using StringCompiler = fst::StringCompiler<fst::StdArc>;
+
+StdVectorFst ShortestPath(const std::string& input, const StdVectorFst* fst);
+
+void ShortestPath(const std::string& input, const StdVectorFst* fst,
+                  std::string* output);
+
+void ShortestPath(const std::string& input, const StdVectorFst* fst,
+                  std::vector<int>* olabels);
+#endif
 
 class G2pEn {
  public:
@@ -34,8 +55,10 @@ class G2pEn {
 
  private:
   std::unordered_map<std::string, std::vector<std::string>> cmudict_;
+#ifdef BUILD_WITH_FST
   std::shared_ptr<fst::StdVectorFst> model_;
   std::shared_ptr<fst::SymbolTable> sym_;
+#endif
 };
 
 }  // namespace wetts
