@@ -12,16 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "gflags/gflags.h"
-#include "glog/logging.h"
+#include <memory>
 
-#include "http/http_server.h"
-#include "processor/wetext_processor.h"
+#include "gflags/gflags.h"
 
 #include "frontend/g2p_en.h"
 #include "frontend/g2p_prosody.h"
 #include "frontend/wav.h"
+#include "http/http_server.h"
 #include "model/tts_model.h"
+#include "processor/wetext_processor.h"
+#include "utils/log.h"
 #include "utils/string.h"
 
 // Flags
@@ -51,7 +52,6 @@ DEFINE_string(speaker2id, "", "speaker to id");
 DEFINE_string(phone2id, "", "phone to id");
 DEFINE_string(vits_model, "", "e2e tts model file");
 DEFINE_int32(sampling_rate, 22050, "sampling rate of pcm");
-
 
 // port
 DEFINE_int32(port, 10086, "http listening port");

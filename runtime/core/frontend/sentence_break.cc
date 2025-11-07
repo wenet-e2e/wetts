@@ -19,7 +19,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "glog/logging.h"
+#include "utils/log.h"
 
 #include "utils/string.h"
 

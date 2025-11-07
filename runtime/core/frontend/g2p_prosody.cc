@@ -21,7 +21,7 @@
 #include <utility>
 #include <vector>
 
-#include "glog/logging.h"
+#include "utils/log.h"
 
 #include "utils/string.h"
 #include "utils/utils.h"

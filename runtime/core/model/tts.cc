@@ -23,7 +23,7 @@
 #include <utility>
 #include <vector>
 
-#include "glog/logging.h"
+#include "utils/log.h"
 
 #include "frontend/sentence_break.h"
 #include "utils/string.h"
