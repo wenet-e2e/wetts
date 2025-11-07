@@ -17,7 +17,7 @@
 #include <string>
 #include <vector>
 
-#ifdef FST
+#ifdef BUILD_WITH_FST
 #include "fst/rmepsilon.h"
 #endif
 
@@ -28,7 +28,7 @@
 
 namespace wetts {
 
-#ifdef FST
+#ifdef BUILD_WITH_FST
 StdVectorFst ShortestPath(const std::string& input, const StdVectorFst* fst) {
   StdVectorFst input_fst;
   static StringCompiler compiler(BYTE);
@@ -67,7 +67,7 @@ void ShortestPath(const std::string& input, const StdVectorFst* fst,
 G2pEn::G2pEn(const std::string& cmudict, const std::string& model,
              const std::string& sym) {
   ReadTableFile(cmudict, &cmudict_);
-#ifdef FST
+#ifdef BUILD_WITH_FST
   model_.reset(fst::StdVectorFst::Read(model));
   sym_.reset(fst::SymbolTable::ReadText(sym));
 #endif
@@ -89,7 +89,7 @@ void G2pEn::Convert(const std::string& grapheme,
       }
     }
   } else {
-#ifdef FST
+#ifdef BUILD_WITH_FST
     std::vector<std::string> graphemes;
     SplitStringToVector(grapheme, "-", true, &graphemes);
     for (int i = 0; i < graphemes.size(); ++i) {

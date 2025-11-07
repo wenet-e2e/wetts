@@ -20,13 +20,13 @@
 #include <unordered_map>
 #include <vector>
 
-#ifdef FST
+#ifdef BUILD_WITH_FST
 #include "fst/fstlib.h"
 #endif
 
 namespace wetts {
 
-#ifdef FST
+#ifdef BUILD_WITH_FST
 using fst::StdVectorFst;
 using fst::ProjectType::PROJECT_OUTPUT;
 using fst::StringTokenType::BYTE;
@@ -55,7 +55,7 @@ class G2pEn {
 
  private:
   std::unordered_map<std::string, std::vector<std::string>> cmudict_;
-#ifdef FST
+#ifdef BUILD_WITH_FST
   std::shared_ptr<fst::StdVectorFst> model_;
   std::shared_ptr<fst::SymbolTable> sym_;
 #endif

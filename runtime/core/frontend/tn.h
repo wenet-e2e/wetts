@@ -17,13 +17,13 @@
 
 #include <string>
 
-#ifdef FST
+#ifdef BUILD_WITH_FST
 #include "processor/wetext_processor.h"
-#endif  //  FST
+#endif  //  BUILD_WITH_FST
 
 namespace wetts {
 
-#ifdef FST
+#ifdef BUILD_WITH_FST
 class TN {
  public:
   TN(const std::string& tagger_path, const std::string& verbalizer_path)
@@ -43,7 +43,7 @@ class TN {
   std::string Normalize(const std::string& text) { return text; }
 };
 
-#endif  //  FST
+#endif  //  BUILD_WITH_FST
 
 }  // namespace wetts
 
