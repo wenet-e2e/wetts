@@ -16,7 +16,7 @@
 #include <vector>
 
 #include "gflags/gflags.h"
-#include "glog/logging.h"
+#include "utils/log.h"
 #include "processor/wetext_processor.h"
 
 #include "frontend/g2p_en.h"

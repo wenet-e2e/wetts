@@ -20,7 +20,7 @@
 
 #include "model/onnx_model.h"
 
-#include "glog/logging.h"
+#include "utils/log.h"
 
 #include "utils/string.h"
 

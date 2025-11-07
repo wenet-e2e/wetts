@@ -12,6 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+#include "utils/log.h"
 #include "utils/utils.h"
 
 namespace wetts {
