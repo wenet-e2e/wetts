@@ -34,7 +34,7 @@ namespace wetts {
 TTS::TTS(const std::string& encoder_model_path,
          const std::string& decoder_model_path, const std::string& speaker2id,
          const std::string& phone2id, const int sampling_rate,
-         std::shared_ptr<wetext::Processor> tn,
+         std::shared_ptr<TN> tn,
          std::shared_ptr<G2pProsody> g2p_prosody, int chunk_size, int pad_size)
     : vits_(encoder_model_path, decoder_model_path, chunk_size, pad_size),
       tn_(std::move(tn)),

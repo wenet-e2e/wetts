@@ -17,10 +17,10 @@
 
 #include "gflags/gflags.h"
 #include "utils/log.h"
-#include "processor/wetext_processor.h"
 
 #include "frontend/g2p_en.h"
 #include "frontend/g2p_prosody.h"
+#include "frontend/tn.h"
 #include "frontend/wav.h"
 #include "model/tts.h"
 #include "utils/string.h"
@@ -65,7 +65,7 @@ int main(int argc, char* argv[]) {
   gflags::ReadFromFlagsFile(FLAGS_frontend_flags, "", false);
   gflags::ReadFromFlagsFile(FLAGS_vits_flags, "", false);
 
-  auto tn = std::make_shared<wetext::Processor>(FLAGS_tagger, FLAGS_verbalizer);
+  auto tn = std::make_shared<wetts::TN>(FLAGS_tagger, FLAGS_verbalizer);
 
   bool has_en = !FLAGS_g2p_en_model.empty() && !FLAGS_g2p_en_sym.empty() &&
                 !FLAGS_g2p_en_sym.empty();
