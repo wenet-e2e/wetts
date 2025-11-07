@@ -19,7 +19,7 @@
 
 #include "utils/log.h"
 
-#include "utils/fst.h"
+#include "frontend/fst.h"
 #include "utils/string.h"
 #include "utils/utils.h"
 

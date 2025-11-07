@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef UTILS_FST_H_
-#define UTILS_FST_H_
+#ifndef FRONTEND_FST_H_
+#define FRONTEND_FST_H_
 
 #include <string>
 #include <vector>
 
 #include "fst/fstlib.h"
-#include "utils/log.h"
 
+#include "utils/log.h"
 #include "utils/string.h"
 
 using fst::StdVectorFst;
@@ -44,4 +44,4 @@ void ShortestPath(const std::string& input, const StdVectorFst* fst,
 
 }  // namespace wetts
 
-#endif  // UTILS_FST_H_
+#endif  // FRONTEND_FST_H_

@@ -1,5 +1,4 @@
 add_library(utils STATIC
-  fst.cc
   string.cc
   utils.cc
 )
