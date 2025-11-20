@@ -32,6 +32,16 @@ static bool IsSentenceDelimiterChar(const std::string& ch) {
   return kDelims.find(ch) != kDelims.end();
 }
 
+static bool IsSafeBreakChar(const std::string& ch) {
+  // 安全切割点：逗号、冒号、引号、顿号（不切英文单词或连续数字）
+  static const std::unordered_set<std::string> kSafeBreaks = {
+      ",", "，",  // 英文/中文逗号
+      ":", "：",  // 英文/中文冒号
+      "\"", """, """,  // 英文/中文引号
+      "、"};  // 中文顿号
+  return kSafeBreaks.find(ch) != kSafeBreaks.end();
+}
+
 void SentenceSegement(const std::string& text,
                       std::vector<std::string>* sentences,
                       size_t max_clause_len) {
@@ -53,6 +63,8 @@ void SentenceSegement(const std::string& text,
   SplitUTF8StringToChars(text, &chars);
   for (const auto& ch : chars) {
     if (IsSentenceDelimiterChar(ch)) {
+      // 将标点符号加入到当前句子中
+      current += ch;
       std::string trimmed = Trim(current);
       if (!trimmed.empty()) {
         sentences->emplace_back(trimmed);
@@ -63,17 +75,24 @@ void SentenceSegement(const std::string& text,
       in_ascii_word = false;
       continue;
     }
-    // 记录安全切割点（不切英文单词）
+    // 记录安全切割点（不切英文单词或连续数字）
     bool is_ascii_alnum =
         (ch.size() == 1) && std::isalnum(static_cast<unsigned char>(ch[0]));
     bool is_space = (ch == " " || ch == "\t");
-    if (is_space) {
+
+    if (IsSafeBreakChar(ch)) {
+      // 逗号、冒号、引号、顿号是安全切割点
+      last_safe_index = current.size() + ch.size();
+      in_ascii_word = false;
+    } else if (is_space) {
       last_safe_index = current.size();
       in_ascii_word = false;
     } else if (!in_ascii_word && is_ascii_alnum) {
+      // 英文单词或数字的开始
       last_safe_index = current.size();
       in_ascii_word = true;
     } else if (in_ascii_word && !is_ascii_alnum) {
+      // 英文单词或数字的结束
       last_safe_index = current.size();
       in_ascii_word = false;
     }
