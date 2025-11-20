@@ -25,9 +25,9 @@ TEST(SentenceBreakTest, ChinesePunctuations) {
   std::string text = "我爱编程，但是今天下雨了。明天呢？好吧！";
   std::vector<std::string> sentences;
   SentenceSegement(text, &sentences);
-  // 逗号不进行切分
-  std::vector<std::string> expect = {"我爱编程，但是今天下雨了", "明天呢",
-                                     "好吧"};
+  // 逗号不进行切分，标点符号包含在返回的句子中
+  std::vector<std::string> expect = {"我爱编程，但是今天下雨了。", "明天呢？",
+                                     "好吧！"};
   ASSERT_EQ(sentences, expect);
 }
 
@@ -35,9 +35,9 @@ TEST(SentenceBreakTest, EnglishPunctuations) {
   std::string text = "Hello, world! Are you OK? Yes; good.";
   std::vector<std::string> sentences;
   SentenceSegement(text, &sentences);
-  // 逗号不进行切分
-  std::vector<std::string> expect = {"Hello, world", "Are you OK", "Yes",
-                                     "good"};
+  // 逗号不进行切分，标点符号包含在返回的句子中
+  std::vector<std::string> expect = {"Hello, world!", "Are you OK?", "Yes;",
+                                     "good."};
   ASSERT_EQ(sentences, expect);
 }
 
@@ -56,5 +56,21 @@ TEST(SentenceBreakTest, ChineseMaxLengthSplit) {
   std::vector<std::string> sentences;
   SentenceSegement(text, &sentences, 3);
   std::vector<std::string> expect = {"我爱编", "程学习"};
+  ASSERT_EQ(sentences, expect);
+}
+
+TEST(SentenceBreakTest, CommaAsSafeBreakPoint) {
+  // 测试逗号作为安全切割点，且不切分连续数字
+  std::string text = "11月10日，第十五届全国运动会武术套路比赛在广州南沙体育馆收官。来自广州的\"00后\"志愿者李镁雪也结束了她的\"最后一班岗\"";  // NOLINT
+  std::vector<std::string> sentences;
+  SentenceSegement(text, &sentences, 32);
+  // 逗号是安全切割点，当超过最大长度时可以在逗号处切分
+  // 句号是句子分隔符，会直接切分
+  // "00后"是连续数字，不应该被切分
+  std::vector<std::string> expect = {
+    "11月10日，",
+    "第十五届全国运动会武术套路比赛在广州南沙体育馆收官。",
+    "来自广州的\"00后\"志愿者李镁雪也结束了她的\"最后一班岗\"",
+  };
   ASSERT_EQ(sentences, expect);
 }
