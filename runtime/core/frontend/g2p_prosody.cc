@@ -18,6 +18,7 @@
 #include <fstream>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -30,6 +31,16 @@
 #include "frontend/sandhi.h"
 
 namespace wetts {
+
+// 标点到韵律值的映射规则
+// 逗号、冒号映射为 #3，顿号映射为 #2
+static const std::unordered_map<std::string, std::string> kPunctProsodyMap = {
+    {",", "#3"},   // 英文逗号
+    {"，", "#3"},   // 中文逗号
+    {":", "#3"},   // 英文冒号
+    {"：", "#3"},   // 中文冒号
+    {"、", "#2"},   // 中文顿号
+};
 
 G2pProsody::G2pProsody(const std::string& g2p_prosody_model,
                        const std::string& g2p_prosody_vocab,
@@ -200,15 +211,23 @@ void G2pProsody::Compute(const std::string& str,
       phonemes->insert(phonemes->end(), pinyin.begin(), pinyin.end());
       phonemes->emplace_back(prosody[0]);
     } else {
-      // Not English, Not in Lexicon, ignore now
-      // TODO(Binbin Zhang): Deal punct
-      LOG(WARNING) << "Ignore word " << word;
+      // Deal with OOV & punctuation
+      auto it = kPunctProsodyMap.find(word);
+      if (it != kPunctProsodyMap.end()) {
+        if (!phonemes->empty()) {
+          phonemes->back() = it->second;
+        }
+      } else {
+        LOG(WARNING) << "Ignore word " << word;
+      }
     }
     VLOG(2) << "Word, g2p & prosody: " << word << " "
             << pinyins[idx] << " " << prosodys[idx];
   }
   // Last token should be "#4"
-  phonemes->back() = "#4";
+  if (phonemes->size() > 0) {
+    phonemes->back() = "#4";
+  }
 }
 
 
