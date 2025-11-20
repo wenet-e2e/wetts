@@ -44,27 +44,33 @@ TTS::TTS(const std::string& encoder_model_path,
   ReadTableFile(speaker2id, &speaker2id_);
 }
 
-void TTS::Text2PhoneIds(const std::string& text,
+bool TTS::Text2PhoneIds(const std::string& text,
                         std::vector<int64_t>* phone_ids) {
   phone_ids->clear();
   // 1. TN
   std::string norm_text = tn_->Normalize(text);
+  LOG(INFO) << text <<  " --TN--> " << norm_text;
   // 2. G2P: char => pinyin => phones => ids
   std::vector<std::string> phonemes;
   g2p_prosody_->Compute(norm_text, &phonemes);
   // 3. Convert to phone id
-  std::stringstream ss;
-  phone_ids->emplace_back(phone2id_["sil"]);
-  ss << "sil";
-  for (const auto& phone : phonemes) {
-    if (phone2id_.count(phone) == 0) {
-      LOG(ERROR) << "Can't find `" << phone << "` in phone2id.";
-      continue;
+  if (phonemes.size() > 0) {
+    std::stringstream ss;
+    phone_ids->emplace_back(phone2id_["sil"]);
+    ss << "sil";
+    for (const auto& phone : phonemes) {
+      if (phone2id_.count(phone) == 0) {
+        LOG(ERROR) << "Can't find `" << phone << "` in phone2id.";
+        continue;
+      }
+      ss << " " << phone;
+      phone_ids->emplace_back(phone2id_[phone]);
     }
-    ss << " " << phone;
-    phone_ids->emplace_back(phone2id_[phone]);
+    LOG(INFO) << "phone sequence " << ss.str();
+      return true;
+  } else {
+    return false;
   }
-  LOG(INFO) << "phone sequence " << ss.str();
 }
 
 void TTS::Synthesis(const std::string& text, const int sid,
@@ -73,10 +79,12 @@ void TTS::Synthesis(const std::string& text, const int sid,
   SentenceSegement(text, &text_arrs);
   for (const auto& text : text_arrs) {
     std::vector<int64_t> phonemes;
-    Text2PhoneIds(text, &phonemes);
-    std::vector<float> sub_audio;
-    vits_.Forward(phonemes, sid, &sub_audio);
-    audio->insert(audio->end(), sub_audio.begin(), sub_audio.end());
+    bool ok = Text2PhoneIds(text, &phonemes);
+    if (ok) {
+      std::vector<float> sub_audio;
+      vits_.Forward(phonemes, sid, &sub_audio);
+      audio->insert(audio->end(), sub_audio.begin(), sub_audio.end());
+    }
   }
 }
 
@@ -93,10 +101,23 @@ bool TTS::StreamSynthesis(std::vector<float>* audio) {
     return true;  // all text done
   }
   if (new_text_) {
-    std::vector<int64_t> phonemes;
-    Text2PhoneIds(text_arrs_[cur_text_idx_], &phonemes);
-    vits_.SetInput(phonemes, sid_);
-    new_text_ = false;
+    // 连续跳过转换失败的文本片段，直到找到有效的片段
+    while (cur_text_idx_ < text_arrs_.size()) {
+      std::vector<int64_t> phonemes;
+      bool ok = Text2PhoneIds(text_arrs_[cur_text_idx_], &phonemes);
+      if (ok && !phonemes.empty()) {
+        // 找到有效的片段，设置输入并退出循环
+        vits_.SetInput(phonemes, sid_);
+        new_text_ = false;
+        break;
+      }
+      // 转换失败或结果为空，跳过当前文本片段，继续下一个
+      cur_text_idx_++;
+    }
+    // 如果所有片段都处理完了，返回 true
+    if (cur_text_idx_ >= text_arrs_.size()) {
+      return true;
+    }
   }
   bool done = vits_.StreamDecode(audio);
   if (done) {

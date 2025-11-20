@@ -48,7 +48,7 @@ class TTS {
   //     true: synthesis done, stop call
   //     false: synthesis work in progress, you should continue to call me
   bool StreamSynthesis(std::vector<float>* audio);
-  void Text2PhoneIds(const std::string& text, std::vector<int64_t>* phone_ids);
+  bool Text2PhoneIds(const std::string& text, std::vector<int64_t>* phone_ids);
   int GetSid(const std::string& name);
   int sampling_rate() const { return sampling_rate_; }
 
